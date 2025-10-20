@@ -39,12 +39,13 @@ export function CheckoutWrapper({
   const fetchPaymentIntent = async () => {
     setLoading(true)
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/payments/service-order/create-payment-intent`,
         { orderId },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
+            Authorization: `Bearer ${token}`
           }
         }
       )
