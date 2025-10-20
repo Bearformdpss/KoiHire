@@ -37,9 +37,11 @@ export function CheckoutModal({
     }
 
     setLoading(true)
+    console.log('💳 Submitting payment...')
 
     try {
       // Confirm payment
+      console.log('💳 Calling stripe.confirmPayment...')
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
@@ -48,16 +50,24 @@ export function CheckoutModal({
         redirect: 'if_required'
       })
 
+      console.log('💳 Stripe response:', { error, paymentIntent })
+
       if (error) {
+        console.error('❌ Stripe error:', error)
         toast.error(error.message || 'Payment failed')
         setLoading(false)
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      } else if (paymentIntent && (paymentIntent.status === 'succeeded' || paymentIntent.status === 'requires_capture')) {
+        console.log('✅ Payment succeeded! Status:', paymentIntent.status)
         toast.success('Payment successful! Funds are now held in escrow.')
         onSuccess()
         onClose()
+      } else {
+        console.log('⚠️ Unexpected payment status:', paymentIntent?.status)
+        toast.error('Payment status unclear, please refresh the page')
+        setLoading(false)
       }
     } catch (error: any) {
-      console.error('Payment error:', error)
+      console.error('❌ Payment error:', error)
       toast.error('Failed to process payment')
       setLoading(false)
     }

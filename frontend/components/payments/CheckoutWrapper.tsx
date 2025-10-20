@@ -40,6 +40,10 @@ export function CheckoutWrapper({
     setLoading(true)
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+      console.log('🔍 Fetching payment intent for order:', orderId)
+      console.log('🔑 Token exists:', !!token)
+      console.log('🌐 API URL:', `${process.env.NEXT_PUBLIC_API_URL}/payments/service-order/create-payment-intent`)
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/payments/service-order/create-payment-intent`,
         { orderId },
@@ -50,13 +54,16 @@ export function CheckoutWrapper({
         }
       )
 
+      console.log('✅ Payment intent response:', response.data)
+
       if (response.data.success && response.data.clientSecret) {
         setClientSecret(response.data.clientSecret)
       } else {
         throw new Error('Failed to create payment intent')
       }
     } catch (error: any) {
-      console.error('Failed to create payment intent:', error)
+      console.error('❌ Failed to create payment intent:', error)
+      console.error('❌ Error response:', error.response?.data)
       toast.error(error.response?.data?.message || 'Failed to initialize payment')
       onClose()
     } finally {
