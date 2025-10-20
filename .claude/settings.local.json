@@ -42,7 +42,10 @@
       "Bash(set PORT=3000)",
       "Bash(set PRISMA_MIGRATE_SKIP_GENERATE=true)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

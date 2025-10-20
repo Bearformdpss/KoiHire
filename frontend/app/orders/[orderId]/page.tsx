@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
-  ArrowLeft, Clock, RotateCw, Package, User, Calendar, MessageCircle, Loader2, CheckCircle2, AlertCircle
+  ArrowLeft, Clock, RotateCw, Package, User, Calendar, MessageCircle, Loader2, CheckCircle2, AlertCircle, CreditCard
 } from 'lucide-react'
 import { serviceOrdersApi, ServiceOrder } from '@/lib/api/service-orders'
+import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -19,6 +20,7 @@ export default function OrderDetailPage() {
 
   const [order, setOrder] = useState<ServiceOrder | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showCheckout, setShowCheckout] = useState(false)
 
   useEffect(() => {
     if (orderId) {
@@ -147,15 +149,23 @@ export default function OrderDetailPage() {
 
         {/* Payment Pending Notice */}
         {order.paymentStatus === 'PENDING' && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-yellow-900">Payment Required</h3>
-              <p className="text-sm text-yellow-800 mt-1">
-                This order is pending payment. Payment processing will be integrated soon. Once payment is complete,
-                funds will be held securely in escrow until you approve the delivered work.
-              </p>
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-900">Payment Required</h3>
+                <p className="text-sm text-yellow-800 mt-1">
+                  Complete payment to start your order. Funds will be held securely in escrow until you approve the delivered work.
+                </p>
+              </div>
             </div>
+            <Button
+              onClick={() => setShowCheckout(true)}
+              className="w-full sm:w-auto bg-gradient-to-r from-koi-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Pay ${order.totalAmount.toFixed(2)} Now
+            </Button>
           </div>
         )}
 
@@ -363,6 +373,18 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Checkout Modal */}
+      {order && (
+        <CheckoutWrapper
+          isOpen={showCheckout}
+          onClose={() => setShowCheckout(false)}
+          orderId={order.id}
+          totalAmount={order.totalAmount}
+          serviceName={order.service.title}
+          onSuccess={fetchOrder}
+        />
+      )}
     </div>
   )
 }

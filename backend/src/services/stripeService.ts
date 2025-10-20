@@ -237,13 +237,237 @@ export const refundEscrow = async (escrowId: string, reason?: string) => {
   return { escrow, refund };
 };
 
+// ==================== SERVICE ORDER PAYMENT METHODS ====================
+
+/**
+ * Create payment intent for service order
+ * Funds are held in escrow until work is approved
+ */
+export const createServiceOrderPayment = async (
+  orderId: string,
+  amount: number,
+  clientId: string,
+  description?: string
+) => {
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: Math.round(amount * 100), // Convert to cents
+    currency: 'usd',
+    automatic_payment_methods: {
+      enabled: true
+    },
+    // Manual capture - funds held until work approved
+    capture_method: 'manual',
+    metadata: {
+      orderId,
+      clientId,
+      type: 'service_order'
+    },
+    description: description || `Payment for service order ${orderId}`
+  });
+
+  return paymentIntent;
+};
+
+/**
+ * Confirm service order payment after client pays
+ * Updates order status to PAID
+ */
+export const confirmServiceOrderPayment = async (orderId: string, paymentIntentId: string) => {
+  const order = await prisma.serviceOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      service: true,
+      client: true,
+      freelancer: true
+    }
+  });
+
+  if (!order) {
+    throw new Error('Service order not found');
+  }
+
+  // Update order payment status
+  await prisma.serviceOrder.update({
+    where: { id: orderId },
+    data: {
+      paymentStatus: 'PAID',
+      status: 'ACCEPTED' // Freelancer can start work
+    }
+  });
+
+  // Create transaction record
+  await prisma.transaction.create({
+    data: {
+      userId: order.clientId,
+      serviceOrderId: order.id,
+      type: 'DEPOSIT',
+      amount: order.totalAmount,
+      status: 'COMPLETED',
+      stripeId: paymentIntentId,
+      description: `Payment for service: ${order.service.title}`
+    }
+  });
+
+  return order;
+};
+
+/**
+ * Capture payment and release to freelancer
+ * Called when client approves the work
+ */
+export const releaseServiceOrderPayment = async (orderId: string) => {
+  const order = await prisma.serviceOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      service: true,
+      transactions: true
+    }
+  });
+
+  if (!order) {
+    throw new Error('Service order not found');
+  }
+
+  if (order.paymentStatus !== 'PAID') {
+    throw new Error('Order payment not confirmed');
+  }
+
+  // Find the original payment intent from transaction
+  const depositTransaction = order.transactions.find(t => t.type === 'DEPOSIT');
+  if (!depositTransaction || !depositTransaction.stripeId) {
+    throw new Error('Original payment not found');
+  }
+
+  // Capture the payment (release from escrow)
+  await stripe.paymentIntents.capture(depositTransaction.stripeId);
+
+  // Calculate platform fee (10%)
+  const platformFee = order.totalAmount * 0.10;
+  const freelancerAmount = order.totalAmount - platformFee;
+
+  await prisma.$transaction([
+    // Update order payment status
+    prisma.serviceOrder.update({
+      where: { id: orderId },
+      data: {
+        paymentStatus: 'RELEASED',
+        status: 'COMPLETED'
+      }
+    }),
+    // Create freelancer payout transaction
+    prisma.transaction.create({
+      data: {
+        userId: order.freelancerId,
+        serviceOrderId: order.id,
+        type: 'WITHDRAWAL',
+        amount: freelancerAmount,
+        status: 'COMPLETED',
+        description: `Earnings from service: ${order.service.title}`
+      }
+    }),
+    // Create platform fee transaction
+    prisma.transaction.create({
+      data: {
+        userId: order.freelancerId,
+        serviceOrderId: order.id,
+        type: 'FEE',
+        amount: platformFee,
+        status: 'COMPLETED',
+        description: `Platform fee for service: ${order.service.title}`
+      }
+    }),
+    // Update freelancer total earnings
+    prisma.user.update({
+      where: { id: order.freelancerId },
+      data: {
+        totalEarnings: {
+          increment: freelancerAmount
+        }
+      }
+    }),
+    // Update client total spent
+    prisma.user.update({
+      where: { id: order.clientId },
+      data: {
+        totalSpent: {
+          increment: order.totalAmount
+        }
+      }
+    })
+  ]);
+
+  return order;
+};
+
+/**
+ * Refund service order payment
+ * Called when order is cancelled or disputed
+ */
+export const refundServiceOrderPayment = async (orderId: string, reason?: string) => {
+  const order = await prisma.serviceOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      service: true,
+      transactions: true
+    }
+  });
+
+  if (!order) {
+    throw new Error('Service order not found');
+  }
+
+  if (order.paymentStatus !== 'PAID') {
+    throw new Error('Cannot refund unpaid order');
+  }
+
+  // Find the original payment intent
+  const depositTransaction = order.transactions.find(t => t.type === 'DEPOSIT');
+  if (!depositTransaction || !depositTransaction.stripeId) {
+    throw new Error('Original payment not found');
+  }
+
+  // Cancel (refund) the payment intent
+  await stripe.paymentIntents.cancel(depositTransaction.stripeId);
+
+  await prisma.$transaction([
+    // Update order status
+    prisma.serviceOrder.update({
+      where: { id: orderId },
+      data: {
+        paymentStatus: 'REFUNDED',
+        status: 'CANCELLED'
+      }
+    }),
+    // Create refund transaction
+    prisma.transaction.create({
+      data: {
+        userId: order.clientId,
+        serviceOrderId: order.id,
+        type: 'REFUND',
+        amount: order.totalAmount,
+        status: 'COMPLETED',
+        description: `Refund for service: ${order.service.title}${reason ? ` - ${reason}` : ''}`
+      }
+    })
+  ]);
+
+  return order;
+};
+
+// ==================== WEBHOOK HANDLER ====================
+
 export const handleStripeWebhook = async (event: Stripe.Event) => {
   switch (event.type) {
     case 'payment_intent.succeeded':
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      const { projectId } = paymentIntent.metadata;
+      const { projectId, orderId, type } = paymentIntent.metadata;
 
-      if (projectId) {
+      if (type === 'service_order' && orderId) {
+        // Service order payment succeeded
+        await confirmServiceOrderPayment(orderId, paymentIntent.id);
+        console.log(`✅ Service order ${orderId} payment confirmed`);
+      } else if (projectId) {
+        // Project escrow payment succeeded
         const escrow = await prisma.escrow.findFirst({
           where: {
             projectId,
@@ -253,18 +477,24 @@ export const handleStripeWebhook = async (event: Stripe.Event) => {
 
         if (escrow) {
           await confirmEscrowPayment(escrow.id);
+          console.log(`✅ Project escrow ${escrow.id} payment confirmed`);
         }
       }
       break;
 
     case 'payment_intent.payment_failed':
       const failedPayment = event.data.object as Stripe.PaymentIntent;
-      console.error('Payment failed:', failedPayment);
-      
-      // Handle failed payment - you might want to notify the client
+      console.error('❌ Payment failed:', failedPayment);
+
+      // TODO: Send email notification to user about failed payment
+      break;
+
+    case 'payment_intent.canceled':
+      const canceledPayment = event.data.object as Stripe.PaymentIntent;
+      console.log(`🔄 Payment canceled: ${canceledPayment.id}`);
       break;
 
     default:
-      console.log(`Unhandled event type: ${event.type}`);
+      console.log(`ℹ️ Unhandled event type: ${event.type}`);
   }
 };

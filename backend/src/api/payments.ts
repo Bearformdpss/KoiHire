@@ -2,11 +2,15 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
-import { 
-  createPaymentIntent, 
-  createEscrow, 
-  releaseEscrow, 
+import {
+  createPaymentIntent,
+  createEscrow,
+  releaseEscrow,
   refundEscrow,
+  createServiceOrderPayment,
+  confirmServiceOrderPayment,
+  releaseServiceOrderPayment,
+  refundServiceOrderPayment,
   handleStripeWebhook,
   stripe
 } from '../services/stripeService';
@@ -265,10 +269,193 @@ router.get('/transactions', asyncHandler(async (req: AuthRequest, res) => {
   });
 }));
 
+// ==================== SERVICE ORDER PAYMENT ROUTES ====================
+
+// Create payment intent for service order
+router.post('/service-order/create-payment-intent', asyncHandler(async (req: AuthRequest, res) => {
+  const { orderId } = req.body;
+
+  if (!orderId) {
+    throw new AppError('Order ID is required', 400);
+  }
+
+  const order = await prisma.serviceOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      service: true,
+      client: true,
+      freelancer: true
+    }
+  });
+
+  if (!order) {
+    throw new AppError('Service order not found', 404);
+  }
+
+  if (order.clientId !== req.user!.id) {
+    throw new AppError('Only the order client can make payment', 403);
+  }
+
+  if (order.status !== 'PENDING') {
+    throw new AppError('Order must be pending to make payment', 400);
+  }
+
+  if (order.paymentStatus !== 'PENDING') {
+    throw new AppError('Payment already processed for this order', 400);
+  }
+
+  try {
+    const paymentIntent = await createServiceOrderPayment(
+      orderId,
+      order.totalAmount,
+      req.user!.id,
+      `Payment for service: ${order.service.title}`
+    );
+
+    res.json({
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id
+    });
+  } catch (error) {
+    console.error('Error creating service order payment:', error);
+    throw new AppError('Failed to create payment intent', 500);
+  }
+}));
+
+// Get service order payment status
+router.get('/service-order/:orderId', asyncHandler(async (req: AuthRequest, res) => {
+  const { orderId } = req.params;
+
+  const order = await prisma.serviceOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      service: true,
+      transactions: {
+        orderBy: { createdAt: 'desc' }
+      }
+    }
+  });
+
+  if (!order) {
+    throw new AppError('Service order not found', 404);
+  }
+
+  // Only order participants can view payment details
+  if (req.user!.id !== order.clientId && req.user!.id !== order.freelancerId) {
+    throw new AppError('Not authorized to view payment details', 403);
+  }
+
+  res.json({
+    success: true,
+    order: {
+      id: order.id,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      totalAmount: order.totalAmount,
+      service: {
+        id: order.service.id,
+        title: order.service.title
+      },
+      transactions: order.transactions
+    }
+  });
+}));
+
+// Release service order payment (client approves work)
+router.post('/service-order/:orderId/release', asyncHandler(async (req: AuthRequest, res) => {
+  const { orderId } = req.params;
+
+  const order = await prisma.serviceOrder.findUnique({
+    where: { id: orderId },
+    select: {
+      id: true,
+      clientId: true,
+      freelancerId: true,
+      status: true,
+      paymentStatus: true
+    }
+  });
+
+  if (!order) {
+    throw new AppError('Service order not found', 404);
+  }
+
+  if (order.clientId !== req.user!.id) {
+    throw new AppError('Only the order client can release payment', 403);
+  }
+
+  if (order.status !== 'DELIVERED') {
+    throw new AppError('Work must be delivered before releasing payment', 400);
+  }
+
+  if (order.paymentStatus !== 'PAID') {
+    throw new AppError('Payment not confirmed yet', 400);
+  }
+
+  try {
+    await releaseServiceOrderPayment(orderId);
+
+    res.json({
+      success: true,
+      message: 'Payment released successfully'
+    });
+  } catch (error) {
+    console.error('Error releasing service order payment:', error);
+    throw new AppError('Failed to release payment', 500);
+  }
+}));
+
+// Refund service order payment
+router.post('/service-order/:orderId/refund', asyncHandler(async (req: AuthRequest, res) => {
+  const { orderId } = req.params;
+  const { reason } = req.body;
+
+  const order = await prisma.serviceOrder.findUnique({
+    where: { id: orderId },
+    select: {
+      id: true,
+      clientId: true,
+      freelancerId: true,
+      status: true,
+      paymentStatus: true
+    }
+  });
+
+  if (!order) {
+    throw new AppError('Service order not found', 404);
+  }
+
+  // Client or admin can request refund
+  if (order.clientId !== req.user!.id && req.user!.role !== 'ADMIN') {
+    throw new AppError('Not authorized to refund this order', 403);
+  }
+
+  if (order.paymentStatus !== 'PAID') {
+    throw new AppError('Cannot refund unpaid order', 400);
+  }
+
+  if (order.paymentStatus === 'RELEASED') {
+    throw new AppError('Cannot refund released payment', 400);
+  }
+
+  try {
+    await refundServiceOrderPayment(orderId, reason);
+
+    res.json({
+      success: true,
+      message: 'Order refunded successfully'
+    });
+  } catch (error) {
+    console.error('Error refunding service order:', error);
+    throw new AppError('Failed to refund order', 500);
+  }
+}));
+
 // Stripe webhook handler
 router.post('/webhook', express.raw({ type: 'application/json' }), asyncHandler(async (req, res) => {
   const sig = req.headers['stripe-signature'] as string;
-  
+
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     throw new AppError('Stripe webhook secret not configured', 500);
   }
