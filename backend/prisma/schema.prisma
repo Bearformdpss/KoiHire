@@ -1,0 +1,729 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  username        String    @unique
+  firstName       String
+  lastName        String
+  password        String
+  avatar          String?
+  bio             String?
+  location        String?
+  website         String?
+  phone           String?
+  isVerified      Boolean   @default(false)
+  isAvailable     Boolean   @default(true)
+  role            UserRole  @default(CLIENT)
+  rating          Float?
+  totalEarnings   Float     @default(0)
+  totalSpent      Float     @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastActiveAt    DateTime  @default(now())
+
+  // Refresh tokens
+  refreshTokens   RefreshToken[]
+
+  // Client relationships
+  clientProjects  Project[] @relation("ClientProjects")
+  clientReviews   Review[]  @relation("ClientReviews")
+
+  // Freelancer relationships
+  freelancerApplications Application[] @relation("FreelancerApplications")
+  freelancerProjects     Project[]     @relation("FreelancerProjects")
+  freelancerReviews      Review[]      @relation("FreelancerReviews")
+
+  // Skills and categories
+  skills          UserSkill[]
+
+  // Messaging
+  sentMessages    Message[] @relation("MessageSender")
+  conversations   ConversationParticipant[]
+
+  // Transactions
+  transactions    Transaction[]
+
+  // Notifications
+  notifications   Notification[]
+
+  // Portfolio
+  portfolios      Portfolio[]
+
+  // Service marketplace relationships
+  freelancerServices      Service[]         @relation("FreelancerServices")
+  clientServiceOrders     ServiceOrder[]    @relation("ClientServiceOrders")
+  freelancerServiceOrders ServiceOrder[]    @relation("FreelancerServiceOrders")
+  clientServiceReviews    ServiceReview[]   @relation("ClientServiceReviews")
+  freelancerServiceReviews ServiceReview[]  @relation("FreelancerServiceReviews")
+
+  // File uploads
+  uploadedFiles   ProjectFile[]     @relation("UploadedFiles")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(cuid())
+  token       String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  slug        String    @unique
+  icon        String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  skills      Skill[]
+  projects    Project[]
+  services    Service[]
+
+  @@map("categories")
+}
+
+model Skill {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+
+  userSkills    UserSkill[]
+  projectSkills ProjectSkill[]
+  serviceSkills ServiceSkill[]
+
+  @@map("skills")
+}
+
+model UserSkill {
+  id          String   @id @default(cuid())
+  userId      String
+  skillId     String
+  level       SkillLevel @default(BEGINNER)
+  yearsExp    Int?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill       Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, skillId])
+  @@map("user_skills")
+}
+
+model Project {
+  id              String        @id @default(cuid())
+  title           String
+  description     String
+  requirements    String?
+  minBudget       Float
+  maxBudget       Float
+  timeline        String
+  status          ProjectStatus @default(OPEN)
+  categoryId      String
+  clientId        String
+  freelancerId    String?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Featured/Premium promotion fields
+  isFeatured      Boolean       @default(false)
+  featuredUntil   DateTime?     // When the featured period expires
+  featuredLevel   FeaturedLevel @default(NONE) // Different tiers of featuring
+  featuredPrice   Float?        // How much they paid for featuring
+  featuredAt      DateTime?     // When they upgraded to featured
+  
+  // Project management fields
+  cancelReason          String?   // Reason for cancellation
+  timelineUpdateReason  String?   // Reason for timeline update
+  budgetUpdateReason    String?   // Reason for budget update
+  changeRequestMessage  String?   // Message from client requesting changes
+  
+  category        Category      @relation(fields: [categoryId], references: [id])
+  client          User          @relation("ClientProjects", fields: [clientId], references: [id])
+  freelancer      User?         @relation("FreelancerProjects", fields: [freelancerId], references: [id])
+  
+  skills          ProjectSkill[]
+  applications    Application[]
+  conversations   Conversation[]
+  escrow          Escrow?
+  reviews         Review[]
+  updates         ProjectUpdate[]
+  notifications   Notification[]
+  files           ProjectFile[]
+
+  @@map("projects")
+}
+
+model ProjectSkill {
+  id        String   @id @default(cuid())
+  projectId String
+  skillId   String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, skillId])
+  @@map("project_skills")
+}
+
+model Application {
+  id            String            @id @default(cuid())
+  projectId     String
+  freelancerId  String
+  coverLetter   String
+  proposedBudget Float?
+  timeline      String
+  status        ApplicationStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  freelancer    User              @relation("FreelancerApplications", fields: [freelancerId], references: [id])
+  notifications Notification[]
+
+  @@unique([projectId, freelancerId])
+  @@map("applications")
+}
+
+model Conversation {
+  id            String                    @id @default(cuid())
+  projectId     String?                   // Made optional for direct conversations
+  serviceOrderId String?                  @unique // For service order conversations
+  isActive      Boolean                   @default(true)
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+
+  project       Project?                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  serviceOrder  ServiceOrder?             @relation(fields: [serviceOrderId], references: [id])
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime     @default(now())
+  lastReadAt     DateTime?
+  isArchived     Boolean      @default(false)
+  isPinned       Boolean      @default(false)
+  pinnedAt       DateTime?
+  archivedAt     DateTime?
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String
+  type           MessageType  @default(TEXT)
+  attachments    String[]     @default([])
+  isEdited       Boolean      @default(false)
+  editedAt       DateTime?
+  createdAt      DateTime     @default(now())
+  
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("MessageSender", fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Escrow {
+  id              String        @id @default(cuid())
+  projectId       String        @unique
+  amount          Float
+  status          EscrowStatus  @default(PENDING)
+  stripePaymentId String?
+  createdAt       DateTime      @default(now())
+  releasedAt      DateTime?
+  refundedAt      DateTime?
+  
+  project         Project       @relation(fields: [projectId], references: [id])
+  transactions    Transaction[]
+
+  @@map("escrow")
+}
+
+model Transaction {
+  id              String          @id @default(cuid())
+  userId          String
+  escrowId        String?
+  serviceOrderId  String?
+  type            TransactionType
+  amount          Float
+  status          TransactionStatus @default(PENDING)
+  stripeId        String?
+  description     String?
+  createdAt       DateTime        @default(now())
+
+  user            User            @relation(fields: [userId], references: [id])
+  escrow          Escrow?         @relation(fields: [escrowId], references: [id])
+  serviceOrder    ServiceOrder?   @relation(fields: [serviceOrderId], references: [id])
+
+  @@map("transactions")
+}
+
+model Review {
+  id             String   @id @default(cuid())
+  projectId      String
+  reviewerId     String
+  revieweeId     String
+  rating         Int      @db.SmallInt // 1-5 stars
+  comment        String?
+  communication  Int?     @db.SmallInt // 1-5 stars
+  quality        Int?     @db.SmallInt // 1-5 stars
+  timeliness     Int?     @db.SmallInt // 1-5 stars
+  professionalism Int?    @db.SmallInt // 1-5 stars
+  isPublic       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  
+  project        Project  @relation(fields: [projectId], references: [id])
+  reviewer       User     @relation("ClientReviews", fields: [reviewerId], references: [id])
+  reviewee       User     @relation("FreelancerReviews", fields: [revieweeId], references: [id])
+
+  @@unique([projectId, reviewerId])
+  @@map("reviews")
+}
+
+// Enums
+enum UserRole {
+  CLIENT
+  FREELANCER
+  ADMIN
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum ProjectStatus {
+  OPEN
+  PAUSED
+  IN_PROGRESS
+  PENDING_REVIEW
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  IMAGE
+  SYSTEM
+}
+
+enum EscrowStatus {
+  PENDING
+  FUNDED
+  RELEASED
+  REFUNDED
+  DISPUTED
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  REFUND
+  FEE
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum FeaturedLevel {
+  NONE         // Not featured
+  BASIC        // Basic featured tier
+  PREMIUM      // Premium featured tier  
+  SPOTLIGHT    // Top spotlight tier
+}
+
+enum UpdateType {
+  PROGRESS     // General progress update
+  MILESTONE    // Milestone completion
+  DELIVERABLE  // Deliverable submission
+  ISSUE        // Issue or blocker
+  QUESTION     // Question for client
+}
+
+model ProjectUpdate {
+  id          String     @id @default(cuid())
+  projectId   String
+  title       String
+  description String
+  type        UpdateType @default(PROGRESS)
+  attachments String[]   @default([])
+  isVisible   Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@map("project_updates")
+}
+
+model ProjectFile {
+  id           String   @id @default(cuid())
+  projectId    String
+  fileName     String   // Stored filename on disk
+  originalName String   // Original filename from user
+  fileSize     Int      // File size in bytes
+  mimeType     String   // MIME type (image/png, application/pdf, etc.)
+  filePath     String   // Path where file is stored
+  uploadedById String   // User who uploaded the file
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation("UploadedFiles", fields: [uploadedById], references: [id])
+
+  @@map("project_files")
+}
+
+model Notification {
+  id          String            @id @default(cuid())
+  userId      String            
+  type        NotificationType
+  title       String
+  message     String
+  data        Json?             
+  isRead      Boolean           @default(false)
+  priority    NotificationPriority @default(NORMAL)
+  
+  // Related entities (optional references)
+  projectId       String?
+  applicationId   String?
+  updateId        String?
+  
+  // Relations
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project     Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  application Application?      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  update      ProjectUpdate?    @relation(fields: [updateId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime          @default(now())
+  readAt      DateTime?
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  NEW_APPLICATION
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+  PROJECT_UPDATE
+  SUBMISSION_RECEIVED
+  WORK_APPROVED
+  CHANGES_REQUESTED
+  PAYMENT_RELEASED
+  PROJECT_COMPLETED
+  PROJECT_CANCELLED
+  SERVICE_ORDER_RECEIVED
+  SERVICE_ORDER_ACCEPTED
+  SERVICE_ORDER_DELIVERED
+  SERVICE_ORDER_APPROVED
+  SERVICE_ORDER_REVISION_REQUESTED
+  SERVICE_ORDER_COMPLETED
+  SERVICE_ORDER_CANCELLED
+  SERVICE_REVIEW_RECEIVED
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model Portfolio {
+  id              String            @id @default(cuid())
+  userId          String
+  title           String
+  description     String
+  category        PortfolioCategory @default(OTHER)
+  
+  // Media
+  thumbnail       String?
+  images          String[]          @default([])
+  liveUrl         String?
+  codeUrl         String?
+  
+  // Project Details
+  technologies    String[]          @default([])
+  duration        String?
+  clientName      String?
+  
+  // Basic Metrics
+  views           Int               @default(0)
+  
+  // Status
+  isPublic        Boolean           @default(true)
+  completedAt     DateTime
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("portfolios")
+}
+
+enum PortfolioCategory {
+  WEB_DEVELOPMENT
+  MOBILE_DEVELOPMENT
+  UI_UX_DESIGN
+  GRAPHIC_DESIGN
+  LOGO_DESIGN
+  CONTENT_WRITING
+  DIGITAL_MARKETING
+  VIDEO_EDITING
+  PHOTOGRAPHY
+  CONSULTING
+  OTHER
+}
+
+// Service Marketplace Models
+model Service {
+  id              String        @id @default(cuid())
+  freelancerId    String
+  title           String
+  description     String
+  shortDescription String?
+  categoryId      String
+
+  // Pricing
+  basePrice       Float
+
+  // Service details
+  deliveryTime    Int           // Days
+  revisions       Int
+  requirements    String?
+
+  // Media
+  coverImage      String?
+  galleryImages   String[]      @default([])
+  videoUrl        String?
+
+  // SEO and discoverability
+  tags            String[]      @default([])
+
+  // Metrics
+  isActive        Boolean       @default(true)
+  views           Int           @default(0)
+  orders          Int           @default(0)
+  rating          Float?
+
+  // Featured (reuse existing FeaturedLevel enum)
+  isFeatured      Boolean       @default(false)
+  featuredUntil   DateTime?
+  featuredLevel   FeaturedLevel @default(NONE)
+
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  freelancer      User          @relation("FreelancerServices", fields: [freelancerId], references: [id], onDelete: Cascade)
+  category        Category      @relation(fields: [categoryId], references: [id])
+  skills          ServiceSkill[]
+  packages        ServicePackage[]
+  serviceOrders   ServiceOrder[]
+  reviews         ServiceReview[]
+  faqs            ServiceFAQ[]
+
+  @@map("services")
+}
+
+model ServicePackage {
+  id              String        @id @default(cuid())
+  serviceId       String
+  tier            PackageTier   @default(BASIC)
+  title           String
+  description     String
+  price           Float
+  deliveryTime    Int           // Days
+  revisions       Int
+  features        String[]      @default([])
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+
+  service         Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  orders          ServiceOrder[]
+
+  @@map("service_packages")
+}
+
+model ServiceOrder {
+  id              String            @id @default(cuid())
+  serviceId       String
+  packageId       String
+  clientId        String
+  freelancerId    String
+
+  orderNumber     String            @unique
+  totalAmount     Float
+  requirements    String?
+
+  status          ServiceOrderStatus @default(PENDING)
+  paymentStatus   PaymentStatus     @default(PENDING)
+
+  deliveryDate    DateTime?
+  deliveredAt     DateTime?
+  revisionsUsed   Int               @default(0)
+
+  conversationId  String?           @unique
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  service         Service           @relation(fields: [serviceId], references: [id])
+  package         ServicePackage    @relation(fields: [packageId], references: [id])
+  client          User              @relation("ClientServiceOrders", fields: [clientId], references: [id])
+  freelancer      User              @relation("FreelancerServiceOrders", fields: [freelancerId], references: [id])
+  conversation    Conversation?
+  deliverables    OrderDeliverable[]
+  reviews         ServiceReview[]
+  transactions    Transaction[]
+
+  @@map("service_orders")
+}
+
+model ServiceReview {
+  id              String        @id @default(cuid())
+  serviceId       String
+  orderId         String
+  clientId        String
+  freelancerId    String
+  rating          Int           @db.SmallInt // 1-5 stars
+  comment         String?
+  communication   Int?          @db.SmallInt
+  quality         Int?          @db.SmallInt
+  delivery        Int?          @db.SmallInt
+  value           Int?          @db.SmallInt
+  isPublic        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+
+  service         Service       @relation(fields: [serviceId], references: [id])
+  order           ServiceOrder  @relation(fields: [orderId], references: [id])
+  client          User          @relation("ClientServiceReviews", fields: [clientId], references: [id])
+  freelancer      User          @relation("FreelancerServiceReviews", fields: [freelancerId], references: [id])
+
+  @@unique([orderId, clientId])
+  @@map("service_reviews")
+}
+
+model OrderDeliverable {
+  id              String        @id @default(cuid())
+  orderId         String
+  title           String
+  description     String?
+  files           String[]      @default([])
+  submittedAt     DateTime      @default(now())
+  status          DeliverableStatus @default(SUBMITTED)
+  revisionNote    String?
+
+  order           ServiceOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_deliverables")
+}
+
+model ServiceSkill {
+  id              String        @id @default(cuid())
+  serviceId       String
+  skillId         String
+  service         Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  skill           Skill         @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@unique([serviceId, skillId])
+  @@map("service_skills")
+}
+
+model ServiceFAQ {
+  id              String        @id @default(cuid())
+  serviceId       String
+  question        String
+  answer          String
+  order           Int           @default(0)
+  createdAt       DateTime      @default(now())
+
+  service         Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("service_faqs")
+}
+
+// New Enums for Service Marketplace
+enum PackageTier {
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
+enum ServiceOrderStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  DELIVERED
+  REVISION_REQUESTED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  RELEASED
+  REFUNDED
+}
+
+enum DeliverableStatus {
+  SUBMITTED
+  APPROVED
+  REVISION_REQUESTED
+}
