@@ -70,6 +70,10 @@ app.use(limiter);
 
 // Body parsing middleware
 app.use(compression());
+
+// Stripe webhook needs raw body, so we need to handle it before JSON parsing
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 

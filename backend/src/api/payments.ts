@@ -453,7 +453,7 @@ router.post('/service-order/:orderId/refund', asyncHandler(async (req: AuthReque
 }));
 
 // Stripe webhook handler
-router.post('/webhook', express.raw({ type: 'application/json' }), asyncHandler(async (req, res) => {
+router.post('/webhook', asyncHandler(async (req, res) => {
   const sig = req.headers['stripe-signature'] as string;
 
   if (!process.env.STRIPE_WEBHOOK_SECRET) {

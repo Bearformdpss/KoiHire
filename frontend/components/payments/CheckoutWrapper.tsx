@@ -40,7 +40,7 @@ export function CheckoutWrapper({
     setLoading(true)
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/payments/service-order/create-payment-intent`,
+        `${process.env.NEXT_PUBLIC_API_URL}/payments/service-order/create-payment-intent`,
         { orderId },
         {
           headers: {
