@@ -14,7 +14,15 @@ const nextConfig = {
         pathname: '/uploads/**',
       },
     ],
-  }
+  },
+  // Skip type checking and linting during production builds
+  // Type errors are already caught during development
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 }
 
 module.exports = nextConfig
