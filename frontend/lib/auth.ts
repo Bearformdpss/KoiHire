@@ -7,7 +7,7 @@ export interface User {
   firstName: string;
   lastName: string;
   avatar?: string;
-  role: 'CLIENT' | 'FREELANCER';
+  role: 'CLIENT' | 'FREELANCER' | 'ADMIN';
   isVerified: boolean;
   isAvailable?: boolean;
   rating?: number;
