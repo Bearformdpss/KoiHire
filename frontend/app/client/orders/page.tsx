@@ -62,9 +62,9 @@ export default function ClientOrdersPage() {
         // Calculate stats
         const allOrders = fetchedOrders
         const activeStatuses = ['PENDING', 'ACCEPTED', 'IN_PROGRESS', 'AWAITING_APPROVAL']
-        const activeOrders = allOrders.filter(o => activeStatuses.includes(o.status))
-        const completedOrders = allOrders.filter(o => o.status === 'COMPLETED')
-        const totalSpent = allOrders.reduce((sum, o) => sum + o.totalAmount, 0)
+        const activeOrders = allOrders.filter((o: ServiceOrder) => activeStatuses.includes(o.status))
+        const completedOrders = allOrders.filter((o: ServiceOrder) => o.status === 'COMPLETED')
+        const totalSpent = allOrders.reduce((sum: number, o: ServiceOrder) => sum + o.totalAmount, 0)
 
         setStats({
           totalOrders: allOrders.length,
