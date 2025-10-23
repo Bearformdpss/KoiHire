@@ -84,11 +84,11 @@ export default function FreelancerOrdersPage() {
 
         // Calculate stats
         const allOrders = fetchedOrders
-        const activeStatuses = ['ACCEPTED', 'IN_PROGRESS', 'AWAITING_APPROVAL']
-        const activeOrders = allOrders.filter(o => activeStatuses.includes(o.status))
-        const completedOrders = allOrders.filter(o => o.status === 'COMPLETED')
-        const pendingOrders = allOrders.filter(o => o.status === 'PENDING')
-        const totalEarned = completedOrders.reduce((sum, o) => sum + o.totalAmount, 0)
+        const activeStatuses = ['ACCEPTED', 'IN_PROGRESS', 'DELIVERED']
+        const activeOrders = allOrders.filter((o: ServiceOrder) => activeStatuses.includes(o.status))
+        const completedOrders = allOrders.filter((o: ServiceOrder) => o.status === 'COMPLETED')
+        const pendingOrders = allOrders.filter((o: ServiceOrder) => o.status === 'PENDING')
+        const totalEarned = completedOrders.reduce((sum: number, o: ServiceOrder) => sum + o.totalAmount, 0)
 
         setStats({
           totalOrders: allOrders.length,
@@ -170,14 +170,16 @@ export default function FreelancerOrdersPage() {
         return 'bg-blue-100 text-blue-800'
       case 'IN_PROGRESS':
         return 'bg-orange-100 text-orange-800'
-      case 'AWAITING_APPROVAL':
+      case 'DELIVERED':
+        return 'bg-purple-100 text-purple-800'
+      case 'REVISION_REQUESTED':
         return 'bg-orange-100 text-orange-800'
       case 'COMPLETED':
         return 'bg-green-100 text-green-800'
       case 'CANCELLED':
         return 'bg-red-100 text-red-800'
-      case 'REFUNDED':
-        return 'bg-gray-100 text-gray-800'
+      case 'DISPUTED':
+        return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
@@ -191,12 +193,14 @@ export default function FreelancerOrdersPage() {
         return <CheckCircle className="w-4 h-4" />
       case 'IN_PROGRESS':
         return <Play className="w-4 h-4" />
-      case 'AWAITING_APPROVAL':
+      case 'DELIVERED':
         return <Eye className="w-4 h-4" />
+      case 'REVISION_REQUESTED':
+        return <AlertCircle className="w-4 h-4" />
       case 'COMPLETED':
         return <CheckCircle className="w-4 h-4" />
       case 'CANCELLED':
-      case 'REFUNDED':
+      case 'DISPUTED':
         return <XCircle className="w-4 h-4" />
       default:
         return <Clock className="w-4 h-4" />
@@ -372,7 +376,7 @@ export default function FreelancerOrdersPage() {
                   <option value="PENDING">Pending</option>
                   <option value="ACCEPTED">Accepted</option>
                   <option value="IN_PROGRESS">In Progress</option>
-                  <option value="AWAITING_APPROVAL">Awaiting Approval</option>
+                  <option value="DELIVERED">Delivered</option>
                   <option value="COMPLETED">Completed</option>
                   <option value="CANCELLED">Cancelled</option>
                 </Select>
@@ -427,9 +431,9 @@ export default function FreelancerOrdersPage() {
                               {order.status.replace('_', ' ')}
                             </div>
                           </Badge>
-                          {order.status === 'IN_PROGRESS' && order.dueDate && (
+                          {order.status === 'IN_PROGRESS' && order.deliveryDate && (
                             <Badge variant="outline" className="text-xs">
-                              {getTimeRemaining(order.dueDate)}
+                              {getTimeRemaining(order.deliveryDate)}
                             </Badge>
                           )}
                         </div>
@@ -443,21 +447,21 @@ export default function FreelancerOrdersPage() {
                             <Calendar className="w-4 h-4" />
                             Ordered: {formatDate(order.createdAt)}
                           </div>
-                          {order.dueDate && (
+                          {order.deliveryDate && (
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
-                              Due: {formatDate(order.dueDate)}
+                              Due: {formatDate(order.deliveryDate)}
                             </div>
                           )}
                         </div>
 
                         <p className="text-gray-600 mb-4">
-                          Package: {order.packageTier} - {formatPrice(order.totalAmount)}
+                          Package: {order.package?.tier} - {formatPrice(order.totalAmount)}
                         </p>
 
-                        {order.notes && (
+                        {order.requirements && (
                           <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                            <p className="text-sm text-gray-700">{order.notes}</p>
+                            <p className="text-sm text-gray-700">{order.requirements}</p>
                           </div>
                         )}
                       </div>
@@ -527,7 +531,7 @@ export default function FreelancerOrdersPage() {
                           <span>
                             {order.status === 'ACCEPTED' && '25%'}
                             {order.status === 'IN_PROGRESS' && '50%'}
-                            {order.status === 'AWAITING_APPROVAL' && '75%'}
+                            {order.status === 'DELIVERED' && '75%'}
                             {order.status === 'COMPLETED' && '100%'}
                           </span>
                         </div>
@@ -540,7 +544,7 @@ export default function FreelancerOrdersPage() {
                               width:
                                 order.status === 'ACCEPTED' ? '25%' :
                                 order.status === 'IN_PROGRESS' ? '50%' :
-                                order.status === 'AWAITING_APPROVAL' ? '75%' :
+                                order.status === 'DELIVERED' ? '75%' :
                                 order.status === 'COMPLETED' ? '100%' : '0%'
                             }}
                           />
