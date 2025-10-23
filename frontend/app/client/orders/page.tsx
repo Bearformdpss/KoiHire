@@ -520,7 +520,7 @@ export default function ClientOrdersPage() {
                             size="sm"
                             onClick={() => {
                               // Download deliverables
-                              toast.info('Download feature coming soon!')
+                              toast('Download feature coming soon!')
                             }}
                           >
                             <Download className="w-4 h-4 mr-2" />
