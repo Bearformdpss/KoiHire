@@ -61,7 +61,7 @@ export default function ClientOrdersPage() {
 
         // Calculate stats
         const allOrders = fetchedOrders
-        const activeStatuses = ['PENDING', 'ACCEPTED', 'IN_PROGRESS', 'AWAITING_APPROVAL']
+        const activeStatuses = ['PENDING', 'ACCEPTED', 'IN_PROGRESS', 'DELIVERED']
         const activeOrders = allOrders.filter((o: ServiceOrder) => activeStatuses.includes(o.status))
         const completedOrders = allOrders.filter((o: ServiceOrder) => o.status === 'COMPLETED')
         const totalSpent = allOrders.reduce((sum: number, o: ServiceOrder) => sum + o.totalAmount, 0)
@@ -89,14 +89,16 @@ export default function ClientOrdersPage() {
         return 'bg-blue-100 text-blue-800 border border-blue-200'
       case 'IN_PROGRESS':
         return 'bg-blue-100 text-blue-800 border border-blue-200'
-      case 'AWAITING_APPROVAL':
+      case 'DELIVERED':
+        return 'bg-purple-100 text-purple-800 border border-purple-200'
+      case 'REVISION_REQUESTED':
         return 'bg-orange-100 text-orange-800 border border-orange-200'
       case 'COMPLETED':
         return 'bg-green-100 text-green-800 border border-green-200'
       case 'CANCELLED':
         return 'bg-red-100 text-red-800 border border-red-200'
-      case 'REFUNDED':
-        return 'bg-gray-100 text-gray-800 border border-gray-200'
+      case 'DISPUTED':
+        return 'bg-red-100 text-red-800 border border-red-200'
       default:
         return 'bg-gray-100 text-gray-800 border border-gray-200'
     }
@@ -109,12 +111,14 @@ export default function ClientOrdersPage() {
       case 'ACCEPTED':
       case 'IN_PROGRESS':
         return <AlertCircle className="w-4 h-4" />
-      case 'AWAITING_APPROVAL':
+      case 'DELIVERED':
         return <Eye className="w-4 h-4" />
+      case 'REVISION_REQUESTED':
+        return <AlertCircle className="w-4 h-4" />
       case 'COMPLETED':
         return <CheckCircle className="w-4 h-4" />
       case 'CANCELLED':
-      case 'REFUNDED':
+      case 'DISPUTED':
         return <XCircle className="w-4 h-4" />
       default:
         return <Clock className="w-4 h-4" />
@@ -348,14 +352,14 @@ export default function ClientOrdersPage() {
                     In Progress
                   </button>
                   <button
-                    onClick={() => setStatusFilter('AWAITING_APPROVAL')}
+                    onClick={() => setStatusFilter('DELIVERED')}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      statusFilter === 'AWAITING_APPROVAL'
+                      statusFilter === 'DELIVERED'
                         ? 'bg-orange-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    Awaiting Approval
+                    Delivered
                   </button>
                   <button
                     onClick={() => setStatusFilter('COMPLETED')}
@@ -488,7 +492,7 @@ export default function ClientOrdersPage() {
                           Chat
                         </Button>
 
-                        {order.status === 'AWAITING_APPROVAL' && (
+                        {order.status === 'DELIVERED' && (
                           <>
                             <Button
                               variant="default"
