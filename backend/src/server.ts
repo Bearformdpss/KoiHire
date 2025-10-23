@@ -36,6 +36,10 @@ import adminRoutes from './api/admin';
 dotenv.config();
 
 const app = express();
+
+// Enable trust proxy for Railway deployment
+app.set('trust proxy', 1);
+
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
   cors: {
