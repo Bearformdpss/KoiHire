@@ -29,7 +29,9 @@ import { messagesApi } from '@/lib/api/messages'
 import { useAuthStore } from '@/lib/store/authStore'
 import BidSubmissionModal from '@/components/projects/BidSubmissionModal'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
+import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
 import toast from 'react-hot-toast'
+import axios from 'axios'
 
 interface Project {
   id: string
@@ -38,6 +40,7 @@ interface Project {
   requirements?: string
   minBudget: number
   maxBudget: number
+  agreedAmount?: number
   timeline: string
   status: string
   createdAt: string
@@ -64,12 +67,6 @@ interface Project {
     name: string
     slug: string
   }
-  skills: Array<{
-    skill: {
-      id: string
-      name: string
-    }
-  }>
   _count: {
     applications: number
   }
@@ -100,11 +97,17 @@ export default function ProjectDetailPage() {
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [pendingApproval, setPendingApproval] = useState(false)
 
+  // Payment state
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [escrowStatus, setEscrowStatus] = useState<string | null>(null)
+  const [checkingEscrow, setCheckingEscrow] = useState(false)
+
   const projectId = params.id as string
 
   useEffect(() => {
     if (projectId) {
       fetchProject()
+      checkEscrowStatus()
     }
   }, [projectId])
 
@@ -127,7 +130,7 @@ export default function ProjectDetailPage() {
       console.log('🔍 [ProjectDetailPage] Fetching project:', projectId);
       const response = await projectsApi.getProject(projectId)
       console.log('📡 [ProjectDetailPage] API response:', response);
-      
+
       if (response.success && response.data) {
         // Backend returns { success: true, project }, wrapped by apiCall becomes { success: true, data: { success: true, project }}
         const project = response.data.project;
@@ -145,6 +148,42 @@ export default function ProjectDetailPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const checkEscrowStatus = async () => {
+    setCheckingEscrow(true)
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/escrow/project/${projectId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      if (response.data.success && response.data.escrow) {
+        setEscrowStatus(response.data.escrow.status)
+      } else {
+        setEscrowStatus(null)
+      }
+    } catch (error) {
+      // Escrow doesn't exist yet - that's okay
+      setEscrowStatus(null)
+    } finally {
+      setCheckingEscrow(false)
+    }
+  }
+
+  const handlePaymentSuccess = () => {
+    toast.success('Project funded successfully! Escrow is now active.')
+    setShowCheckout(false)
+
+    // Wait 1.5 seconds for webhook to process
+    setTimeout(() => {
+      checkEscrowStatus()
+      fetchProject()
+    }, 1500)
   }
 
   const handleApplyToProject = () => {
@@ -391,6 +430,40 @@ export default function ProjectDetailPage() {
             Back
           </Button>
 
+          {/* Escrow Funding Alert - Compact horizontal banner */}
+          {isProjectOwner && project.status === 'IN_PROGRESS' && escrowStatus !== 'FUNDED' && (
+            <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-4 mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="flex-shrink-0">
+                  <DollarSign className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Action Required: Fund Project Escrow</h3>
+                  <p className="text-sm text-gray-700 mt-1">
+                    Secure <strong>${project.agreedAmount || project.maxBudget}</strong> in escrow to enable the freelancer to begin work. Funds are held safely until you approve the completed project.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => setShowCheckout(true)}
+                disabled={checkingEscrow}
+                className="bg-green-600 hover:bg-green-700 text-white ml-4 flex-shrink-0"
+              >
+                {checkingEscrow ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Fund Escrow (${project.agreedAmount || project.maxBudget})
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2">
@@ -419,7 +492,11 @@ export default function ProjectDetailPage() {
                 <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-6">
                   <span className="flex items-center">
                     <DollarSign className="w-4 h-4 mr-1" />
-                    ${project.minBudget} - ${project.maxBudget}
+                    {project.status === 'IN_PROGRESS' && project.agreedAmount ? (
+                      `Agreed: $${project.agreedAmount}`
+                    ) : (
+                      `$${project.minBudget} - $${project.maxBudget}`
+                    )}
                   </span>
                   <span className="flex items-center">
                     <Clock className="w-4 h-4 mr-1" />
@@ -429,18 +506,6 @@ export default function ProjectDetailPage() {
                     <Users className="w-4 h-4 mr-1" />
                     {project._count?.applications || 0} applications
                   </span>
-                </div>
-
-                {/* Skills */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {project.skills?.map((skill) => (
-                    <span
-                      key={skill?.skill?.id}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                    >
-                      {skill?.skill?.name}
-                    </span>
-                  )) || null}
                 </div>
 
                 {/* Action Buttons */}
@@ -481,7 +546,7 @@ export default function ProjectDetailPage() {
                       View Applications ({project._count?.applications || 0})
                     </Button>
                   )}
-                  
+
                   {/* Quick Actions - Only for project owner */}
                   {isProjectOwner && (
                     <div className="relative quick-actions-container">
@@ -735,7 +800,13 @@ export default function ProjectDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900">Budget</p>
-                    <p className="text-sm text-gray-600">${project.minBudget} - ${project.maxBudget}</p>
+                    {project.status === 'IN_PROGRESS' && project.agreedAmount ? (
+                      <p className="text-sm text-gray-600">
+                        Agreed: <span className="font-semibold text-green-700">${project.agreedAmount}</span>
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-600">${project.minBudget} - ${project.maxBudget}</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900">Applications</p>
@@ -768,8 +839,7 @@ export default function ProjectDetailPage() {
               },
               category: {
                 name: project.category?.name || ''
-              },
-              skills: project.skills || []
+              }
             }}
             isOpen={showBidModal}
             onClose={() => setShowBidModal(false)}
@@ -1066,7 +1136,7 @@ export default function ProjectDetailPage() {
                     <X className="w-6 h-6" />
                   </button>
                 </div>
-                
+
                 <ReviewForm
                   projectId={project.id}
                   revieweeId={project.freelancer.id}
@@ -1074,7 +1144,7 @@ export default function ProjectDetailPage() {
                   onSuccess={handleReviewSuccess}
                   onCancel={() => setShowReviewModal(false)}
                 />
-                
+
                 {/* Skip Review Option */}
                 <div className="mt-6 pt-4 border-t border-gray-200 text-center">
                   <p className="text-sm text-gray-600 mb-3">
@@ -1099,6 +1169,18 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Checkout Modal for Funding Project Escrow */}
+        {project && (
+          <CheckoutWrapper
+            isOpen={showCheckout}
+            onClose={() => setShowCheckout(false)}
+            projectId={projectId}
+            totalAmount={project.agreedAmount || project.maxBudget}
+            serviceName={`Project: ${project.title}`}
+            onSuccess={handlePaymentSuccess}
+          />
         )}
       </div>
     </AuthRequired>

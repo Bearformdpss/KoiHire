@@ -11,9 +11,15 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16'
 });
 
-export const createPaymentIntent = async (
-  amount: number,
+// ==================== PROJECT ESCROW PAYMENT METHODS ====================
+
+/**
+ * Create payment intent for project escrow
+ * Funds are held in escrow with manual capture until work is approved
+ */
+export const createProjectEscrowPayment = async (
   projectId: string,
+  amount: number,
   clientId: string,
   description?: string
 ) => {
@@ -23,133 +29,171 @@ export const createPaymentIntent = async (
     automatic_payment_methods: {
       enabled: true
     },
+    // Manual capture - funds held until work approved
+    capture_method: 'manual',
     metadata: {
       projectId,
       clientId,
-      type: 'escrow_deposit'
+      type: 'project_escrow'
     },
-    description: description || `Escrow deposit for project ${projectId}`
+    description: description || `Escrow payment for project ${projectId}`
   });
 
   return paymentIntent;
 };
 
-export const createEscrow = async (
-  projectId: string,
-  amount: number,
-  stripePaymentIntentId: string
-) => {
-  const escrow = await prisma.escrow.create({
-    data: {
-      projectId,
-      amount,
-      status: 'PENDING',
-      stripePaymentId: stripePaymentIntentId
-    }
-  });
+/**
+ * Confirm project escrow payment after client pays
+ * Creates escrow record and updates project status
+ */
+export const confirmProjectEscrowPayment = async (projectId: string, paymentIntentId: string) => {
+  console.log(`🔍 confirmProjectEscrowPayment called for projectId: ${projectId}, paymentIntentId: ${paymentIntentId}`);
 
-  return escrow;
-};
-
-export const confirmEscrowPayment = async (escrowId: string) => {
-  const escrow = await prisma.escrow.findUnique({
-    where: { id: escrowId },
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
     include: {
-      project: {
-        include: {
-          client: true,
-          freelancer: true
-        }
-      }
+      client: true,
+      freelancer: true
     }
   });
 
-  if (!escrow) {
-    throw new Error('Escrow not found');
+  if (!project) {
+    console.error(`❌ Project not found: ${projectId}`);
+    throw new Error('Project not found');
   }
 
-  if (escrow.status !== 'PENDING') {
-    throw new Error('Escrow is not in pending status');
-  }
+  console.log(`📦 Project found:`, {
+    id: project.id,
+    title: project.title,
+    status: project.status
+  });
 
-  // Update escrow status
-  await prisma.escrow.update({
-    where: { id: escrowId },
-    data: { status: 'FUNDED' }
+  // Create or update escrow record
+  const escrow = await prisma.escrow.upsert({
+    where: { projectId },
+    create: {
+      projectId,
+      amount: project.maxBudget, // Using maxBudget as agreed amount
+      status: 'FUNDED',
+      stripePaymentId: paymentIntentId
+    },
+    update: {
+      status: 'FUNDED',
+      stripePaymentId: paymentIntentId
+    }
+  });
+
+  console.log(`💰 Escrow created/updated:`, {
+    id: escrow.id,
+    amount: escrow.amount,
+    status: escrow.status
   });
 
   // Create transaction record
-  await prisma.transaction.create({
+  const transaction = await prisma.transaction.create({
     data: {
-      userId: escrow.project.clientId,
+      userId: project.clientId,
       escrowId: escrow.id,
       type: 'DEPOSIT',
       amount: escrow.amount,
       status: 'COMPLETED',
-      stripeId: escrow.stripePaymentId,
-      description: `Escrow deposit for project: ${escrow.project.title}`
+      stripeId: paymentIntentId,
+      description: `Escrow payment for project: ${project.title}`
     }
+  });
+
+  console.log(`💳 Transaction created:`, {
+    id: transaction.id,
+    type: transaction.type,
+    amount: transaction.amount
   });
 
   return escrow;
 };
 
-export const releaseEscrow = async (escrowId: string, freelancerId: string) => {
+/**
+ * Release project escrow payment to freelancer
+ * Called when client approves completed work
+ * Captures payment and distributes funds
+ */
+export const releaseProjectEscrowPayment = async (projectId: string) => {
+  console.log(`🔍 releaseProjectEscrowPayment called for projectId: ${projectId}`);
+
   const escrow = await prisma.escrow.findUnique({
-    where: { id: escrowId },
+    where: { projectId },
     include: {
       project: {
         include: {
           client: true,
           freelancer: true
         }
-      }
+      },
+      transactions: true
     }
   });
 
   if (!escrow) {
-    throw new Error('Escrow not found');
+    throw new Error('Escrow not found for this project');
   }
 
   if (escrow.status !== 'FUNDED') {
-    throw new Error('Escrow is not funded');
+    throw new Error('Escrow must be funded to release payment');
   }
 
-  if (escrow.project.freelancerId !== freelancerId) {
-    throw new Error('Invalid freelancer for this escrow');
+  if (!escrow.project.freelancer) {
+    throw new Error('No freelancer assigned to this project');
   }
 
-  // Calculate platform fee (5% in this example)
+  console.log(`💰 Escrow found:`, {
+    id: escrow.id,
+    amount: escrow.amount,
+    status: escrow.status
+  });
+
+  // Find the original payment intent from transaction
+  const depositTransaction = escrow.transactions.find(t => t.type === 'DEPOSIT');
+  if (!depositTransaction || !depositTransaction.stripeId) {
+    throw new Error('Original payment not found');
+  }
+
+  // Capture the payment (release from escrow)
+  console.log(`📥 Capturing payment: ${depositTransaction.stripeId}`);
+  await stripe.paymentIntents.capture(depositTransaction.stripeId);
+
+  // Calculate platform fee (5% for projects)
   const platformFee = escrow.amount * 0.05;
   const freelancerAmount = escrow.amount - platformFee;
 
-  // In a real implementation, you would transfer money to freelancer's Stripe account
-  // For now, we'll just record the transaction
+  console.log(`💸 Payment breakdown:`, {
+    total: escrow.amount,
+    platformFee,
+    freelancerAmount
+  });
 
   await prisma.$transaction([
     // Update escrow status
     prisma.escrow.update({
-      where: { id: escrowId },
+      where: { id: escrow.id },
       data: {
         status: 'RELEASED',
         releasedAt: new Date()
       }
     }),
-    // Create freelancer transaction
+    // Create freelancer payout transaction
     prisma.transaction.create({
       data: {
-        userId: freelancerId,
+        userId: escrow.project.freelancerId!,
         escrowId: escrow.id,
         type: 'WITHDRAWAL',
         amount: freelancerAmount,
         status: 'COMPLETED',
-        description: `Payment for project: ${escrow.project.title}`
+        description: `Earnings from project: ${escrow.project.title}`
       }
     }),
     // Create platform fee transaction
     prisma.transaction.create({
       data: {
-        userId: freelancerId, // Associate with freelancer for accounting
+        userId: escrow.project.freelancerId!,
         escrowId: escrow.id,
         type: 'FEE',
         amount: platformFee,
@@ -157,16 +201,16 @@ export const releaseEscrow = async (escrowId: string, freelancerId: string) => {
         description: `Platform fee for project: ${escrow.project.title}`
       }
     }),
-    // Update freelancer earnings
+    // Update freelancer total earnings
     prisma.user.update({
-      where: { id: freelancerId },
+      where: { id: escrow.project.freelancerId! },
       data: {
         totalEarnings: {
           increment: freelancerAmount
         }
       }
     }),
-    // Update client spending
+    // Update client total spent
     prisma.user.update({
       where: { id: escrow.project.clientId },
       data: {
@@ -177,44 +221,52 @@ export const releaseEscrow = async (escrowId: string, freelancerId: string) => {
     })
   ]);
 
+  console.log(`✅ Escrow payment released successfully`);
+
   return escrow;
 };
 
-export const refundEscrow = async (escrowId: string, reason?: string) => {
+/**
+ * Refund project escrow payment
+ * Called when project is cancelled before completion
+ */
+export const refundProjectEscrowPayment = async (projectId: string, reason?: string) => {
+  console.log(`🔍 refundProjectEscrowPayment called for projectId: ${projectId}`);
+
   const escrow = await prisma.escrow.findUnique({
-    where: { id: escrowId },
+    where: { projectId },
     include: {
       project: {
         include: {
           client: true
         }
-      }
+      },
+      transactions: true
     }
   });
 
   if (!escrow) {
-    throw new Error('Escrow not found');
+    throw new Error('Escrow not found for this project');
   }
 
   if (escrow.status !== 'FUNDED') {
-    throw new Error('Escrow is not funded');
+    throw new Error('Cannot refund escrow that is not funded');
   }
 
-  // In a real implementation, you would process refund through Stripe
-  const refund = await stripe.refunds.create({
-    payment_intent: escrow.stripePaymentId!,
-    amount: Math.round(escrow.amount * 100), // Convert to cents
-    reason: 'requested_by_customer',
-    metadata: {
-      escrowId,
-      projectId: escrow.projectId
-    }
-  });
+  // Find the original payment intent
+  const depositTransaction = escrow.transactions.find(t => t.type === 'DEPOSIT');
+  if (!depositTransaction || !depositTransaction.stripeId) {
+    throw new Error('Original payment not found');
+  }
+
+  // Cancel (refund) the payment intent
+  console.log(`🔄 Cancelling payment: ${depositTransaction.stripeId}`);
+  await stripe.paymentIntents.cancel(depositTransaction.stripeId);
 
   await prisma.$transaction([
     // Update escrow status
     prisma.escrow.update({
-      where: { id: escrowId },
+      where: { id: escrow.id },
       data: {
         status: 'REFUNDED',
         refundedAt: new Date()
@@ -228,13 +280,14 @@ export const refundEscrow = async (escrowId: string, reason?: string) => {
         type: 'REFUND',
         amount: escrow.amount,
         status: 'COMPLETED',
-        stripeId: refund.id,
         description: `Refund for project: ${escrow.project.title}${reason ? ` - ${reason}` : ''}`
       }
     })
   ]);
 
-  return { escrow, refund };
+  console.log(`✅ Escrow payment refunded successfully`);
+
+  return escrow;
 };
 
 // ==================== SERVICE ORDER PAYMENT METHODS ====================
@@ -273,6 +326,8 @@ export const createServiceOrderPayment = async (
  * Updates order status to PAID
  */
 export const confirmServiceOrderPayment = async (orderId: string, paymentIntentId: string) => {
+  console.log(`🔍 confirmServiceOrderPayment called for orderId: ${orderId}, paymentIntentId: ${paymentIntentId}`);
+
   const order = await prisma.serviceOrder.findUnique({
     where: { id: orderId },
     include: {
@@ -283,11 +338,18 @@ export const confirmServiceOrderPayment = async (orderId: string, paymentIntentI
   });
 
   if (!order) {
+    console.error(`❌ Service order not found: ${orderId}`);
     throw new Error('Service order not found');
   }
 
+  console.log(`📦 Order found:`, {
+    id: order.id,
+    currentStatus: order.status,
+    currentPaymentStatus: order.paymentStatus
+  });
+
   // Update order payment status
-  await prisma.serviceOrder.update({
+  const updatedOrder = await prisma.serviceOrder.update({
     where: { id: orderId },
     data: {
       paymentStatus: 'PAID',
@@ -295,8 +357,14 @@ export const confirmServiceOrderPayment = async (orderId: string, paymentIntentI
     }
   });
 
+  console.log(`✅ Order updated:`, {
+    id: updatedOrder.id,
+    newStatus: updatedOrder.status,
+    newPaymentStatus: updatedOrder.paymentStatus
+  });
+
   // Create transaction record
-  await prisma.transaction.create({
+  const transaction = await prisma.transaction.create({
     data: {
       userId: order.clientId,
       serviceOrderId: order.id,
@@ -308,7 +376,13 @@ export const confirmServiceOrderPayment = async (orderId: string, paymentIntentI
     }
   });
 
-  return order;
+  console.log(`💳 Transaction created:`, {
+    id: transaction.id,
+    type: transaction.type,
+    amount: transaction.amount
+  });
+
+  return updatedOrder;
 };
 
 /**
@@ -457,15 +531,48 @@ export const refundServiceOrderPayment = async (orderId: string, reason?: string
 // ==================== WEBHOOK HANDLER ====================
 
 export const handleStripeWebhook = async (event: Stripe.Event) => {
+  console.log(`🔔 Webhook received: ${event.type}`);
+
   switch (event.type) {
+    case 'payment_intent.amount_capturable_updated':
+      // This event fires when a payment with manual capture is authorized (funds held)
+      const capturablePayment = event.data.object as Stripe.PaymentIntent;
+      const { orderId: capturableOrderId, projectId: capturableProjectId, type: capturableType } = capturablePayment.metadata;
+
+      console.log(`💰 Payment authorized (requires_capture):`, {
+        id: capturablePayment.id,
+        status: capturablePayment.status,
+        orderId: capturableOrderId,
+        projectId: capturableProjectId,
+        type: capturableType
+      });
+
+      if (capturableType === 'service_order' && capturableOrderId) {
+        // Service order payment authorized - funds are held in escrow
+        await confirmServiceOrderPayment(capturableOrderId, capturablePayment.id);
+        console.log(`✅ Service order ${capturableOrderId} payment confirmed (funds held in escrow)`);
+      } else if (capturableType === 'project_escrow' && capturableProjectId) {
+        // Project escrow payment authorized - funds are held
+        await confirmProjectEscrowPayment(capturableProjectId, capturablePayment.id);
+        console.log(`✅ Project ${capturableProjectId} escrow payment confirmed (funds held)`);
+      }
+      break;
+
     case 'payment_intent.succeeded':
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       const { projectId, orderId, type } = paymentIntent.metadata;
 
+      console.log(`✅ Payment succeeded:`, {
+        id: paymentIntent.id,
+        orderId,
+        projectId,
+        type
+      });
+
       if (type === 'service_order' && orderId) {
-        // Service order payment succeeded
-        await confirmServiceOrderPayment(orderId, paymentIntent.id);
-        console.log(`✅ Service order ${orderId} payment confirmed`);
+        // This fires when payment is captured (released from escrow)
+        // Or for automatic capture payments
+        console.log(`💸 Service order ${orderId} payment captured/succeeded`);
       } else if (projectId) {
         // Project escrow payment succeeded
         const escrow = await prisma.escrow.findFirst({

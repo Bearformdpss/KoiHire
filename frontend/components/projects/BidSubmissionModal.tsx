@@ -23,11 +23,6 @@ interface Project {
   category: {
     name: string
   }
-  skills: Array<{
-    skill: {
-      name: string
-    }
-  }>
 }
 
 interface BidSubmissionModalProps {
@@ -160,16 +155,6 @@ export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess
             <div>
               <span className="font-medium">Category:</span> {project.category.name}
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {project.skills.map((skill, index) => (
-              <span
-                key={index}
-                className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"
-              >
-                {skill.skill.name}
-              </span>
-            ))}
           </div>
         </div>
 

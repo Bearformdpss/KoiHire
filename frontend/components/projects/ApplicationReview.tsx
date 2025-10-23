@@ -2,17 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { 
-  User, 
-  Star, 
-  MapPin, 
-  Clock, 
-  DollarSign, 
-  MessageCircle, 
-  CheckCircle, 
+import {
+  User,
+  Star,
+  MapPin,
+  Clock,
+  DollarSign,
+  MessageCircle,
+  CheckCircle,
   XCircle,
   Loader2,
-  Eye,
   Calendar
 } from 'lucide-react'
 import { applicationsApi } from '@/lib/api/applications'
@@ -22,9 +21,9 @@ import toast from 'react-hot-toast'
 
 interface Application {
   id: string
-  proposedRate: number
+  proposedBudget: number
   coverLetter: string
-  expectedDuration: string
+  timeline: string
   status: string
   createdAt: string
   freelancer: {
@@ -36,14 +35,6 @@ interface Application {
     bio?: string
     rating?: number
     location?: string
-    skills: Array<{
-      skill: {
-        id: string
-        name: string
-      }
-      level: string
-      yearsExp?: number
-    }>
   }
 }
 
@@ -126,19 +117,6 @@ export function ApplicationReview({ projectId, onApplicationUpdate }: Applicatio
       month: 'short',
       day: 'numeric'
     })
-  }
-
-  const getSkillLevelColor = (level: string) => {
-    switch (level.toLowerCase()) {
-      case 'expert':
-        return 'bg-green-100 text-green-800'
-      case 'intermediate':
-        return 'bg-blue-100 text-blue-800'
-      case 'beginner':
-        return 'bg-yellow-100 text-yellow-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
   }
 
   if (loading) {
@@ -275,28 +253,19 @@ export function ApplicationReview({ projectId, onApplicationUpdate }: Applicatio
             </div>
 
             {/* Proposal Details */}
-            <div className="grid md:grid-cols-3 gap-4 mb-4">
+            <div className="grid md:grid-cols-2 gap-4 mb-4">
               <div className="flex items-center">
                 <DollarSign className="w-5 h-5 text-gray-400 mr-2" />
                 <div>
                   <p className="text-sm font-medium text-gray-900">Proposed Rate</p>
-                  <p className="text-lg font-semibold text-green-600">${application.proposedRate}</p>
+                  <p className="text-lg font-semibold text-green-600">${application.proposedBudget}</p>
                 </div>
               </div>
               <div className="flex items-center">
                 <Clock className="w-5 h-5 text-gray-400 mr-2" />
                 <div>
                   <p className="text-sm font-medium text-gray-900">Duration</p>
-                  <p className="text-sm text-gray-600">{application.expectedDuration}</p>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <Eye className="w-5 h-5 text-gray-400 mr-2" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Experience</p>
-                  <p className="text-sm text-gray-600">
-                    {application.freelancer.skills.length} relevant skills
-                  </p>
+                  <p className="text-sm text-gray-600">{application.timeline}</p>
                 </div>
               </div>
             </div>
@@ -306,26 +275,6 @@ export function ApplicationReview({ projectId, onApplicationUpdate }: Applicatio
               <h4 className="font-medium text-gray-900 mb-2">Cover Letter</h4>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-gray-700 whitespace-pre-wrap">{application.coverLetter}</p>
-              </div>
-            </div>
-
-            {/* Skills */}
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Skills</h4>
-              <div className="flex flex-wrap gap-2">
-                {application.freelancer.skills.map((skill, index) => (
-                  <span
-                    key={`${skill.skill.id}-${index}`}
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${getSkillLevelColor(skill.level)}`}
-                  >
-                    {skill.skill.name}
-                    {skill.yearsExp && (
-                      <span className="ml-1 text-xs opacity-75">
-                        ({skill.yearsExp}y)
-                      </span>
-                    )}
-                  </span>
-                ))}
               </div>
             </div>
 

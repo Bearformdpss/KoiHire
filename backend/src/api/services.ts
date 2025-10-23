@@ -16,7 +16,6 @@ router.get('/', asyncHandler(async (req, res) => {
     category,
     minPrice,
     maxPrice,
-    skills,
     search,
     sortBy = 'createdAt',
     order = 'desc',
@@ -62,15 +61,6 @@ router.get('/', asyncHandler(async (req, res) => {
     if (maxPrice) {
       where.AND.push({ basePrice: { lte: Number(maxPrice) } });
     }
-  }
-
-  if (skills) {
-    const skillIds = (skills as string).split(',');
-    where.skills = {
-      some: {
-        skillId: { in: skillIds }
-      }
-    };
   }
 
   // IMPROVED SEARCH: Split search query into words and find services containing ALL words
@@ -156,16 +146,6 @@ router.get('/', asyncHandler(async (req, res) => {
             id: true,
             name: true,
             slug: true
-          }
-        },
-        skills: {
-          include: {
-            skill: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
           }
         },
         packages: {
@@ -283,16 +263,6 @@ router.get('/featured', asyncHandler(async (req, res) => {
           slug: true
         }
       },
-      skills: {
-        include: {
-          skill: {
-            select: {
-              id: true,
-              name: true
-            }
-          }
-        }
-      },
       packages: {
         where: { isActive: true },
         orderBy: { tier: 'asc' }
@@ -362,16 +332,6 @@ router.get('/my-services', authMiddleware, requireRole(['FREELANCER']), asyncHan
             slug: true
           }
         },
-        skills: {
-          include: {
-            skill: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
-          }
-        },
         packages: {
           where: { isActive: true },
           orderBy: { tier: 'asc' }
@@ -435,16 +395,6 @@ router.get('/user/:userId', asyncHandler(async (req, res) => {
             id: true,
             name: true,
             slug: true
-          }
-        },
-        skills: {
-          include: {
-            skill: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
           }
         },
         packages: {
@@ -624,7 +574,6 @@ router.post('/', authMiddleware, requireRole(['FREELANCER']), validate(serviceSc
     galleryImages,
     videoUrl,
     tags,
-    skills,
     packages,
     faqs,
     featured,
@@ -661,11 +610,6 @@ router.post('/', authMiddleware, requireRole(['FREELANCER']), validate(serviceSc
       tags,
       freelancerId: req.user!.id,
       ...premiumData,
-      skills: {
-        create: skills.map((skillId: string) => ({
-          skillId
-        }))
-      },
       packages: {
         create: packages
       },
@@ -688,11 +632,6 @@ router.post('/', authMiddleware, requireRole(['FREELANCER']), validate(serviceSc
         }
       },
       category: true,
-      skills: {
-        include: {
-          skill: true
-        }
-      },
       packages: {
         orderBy: { tier: 'asc' }
       },
@@ -724,7 +663,6 @@ router.put('/:serviceId', authMiddleware, asyncHandler(async (req: AuthRequest, 
     galleryImages,
     videoUrl,
     tags,
-    skills,
     packages,
     faqs
   } = req.body;
@@ -755,12 +693,6 @@ router.put('/:serviceId', authMiddleware, asyncHandler(async (req: AuthRequest, 
       galleryImages,
       videoUrl,
       tags,
-      skills: skills ? {
-        deleteMany: {},
-        create: skills.map((skillId: string) => ({
-          skillId
-        }))
-      } : undefined,
       packages: packages ? {
         deleteMany: {},
         create: packages
@@ -785,11 +717,6 @@ router.put('/:serviceId', authMiddleware, asyncHandler(async (req: AuthRequest, 
         }
       },
       category: true,
-      skills: {
-        include: {
-          skill: true
-        }
-      },
       packages: {
         orderBy: { tier: 'asc' }
       },

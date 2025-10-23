@@ -13,7 +13,8 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
 interface CheckoutWrapperProps {
   isOpen: boolean
   onClose: () => void
-  orderId: string
+  orderId?: string  // For service orders
+  projectId?: string  // For project escrow
   totalAmount: number
   serviceName: string
   onSuccess: () => void
@@ -23,6 +24,7 @@ export function CheckoutWrapper({
   isOpen,
   onClose,
   orderId,
+  projectId,
   totalAmount,
   serviceName,
   onSuccess
@@ -40,13 +42,21 @@ export function CheckoutWrapper({
     setLoading(true)
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
-      console.log('🔍 Fetching payment intent for order:', orderId)
+
+      // Determine which endpoint to use based on whether it's a service order or project
+      const isProject = !!projectId
+      const endpoint = isProject
+        ? `${process.env.NEXT_PUBLIC_API_URL}/payments/project/create-payment-intent`
+        : `${process.env.NEXT_PUBLIC_API_URL}/payments/service-order/create-payment-intent`
+
+      const payload = isProject ? { projectId } : { orderId }
+
+      console.log('🔍 Fetching payment intent:', { isProject, endpoint, payload })
       console.log('🔑 Token exists:', !!token)
-      console.log('🌐 API URL:', `${process.env.NEXT_PUBLIC_API_URL}/payments/service-order/create-payment-intent`)
 
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/payments/service-order/create-payment-intent`,
-        { orderId },
+        endpoint,
+        payload,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -113,6 +123,7 @@ export function CheckoutWrapper({
         isOpen={isOpen}
         onClose={handleClose}
         orderId={orderId}
+        projectId={projectId}
         totalAmount={totalAmount}
         serviceName={serviceName}
         onSuccess={onSuccess}

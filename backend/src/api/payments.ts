@@ -3,10 +3,10 @@ import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 import {
-  createPaymentIntent,
-  createEscrow,
-  releaseEscrow,
-  refundEscrow,
+  createProjectEscrowPayment,
+  confirmProjectEscrowPayment,
+  releaseProjectEscrowPayment,
+  refundProjectEscrowPayment,
   createServiceOrderPayment,
   confirmServiceOrderPayment,
   releaseServiceOrderPayment,
@@ -16,14 +16,17 @@ import {
 } from '../services/stripeService';
 
 const router = express.Router();
+const webhookRouter = express.Router(); // Separate router for webhook (no auth)
 const prisma = new PrismaClient();
 
-// Create payment intent for escrow deposit
-router.post('/create-payment-intent', asyncHandler(async (req: AuthRequest, res) => {
-  const { projectId, amount } = req.body;
+// ==================== PROJECT ESCROW PAYMENT ROUTES ====================
 
-  if (!projectId || !amount) {
-    throw new AppError('Project ID and amount are required', 400);
+// Create payment intent for project escrow (when client accepts application)
+router.post('/project/create-payment-intent', asyncHandler(async (req: AuthRequest, res) => {
+  const { projectId } = req.body;
+
+  if (!projectId) {
+    throw new AppError('Project ID is required', 400);
   }
 
   const project = await prisma.project.findUnique({
@@ -34,7 +37,7 @@ router.post('/create-payment-intent', asyncHandler(async (req: AuthRequest, res)
       clientId: true,
       freelancerId: true,
       status: true,
-      minBudget: true,
+      agreedAmount: true,
       maxBudget: true
     }
   });
@@ -55,38 +58,94 @@ router.post('/create-payment-intent', asyncHandler(async (req: AuthRequest, res)
     throw new AppError('Project must have an assigned freelancer', 400);
   }
 
-  if (amount < project.minBudget || amount > project.maxBudget) {
-    throw new AppError(`Amount must be between $${project.minBudget} and $${project.maxBudget}`, 400);
-  }
+  // Use agreedAmount (from accepted application) or fallback to maxBudget
+  const escrowAmount = project.agreedAmount || project.maxBudget;
 
-  // Check if escrow already exists
+  // Check if escrow already exists and is funded
   const existingEscrow = await prisma.escrow.findUnique({
     where: { projectId }
   });
 
-  if (existingEscrow) {
-    throw new AppError('Escrow already exists for this project', 400);
+  if (existingEscrow && existingEscrow.status === 'FUNDED') {
+    throw new AppError('Escrow already funded for this project', 400);
   }
 
   try {
-    const paymentIntent = await createPaymentIntent(
-      amount,
+    const paymentIntent = await createProjectEscrowPayment(
       projectId,
+      escrowAmount,
       req.user!.id,
-      `Escrow deposit for project: ${project.title}`
+      `Escrow payment for project: ${project.title}`
     );
-
-    await createEscrow(projectId, amount, paymentIntent.id);
 
     res.json({
       success: true,
       clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id
+      paymentIntentId: paymentIntent.id,
+      amount: escrowAmount
     });
   } catch (error) {
-    console.error('Error creating payment intent:', error);
+    console.error('Error creating project payment intent:', error);
     throw new AppError('Failed to create payment intent', 500);
   }
+}));
+
+// Update agreed amount for project (before funding escrow)
+router.put('/project/:projectId/agreed-amount', asyncHandler(async (req: AuthRequest, res) => {
+  const { projectId } = req.params;
+  const { agreedAmount } = req.body;
+
+  if (!agreedAmount || agreedAmount <= 0) {
+    throw new AppError('Valid agreed amount is required', 400);
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      id: true,
+      clientId: true,
+      status: true,
+      minBudget: true,
+      maxBudget: true
+    }
+  });
+
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+
+  if (project.clientId !== req.user!.id) {
+    throw new AppError('Only the project owner can modify agreed amount', 403);
+  }
+
+  if (project.status !== 'IN_PROGRESS') {
+    throw new AppError('Can only modify agreed amount for projects in progress', 400);
+  }
+
+  // Validate that agreed amount is within budget range
+  if (agreedAmount < project.minBudget || agreedAmount > project.maxBudget) {
+    throw new AppError(`Agreed amount must be between $${project.minBudget} and $${project.maxBudget}`, 400);
+  }
+
+  // Check if escrow already funded (can't change after funding)
+  const existingEscrow = await prisma.escrow.findUnique({
+    where: { projectId }
+  });
+
+  if (existingEscrow && existingEscrow.status === 'FUNDED') {
+    throw new AppError('Cannot modify agreed amount after escrow has been funded', 400);
+  }
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { agreedAmount }
+  });
+
+  res.json({
+    success: true,
+    message: 'Agreed amount updated successfully',
+    agreedAmount
+  });
 }));
 
 // Get escrow status for a project
@@ -125,8 +184,8 @@ router.get('/escrow/:projectId', asyncHandler(async (req: AuthRequest, res) => {
   });
 }));
 
-// Release escrow (project owner only)
-router.post('/escrow/:projectId/release', asyncHandler(async (req: AuthRequest, res) => {
+// Release project escrow (client approves completed work)
+router.post('/project/:projectId/release', asyncHandler(async (req: AuthRequest, res) => {
   const { projectId } = req.params;
 
   const project = await prisma.project.findUnique({
@@ -163,20 +222,20 @@ router.post('/escrow/:projectId/release', asyncHandler(async (req: AuthRequest, 
   }
 
   try {
-    await releaseEscrow(escrow.id, project.freelancerId!);
+    await releaseProjectEscrowPayment(projectId);
 
     res.json({
       success: true,
-      message: 'Escrow released successfully'
+      message: 'Payment released to freelancer successfully'
     });
   } catch (error) {
-    console.error('Error releasing escrow:', error);
-    throw new AppError('Failed to release escrow', 500);
+    console.error('Error releasing project escrow:', error);
+    throw new AppError('Failed to release payment', 500);
   }
 }));
 
-// Refund escrow (admin or dispute resolution)
-router.post('/escrow/:projectId/refund', asyncHandler(async (req: AuthRequest, res) => {
+// Refund project escrow (when project is cancelled)
+router.post('/project/:projectId/refund', asyncHandler(async (req: AuthRequest, res) => {
   const { projectId } = req.params;
   const { reason } = req.body;
 
@@ -211,14 +270,14 @@ router.post('/escrow/:projectId/refund', asyncHandler(async (req: AuthRequest, r
   }
 
   try {
-    await refundEscrow(escrow.id, reason);
+    await refundProjectEscrowPayment(projectId, reason);
 
     res.json({
       success: true,
       message: 'Escrow refunded successfully'
     });
   } catch (error) {
-    console.error('Error refunding escrow:', error);
+    console.error('Error refunding project escrow:', error);
     throw new AppError('Failed to refund escrow', 500);
   }
 }));
@@ -452,9 +511,14 @@ router.post('/service-order/:orderId/refund', asyncHandler(async (req: AuthReque
   }
 }));
 
-// Stripe webhook handler
-router.post('/webhook', asyncHandler(async (req, res) => {
+// Stripe webhook handler (on separate router - no auth required)
+webhookRouter.post('/webhook', asyncHandler(async (req, res) => {
   const sig = req.headers['stripe-signature'] as string;
+
+  console.log('🔔 Webhook endpoint hit!', {
+    signature: !!sig,
+    body: req.body ? 'present' : 'missing'
+  });
 
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     throw new AppError('Stripe webhook secret not configured', 500);
@@ -465,7 +529,7 @@ router.post('/webhook', asyncHandler(async (req, res) => {
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('❌ Webhook signature verification failed:', err.message);
     throw new AppError('Invalid webhook signature', 400);
   }
 
@@ -473,9 +537,10 @@ router.post('/webhook', asyncHandler(async (req, res) => {
     await handleStripeWebhook(event);
     res.json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    console.error('❌ Error processing webhook:', error);
     throw new AppError('Error processing webhook', 500);
   }
 }));
 
 export default router;
+export { webhookRouter };

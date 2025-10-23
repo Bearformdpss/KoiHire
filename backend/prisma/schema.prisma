@@ -110,8 +110,6 @@ model Skill {
   createdAt   DateTime    @default(now())
 
   userSkills    UserSkill[]
-  projectSkills ProjectSkill[]
-  serviceSkills ServiceSkill[]
 
   @@map("skills")
 }
@@ -137,6 +135,7 @@ model Project {
   requirements    String?
   minBudget       Float
   maxBudget       Float
+  agreedAmount    Float?        // Final agreed price after accepting application
   timeline        String
   status          ProjectStatus @default(OPEN)
   categoryId      String
@@ -145,25 +144,24 @@ model Project {
   completedAt     DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
-  
+
   // Featured/Premium promotion fields
   isFeatured      Boolean       @default(false)
   featuredUntil   DateTime?     // When the featured period expires
   featuredLevel   FeaturedLevel @default(NONE) // Different tiers of featuring
   featuredPrice   Float?        // How much they paid for featuring
   featuredAt      DateTime?     // When they upgraded to featured
-  
+
   // Project management fields
   cancelReason          String?   // Reason for cancellation
   timelineUpdateReason  String?   // Reason for timeline update
   budgetUpdateReason    String?   // Reason for budget update
   changeRequestMessage  String?   // Message from client requesting changes
-  
+
   category        Category      @relation(fields: [categoryId], references: [id])
   client          User          @relation("ClientProjects", fields: [clientId], references: [id])
   freelancer      User?         @relation("FreelancerProjects", fields: [freelancerId], references: [id])
-  
-  skills          ProjectSkill[]
+
   applications    Application[]
   conversations   Conversation[]
   escrow          Escrow?
@@ -175,17 +173,6 @@ model Project {
   @@map("projects")
 }
 
-model ProjectSkill {
-  id        String   @id @default(cuid())
-  projectId String
-  skillId   String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([projectId, skillId])
-  @@map("project_skills")
-}
 
 model Application {
   id            String            @id @default(cuid())
@@ -569,7 +556,6 @@ model Service {
   // Relations
   freelancer      User          @relation("FreelancerServices", fields: [freelancerId], references: [id], onDelete: Cascade)
   category        Category      @relation(fields: [categoryId], references: [id])
-  skills          ServiceSkill[]
   packages        ServicePackage[]
   serviceOrders   ServiceOrder[]
   reviews         ServiceReview[]
@@ -670,18 +656,6 @@ model OrderDeliverable {
   order           ServiceOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_deliverables")
-}
-
-model ServiceSkill {
-  id              String        @id @default(cuid())
-  serviceId       String
-  skillId         String
-  service         Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  skill           Skill         @relation(fields: [skillId], references: [id], onDelete: Cascade)
-  createdAt       DateTime      @default(now())
-
-  @@unique([serviceId, skillId])
-  @@map("service_skills")
 }
 
 model ServiceFAQ {

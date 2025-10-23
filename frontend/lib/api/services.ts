@@ -65,7 +65,6 @@ export interface CreateServiceData {
   galleryImages?: string[]
   videoUrl?: string
   tags?: string[]
-  skills: string[]
   packages: ServicePackage[]
   faqs?: ServiceFAQ[]
   featured?: boolean
@@ -110,12 +109,6 @@ export interface Service {
     name: string
     slug: string
   }
-  skills: Array<{
-    skill: {
-      id: string
-      name: string
-    }
-  }>
   packages: ServicePackage[]
   reviews?: Array<{
     id: string
@@ -143,7 +136,6 @@ export interface ServiceFilters {
   category?: string
   minPrice?: number
   maxPrice?: number
-  skills?: string[]
   search?: string
   sortBy?: 'newest' | 'oldest' | 'price-high' | 'price-low' | 'rating' | 'orders' | 'title'
   order?: 'asc' | 'desc'

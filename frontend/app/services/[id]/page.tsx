@@ -284,20 +284,6 @@ export default function ServiceDetailPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Skills */}
-                {service.skills && service.skills.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="font-semibold text-gray-900 mb-3">Skills & Expertise</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {service.skills.map((skill) => (
-                        <Badge key={skill.skillId} variant="outline" className="text-sm">
-                          {skill.skill?.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 

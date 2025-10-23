@@ -16,7 +16,6 @@ router.get('/', asyncHandler(async (req, res) => {
     category,
     minBudget,
     maxBudget,
-    skills,
     search,
     sortBy = 'createdAt',
     order = 'desc',
@@ -55,15 +54,6 @@ router.get('/', asyncHandler(async (req, res) => {
     if (maxBudget) {
       where.AND.push({ maxBudget: { lte: Number(maxBudget) } });
     }
-  }
-
-  if (skills) {
-    const skillIds = (skills as string).split(',');
-    where.skills = {
-      some: {
-        skillId: { in: skillIds }
-      }
-    };
   }
 
   if (search) {
@@ -106,16 +96,6 @@ router.get('/', asyncHandler(async (req, res) => {
             id: true,
             name: true,
             slug: true
-          }
-        },
-        skills: {
-          include: {
-            skill: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
           }
         },
         _count: {
@@ -193,16 +173,6 @@ router.get('/my-projects', authMiddleware, requireRole(['CLIENT', 'FREELANCER'])
             slug: true
           }
         },
-        skills: {
-          include: {
-            skill: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
-          }
-        },
         // Include client info for freelancers to see who they're working for
         client: {
           select: {
@@ -278,11 +248,6 @@ router.get('/:projectId', asyncHandler(async (req, res) => {
         }
       },
       category: true,
-      skills: {
-        include: {
-          skill: true
-        }
-      },
       applications: {
         include: {
           freelancer: {
@@ -318,7 +283,7 @@ router.get('/:projectId', asyncHandler(async (req, res) => {
 
 // Create project (clients only)
 router.post('/', authMiddleware, requireRole(['CLIENT']), validate(projectSchema), asyncHandler(async (req: AuthRequest, res) => {
-  const { title, description, requirements, minBudget, maxBudget, timeline, categoryId, skills, featured, featuredLevel, featuredPrice } = req.body;
+  const { title, description, requirements, minBudget, maxBudget, timeline, categoryId, featured, featuredLevel, featuredPrice } = req.body;
 
   // Handle premium upgrade logic
   let premiumData = {};
@@ -345,12 +310,7 @@ router.post('/', authMiddleware, requireRole(['CLIENT']), validate(projectSchema
       timeline,
       categoryId,
       clientId: req.user!.id,
-      ...premiumData,
-      skills: {
-        create: skills.map((skillId: string) => ({
-          skillId
-        }))
-      }
+      ...premiumData
     },
     include: {
       client: {
@@ -360,12 +320,7 @@ router.post('/', authMiddleware, requireRole(['CLIENT']), validate(projectSchema
           avatar: true
         }
       },
-      category: true,
-      skills: {
-        include: {
-          skill: true
-        }
-      }
+      category: true
     }
   });
 
@@ -379,7 +334,7 @@ router.post('/', authMiddleware, requireRole(['CLIENT']), validate(projectSchema
 // Update project (project owner only)
 router.put('/:projectId', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const { projectId } = req.params;
-  const { title, description, requirements, minBudget, maxBudget, timeline, skills } = req.body;
+  const { title, description, requirements, minBudget, maxBudget, timeline } = req.body;
 
   const existingProject = await prisma.project.findUnique({
     where: { id: projectId }
@@ -405,13 +360,7 @@ router.put('/:projectId', authMiddleware, asyncHandler(async (req: AuthRequest, 
       requirements,
       minBudget,
       maxBudget,
-      timeline,
-      skills: skills ? {
-        deleteMany: {},
-        create: skills.map((skillId: string) => ({
-          skillId
-        }))
-      } : undefined
+      timeline
     },
     include: {
       client: {
@@ -421,12 +370,7 @@ router.put('/:projectId', authMiddleware, asyncHandler(async (req: AuthRequest, 
           avatar: true
         }
       },
-      category: true,
-      skills: {
-        include: {
-          skill: true
-        }
-      }
+      category: true
     }
   });
 
@@ -484,12 +428,14 @@ router.post('/:projectId/accept/:applicationId', authMiddleware, asyncHandler(as
   const rejectedApplications = allApplications.filter(app => app.id !== applicationId);
 
   // Update project and application status
+  // Set agreedAmount from the accepted application's proposedBudget
   await prisma.$transaction([
     prisma.project.update({
       where: { id: projectId },
       data: {
         status: 'IN_PROGRESS',
-        freelancerId: application.freelancerId
+        freelancerId: application.freelancerId,
+        agreedAmount: application.proposedBudget || project.maxBudget // Use proposedBudget or fallback to maxBudget
       }
     }),
     prisma.application.update({
@@ -948,107 +894,6 @@ router.post('/:projectId/request-changes', authMiddleware, asyncHandler(async (r
   res.json({
     success: true,
     message: 'Change request sent to freelancer. Project status updated to in progress.'
-  });
-}));
-
-// Get skill-matched projects for freelancer
-router.get('/matched', authMiddleware, requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
-  const userId = req.user!.id;
-  const limit = Number(req.query.limit) || 5;
-
-  // Get user's skills
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      skills: {
-        select: {
-          skillId: true
-        }
-      }
-    }
-  });
-
-  if (!user || !user.skills || user.skills.length === 0) {
-    // No skills set - return empty
-    return res.json({
-      success: true,
-      data: {
-        projects: [],
-        total: 0
-      }
-    });
-  }
-
-  const userSkillIds = user.skills.map(s => s.skillId);
-
-  // Get projects user has already applied to
-  const appliedProjects = await prisma.application.findMany({
-    where: { freelancerId: userId },
-    select: { projectId: true }
-  });
-  const appliedProjectIds = appliedProjects.map(app => app.projectId);
-
-  // Find open projects that match user's skills and they haven't applied to
-  const projects = await prisma.project.findMany({
-    where: {
-      status: 'OPEN',
-      id: {
-        notIn: appliedProjectIds
-      },
-      skills: {
-        some: {
-          skillId: {
-            in: userSkillIds
-          }
-        }
-      }
-    },
-    take: limit,
-    orderBy: [
-      { createdAt: 'desc' }
-    ],
-    include: {
-      client: {
-        select: {
-          id: true,
-          username: true,
-          firstName: true,
-          lastName: true,
-          rating: true,
-          avatar: true
-        }
-      },
-      category: {
-        select: {
-          id: true,
-          name: true,
-          slug: true
-        }
-      },
-      skills: {
-        include: {
-          skill: {
-            select: {
-              id: true,
-              name: true
-            }
-          }
-        }
-      },
-      _count: {
-        select: {
-          applications: true
-        }
-      }
-    }
-  });
-
-  res.json({
-    success: true,
-    data: {
-      projects,
-      total: projects.length
-    }
   });
 }));
 

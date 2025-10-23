@@ -21,17 +21,10 @@ interface Category {
   slug: string
 }
 
-interface Skill {
-  id: string
-  name: string
-  categoryId: string
-}
-
 interface BasicDetailsStepProps {
   formData: CreateServiceData
   updateFormData: (updates: Partial<CreateServiceData>) => void
   categories: Category[]
-  skills: Skill[]
 }
 
 // Category keyword mapping for suggestions
@@ -57,18 +50,10 @@ const POPULAR_TAGS: Record<string, string[]> = {
 export default function BasicDetailsStep({
   formData,
   updateFormData,
-  categories,
-  skills
+  categories
 }: BasicDetailsStepProps) {
   const [newTag, setNewTag] = useState('')
-  const [newSkill, setNewSkill] = useState('')
   const [suggestedCategories, setSuggestedCategories] = useState<Category[]>([])
-  const [customSkills, setCustomSkills] = useState<string[]>([])
-
-  // Filter skills based on selected category
-  const filteredSkills = formData.categoryId
-    ? skills.filter(skill => skill.categoryId === formData.categoryId)
-    : skills
 
   // Get suggested categories based on title
   const getSuggestedCategories = (title: string): Category[] => {
@@ -113,43 +98,6 @@ export default function BasicDetailsStep({
     const category = categories.find(c => c.id === formData.categoryId)
     if (!category) return []
     return POPULAR_TAGS[category.slug] || []
-  }
-
-  const handleSkillToggle = (skillId: string) => {
-    const currentSkills = formData.skills
-    const isSelected = currentSkills.includes(skillId)
-
-    if (isSelected) {
-      updateFormData({
-        skills: currentSkills.filter(id => id !== skillId)
-      })
-    } else {
-      updateFormData({
-        skills: [...currentSkills, skillId]
-      })
-    }
-  }
-
-  const addCustomSkill = () => {
-    const trimmedSkill = newSkill.trim()
-    const currentSkills = formData.skills || []
-    if (trimmedSkill && !customSkills.includes(trimmedSkill) && customSkills.length + currentSkills.length < 10) {
-      const customSkillId = `custom_${Date.now()}_${trimmedSkill.toLowerCase().replace(/\s+/g, '_')}`
-      setCustomSkills([...customSkills, trimmedSkill])
-      updateFormData({
-        skills: [...currentSkills, customSkillId]
-      })
-      setNewSkill('')
-    }
-  }
-
-  const removeCustomSkill = (skillName: string) => {
-    const skillId = `custom_${customSkills.indexOf(skillName)}`
-    const currentSkills = formData.skills || []
-    setCustomSkills(customSkills.filter(s => s !== skillName))
-    updateFormData({
-      skills: currentSkills.filter(id => !id.includes(skillName.toLowerCase().replace(/\s+/g, '_')))
-    })
   }
 
   const addTag = (tag?: string) => {
@@ -233,8 +181,7 @@ export default function BasicDetailsStep({
                   type="button"
                   onClick={() => {
                     updateFormData({
-                      categoryId: cat.id,
-                      skills: []
+                      categoryId: cat.id
                     })
                     setSuggestedCategories([])
                   }}
@@ -251,8 +198,7 @@ export default function BasicDetailsStep({
           value={formData.categoryId}
           onValueChange={(value) => {
             updateFormData({
-              categoryId: value,
-              skills: []
+              categoryId: value
             })
             setSuggestedCategories([])
           }}
@@ -311,101 +257,6 @@ export default function BasicDetailsStep({
           )}
         </div>
       </div>
-
-      {/* Skills */}
-      {formData.categoryId && (
-        <div>
-          <Label>Skills *</Label>
-          <p className="text-sm text-gray-600 mb-3">
-            Select skills that best describe your service, or add your own
-          </p>
-
-          {/* Predefined Skills */}
-          {filteredSkills.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-              {filteredSkills.map((skill) => (
-                <label
-                  key={skill.id}
-                  className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                    formData.skills.includes(skill.id)
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.skills.includes(skill.id)}
-                    onChange={() => handleSkillToggle(skill.id)}
-                    className="sr-only"
-                  />
-                  <span className="text-sm font-medium">{skill.name}</span>
-                </label>
-              ))}
-            </div>
-          )}
-
-          {/* Custom Skills */}
-          {customSkills.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              <p className="w-full text-sm font-medium text-gray-700 mb-2">Your custom skills:</p>
-              {customSkills.map((skill, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-purple-100 text-purple-800 border border-purple-300"
-                >
-                  {skill}
-                  <button
-                    type="button"
-                    onClick={() => removeCustomSkill(skill)}
-                    className="ml-2 text-purple-600 hover:text-purple-900"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Add Custom Skill */}
-          <div className="border-t pt-4">
-            <Label htmlFor="customSkill">Add Custom Skill</Label>
-            <p className="text-sm text-gray-600 mb-3">
-              Don't see your skill listed? Add it here
-            </p>
-            <div className="flex gap-2">
-              <Input
-                id="customSkill"
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addCustomSkill()
-                  }
-                }}
-                placeholder="e.g., Laravel, WordPress, Vue.js"
-                maxLength={50}
-                disabled={customSkills.length + formData.skills.length >= 10}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addCustomSkill}
-                disabled={!newSkill.trim() || customSkills.length + formData.skills.length >= 10}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">
-              {formData.skills.length + customSkills.length}/10 skills maximum
-            </p>
-          </div>
-
-          {filteredSkills.length === 0 && customSkills.length === 0 && (
-            <p className="text-gray-500 text-sm mt-4">Select from the list above or add your own custom skills</p>
-          )}
-        </div>
-      )}
 
       {/* Tags */}
       <div>
@@ -511,10 +362,6 @@ export default function BasicDetailsStep({
           <li className="flex items-start">
             <span className="mr-2 text-blue-600">✓</span>
             <span>Use all 5 search tags with relevant, searchable keywords</span>
-          </li>
-          <li className="flex items-start">
-            <span className="mr-2 text-blue-600">✓</span>
-            <span>Select skills that accurately represent your expertise</span>
           </li>
         </ul>
       </div>

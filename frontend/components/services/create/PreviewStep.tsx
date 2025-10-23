@@ -11,25 +11,16 @@ interface Category {
   slug: string
 }
 
-interface Skill {
-  id: string
-  name: string
-  categoryId: string
-}
-
 interface PreviewStepProps {
   formData: CreateServiceData
   categories: Category[]
-  skills: Skill[]
 }
 
 export default function PreviewStep({
   formData,
-  categories,
-  skills
+  categories
 }: PreviewStepProps) {
   const selectedCategory = categories.find(cat => cat.id === formData.categoryId)
-  const selectedSkills = skills.filter(skill => formData.skills.includes(skill.id))
 
   const validationErrors: string[] = []
   const validationWarnings: string[] = []
@@ -38,7 +29,6 @@ export default function PreviewStep({
   if (!formData.title.trim()) validationErrors.push('Service title is required')
   if (!formData.description.trim()) validationErrors.push('Service description is required')
   if (!formData.categoryId) validationErrors.push('Category selection is required')
-  if (formData.skills.length === 0) validationErrors.push('At least one skill must be selected')
   if (formData.packages.length === 0) validationErrors.push('At least one package is required')
 
   // Package validation
@@ -195,18 +185,11 @@ export default function PreviewStep({
           {/* Basic Info */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <h3 className="font-medium mb-2">Category & Skills</h3>
+              <h3 className="font-medium mb-2">Category</h3>
               <div className="space-y-2">
                 {selectedCategory && (
                   <Badge variant="outline">{selectedCategory.name}</Badge>
                 )}
-                <div className="flex flex-wrap gap-1">
-                  {selectedSkills.map((skill) => (
-                    <Badge key={skill.id} variant="secondary" className="text-xs">
-                      {skill.name}
-                    </Badge>
-                  ))}
-                </div>
               </div>
             </div>
 

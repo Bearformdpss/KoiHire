@@ -8,7 +8,6 @@ import { Progress } from '@/components/ui/progress'
 import { ArrowLeft, ArrowRight, CheckCircle, Loader2 } from 'lucide-react'
 import { FreelancerOnly } from '@/components/auth/RoleProtection'
 import { categoriesApi } from '@/lib/api/categories'
-import { skillsApi } from '@/lib/api/skills'
 import { servicesApi, CreateServiceData, ServicePackage, ServiceFAQ } from '@/lib/api/services'
 import toast from 'react-hot-toast'
 
@@ -24,19 +23,12 @@ interface Category {
   slug: string
 }
 
-interface Skill {
-  id: string
-  name: string
-  categoryId: string
-}
-
 export default function CreateServicePage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
-  const [skills, setSkills] = useState<Skill[]>([])
 
   const totalSteps = 5
   const progress = (currentStep / totalSteps) * 100
@@ -55,7 +47,6 @@ export default function CreateServicePage() {
     galleryImages: [],
     videoUrl: '',
     tags: [],
-    skills: [],
     packages: [
       {
         tier: 'BASIC',
@@ -77,17 +68,10 @@ export default function CreateServicePage() {
   const fetchInitialData = async () => {
     try {
       setLoading(true)
-      const [categoriesResponse, skillsResponse] = await Promise.all([
-        categoriesApi.getCategories(),
-        skillsApi.getSkills()
-      ])
+      const categoriesResponse = await categoriesApi.getCategories()
 
       if (categoriesResponse.success) {
         setCategories(categoriesResponse.categories)
-      }
-
-      if (skillsResponse.success) {
-        setSkills(skillsResponse.skills || [])
       }
     } catch (error) {
       console.error('Failed to fetch initial data:', error)
@@ -122,10 +106,6 @@ export default function CreateServicePage() {
         }
         if (!formData.categoryId) {
           toast.error('Please select a category')
-          return false
-        }
-        if (formData.skills.length === 0) {
-          toast.error('Please select at least one skill')
           return false
         }
         return true
@@ -205,44 +185,16 @@ export default function CreateServicePage() {
     try {
       setSubmitting(true)
 
-      // Separate real skills from custom skills
-      const realSkills = formData.skills.filter(skillId => !skillId.startsWith('custom_'))
-      const customSkillIds = formData.skills.filter(skillId => skillId.startsWith('custom_'))
-
-      // Extract custom skill names from the IDs and add to tags
-      const customSkillNames = customSkillIds.map(id => {
-        // Extract skill name from ID format: custom_timestamp_skillname
-        // The skill name starts after "custom_timestamp_"
-        const match = id.match(/^custom_\d+_(.+)$/)
-        return match ? match[1].replace(/_/g, ' ') : id
-      }).filter(name => name && !name.startsWith('custom_'))
-
-      // Combine existing tags with custom skill names
-      const allTags = [...formData.tags, ...customSkillNames].filter(tag => tag.trim())
-
-      // If no real skills, we need to handle this case
-      // Backend requires at least 1 skill, so if all are custom, we need to pick a generic one
-      let skillsToSend = realSkills
-      if (skillsToSend.length === 0 && customSkillIds.length > 0) {
-        // Find a generic skill from the selected category to satisfy validation
-        const categorySkills = skills.filter(s => s.categoryId === formData.categoryId)
-        if (categorySkills.length > 0) {
-          skillsToSend = [categorySkills[0].id]
-        }
-      }
-
       // Prepare form data
       const submitData: CreateServiceData = {
         ...formData,
-        // Only send real skill IDs (custom skills go in tags)
-        skills: skillsToSend,
         // Set base price to the basic package price
         basePrice: formData.packages.find(p => p.tier === 'BASIC')?.price || formData.packages[0]?.price || 0,
         // Clean up empty fields - shortDescription must be 20-300 chars or not sent at all
         shortDescription: formData.shortDescription?.trim() && formData.shortDescription.trim().length >= 20 && formData.shortDescription.trim().length <= 300 ? formData.shortDescription.trim() : undefined,
         requirements: formData.requirements?.trim() || undefined,
         videoUrl: formData.videoUrl?.trim() || undefined,
-        tags: allTags,
+        tags: formData.tags?.filter(tag => tag.trim()) || [],
         galleryImages: formData.galleryImages?.filter(img => img.trim()) || [],
         faqs: formData.faqs?.filter(faq => faq.question.trim() && faq.answer.trim()) || []
       }
@@ -253,8 +205,6 @@ export default function CreateServicePage() {
       }
 
       console.log('Submitting service data:', submitData)
-      console.log('Skills to send:', skillsToSend)
-      console.log('Custom skills as tags:', customSkillNames)
 
       console.log('About to call createService API...')
       const response = await servicesApi.createService(submitData)
@@ -372,7 +322,6 @@ export default function CreateServicePage() {
                   formData={formData}
                   updateFormData={updateFormData}
                   categories={categories}
-                  skills={skills}
                 />
               )}
 
@@ -401,7 +350,6 @@ export default function CreateServicePage() {
                 <PreviewStep
                   formData={formData}
                   categories={categories}
-                  skills={skills}
                 />
               )}
             </CardContent>

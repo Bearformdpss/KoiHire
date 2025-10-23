@@ -67,7 +67,6 @@ export const projectsApi = {
     category?: string
     minBudget?: number
     maxBudget?: number
-    skills?: string[]
     search?: string
     sortBy?: string
     order?: 'asc' | 'desc'
@@ -123,7 +122,6 @@ export const projectsApi = {
     maxBudget: number
     timeline: string
     categoryId: string
-    skills: string[]
   }) => {
     return apiCall(
       async () => {
@@ -142,7 +140,6 @@ export const projectsApi = {
     minBudget?: number
     maxBudget?: number
     timeline?: string
-    skills?: string[]
   }) => {
     return apiCall(
       async () => {
@@ -222,7 +219,6 @@ export const projectsApi = {
     categories?: string[]
     budgetMin?: number
     budgetMax?: number
-    skills?: string[]
     location?: string
     remote?: boolean
     clientRating?: number
@@ -315,17 +311,4 @@ export const projectsApi = {
     )
   },
 
-  // Get skill-matched projects (freelancer only)
-  getMatchedProjects: async (limit: number = 5) => {
-    return apiCall(
-      async () => {
-        const response = await apiClient.get(`/projects/matched?limit=${limit}`)
-        return response.data
-      },
-      {
-        retry: { maxRetries: 2, retryDelay: 1000 },
-        showErrorToast: false
-      }
-    )
-  }
 }

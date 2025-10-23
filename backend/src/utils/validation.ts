@@ -22,7 +22,6 @@ export const projectSchema = Joi.object({
   maxBudget: Joi.number().positive().min(Joi.ref('minBudget')).required(),
   timeline: Joi.string().min(5).max(500).required(),
   categoryId: Joi.string().required(),
-  skills: Joi.array().items(Joi.string()).min(0).max(10).required(),
   // Premium upgrade fields (optional)
   featured: Joi.boolean().optional(),
   featuredLevel: Joi.string().valid('NONE', 'FEATURED', 'PREMIUM', 'SPOTLIGHT').optional(),
@@ -80,7 +79,6 @@ export const serviceSchema = Joi.object({
   galleryImages: Joi.array().items(Joi.string().allow('')).max(10).optional(),
   videoUrl: Joi.string().allow('').optional(),
   tags: Joi.array().items(Joi.string().max(50)).max(20).optional(),
-  skills: Joi.array().items(Joi.string()).min(1).max(10).required(),
   packages: Joi.array().items(servicePackageSchema).min(1).max(3).required(),
   faqs: Joi.array().items(serviceFAQSchema).max(10).optional(),
   // Premium upgrade fields (optional)

@@ -12,13 +12,6 @@ interface Category {
   id: string
   name: string
   slug: string
-  skills: Skill[]
-}
-
-interface Skill {
-  id: string
-  name: string
-  description: string
 }
 
 interface PostProjectFormProps {
@@ -44,8 +37,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
   const [isLoading, setIsLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState<FormStep>('details')
   const [categories, setCategories] = useState<Category[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
-  const [selectedSkills, setSelectedSkills] = useState<Skill[]>([])
   const [spotlightSlotsAvailable, setSpotlightSlotsAvailable] = useState(3)
 
   const [formData, setFormData] = useState({
@@ -56,7 +47,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
     maxBudget: '',
     timeline: '',
     categoryId: '',
-    skills: [] as string[],
     premiumTier: 'NONE' as PremiumTier
   })
 
@@ -138,40 +128,10 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
   }
 
   const handleCategoryChange = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId)
-    console.log('Selected category:', category) // Debug log
-    console.log('Category skills:', category?.skills) // Debug log
-    setSelectedCategory(category || null)
-    setSelectedSkills([])
     setFormData(prev => ({
       ...prev,
-      categoryId,
-      skills: []
+      categoryId
     }))
-  }
-
-  const handleSkillToggle = (skill: Skill) => {
-    const isSelected = selectedSkills.find(s => s.id === skill.id)
-    
-    if (isSelected) {
-      const newSkills = selectedSkills.filter(s => s.id !== skill.id)
-      setSelectedSkills(newSkills)
-      setFormData(prev => ({
-        ...prev,
-        skills: newSkills.map(s => s.id)
-      }))
-    } else {
-      if (selectedSkills.length >= 10) {
-        toast.error('You can select up to 10 skills')
-        return
-      }
-      const newSkills = [...selectedSkills, skill]
-      setSelectedSkills(newSkills)
-      setFormData(prev => ({
-        ...prev,
-        skills: newSkills.map(s => s.id)
-      }))
-    }
   }
 
   const validateForm = () => {
@@ -203,11 +163,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
 
     if (!formData.categoryId) {
       newErrors.categoryId = 'Please select a category'
-    }
-
-    // Only require skills if the selected category has skills available
-    if (selectedCategory && selectedCategory.skills && selectedCategory.skills.length > 0 && formData.skills.length === 0) {
-      newErrors.skills = 'Please select at least one skill'
     }
 
     setErrors(newErrors)
@@ -247,11 +202,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
 
       if (!formData.categoryId) {
         newErrors.categoryId = 'Please select a category'
-      }
-
-      // Only require skills if the selected category has skills available
-      if (selectedCategory && selectedCategory.skills && selectedCategory.skills.length > 0 && formData.skills.length === 0) {
-        newErrors.skills = 'Please select at least one skill'
       }
 
       setErrors(newErrors)
@@ -311,7 +261,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
         maxBudget: Number(formData.maxBudget),
         timeline: formData.timeline,
         categoryId: formData.categoryId,
-        skills: formData.skills,
         featured: formData.premiumTier !== 'NONE',
         featuredLevel: formData.premiumTier !== 'NONE' ? formData.premiumTier : undefined,
         featuredPrice: formData.premiumTier !== 'NONE' ? premiumOptions.find(opt => opt.tier === formData.premiumTier)?.price : undefined
@@ -531,34 +480,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
               <p className="mt-1 text-sm text-red-600">{errors.categoryId}</p>
             )}
           </div>
-
-          {/* Skills */}
-          {selectedCategory && selectedCategory.skills.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Required Skills * (Select up to 10)
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-4">
-                {selectedCategory.skills.map((skill) => (
-                  <label key={skill.id} className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedSkills.some(s => s.id === skill.id)}
-                      onChange={() => handleSkillToggle(skill)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm">{skill.name}</span>
-                  </label>
-                ))}
-              </div>
-              {errors.skills && (
-                <p className="mt-1 text-sm text-red-600">{errors.skills}</p>
-              )}
-              <p className="mt-1 text-sm text-gray-500">
-                {selectedSkills.length}/10 skills selected
-              </p>
-            </div>
-          )}
         </div>
       )}
 
@@ -584,19 +505,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
                   <span className="ml-2 font-medium">{formData.timeline}</span>
                 </div>
               </div>
-
-              {selectedSkills.length > 0 && (
-                <div>
-                  <span className="text-gray-500 text-sm">Skills:</span>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedSkills.map(skill => (
-                      <span key={skill.id} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-                        {skill.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Premium Selection Summary */}
               <div className="pt-4 border-t border-gray-200">

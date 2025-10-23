@@ -45,7 +45,9 @@
       "Bash(git commit:*)",
       "Bash(git remote add:*)",
       "Bash(git branch:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(del check-order.ts)",
+      "Bash(cmd //c start-dev.bat)"
     ],
     "deny": [],
     "ask": []

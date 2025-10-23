@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { projectsApi } from '@/lib/api/projects'
+import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
 
 interface Application {
   id: string
@@ -68,6 +69,8 @@ export default function ApplicationsPage() {
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [showFilters, setShowFilters] = useState(false)
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
   
   const [filters, setFilters] = useState<Filters>({
     status: '',
@@ -157,11 +160,18 @@ export default function ApplicationsPage() {
     })
   }
 
-  const handleAcceptApplication = async (applicationId: string) => {
+  const handleAcceptApplication = async (application: Application) => {
     try {
-      const response = await projectsApi.acceptApplication(projectId, applicationId)
+      // Accept the application first (assigns freelancer, updates project status to IN_PROGRESS)
+      const response = await projectsApi.acceptApplication(projectId, application.id)
       if (response.success) {
-        toast.success('Application accepted successfully!')
+        toast.success('Application accepted! Please fund the project escrow.')
+
+        // Store the selected application and show payment modal
+        setSelectedApplication(application)
+        setShowCheckout(true)
+
+        // Refresh to show updated status
         fetchApplications()
         fetchProject()
       }
@@ -169,6 +179,15 @@ export default function ApplicationsPage() {
       console.error('Error accepting application:', error)
       toast.error('Failed to accept application')
     }
+  }
+
+  const handlePaymentSuccess = () => {
+    toast.success('Project funded successfully! You can now track progress.')
+    setShowCheckout(false)
+    setSelectedApplication(null)
+
+    // Redirect to project detail page
+    router.push(`/projects/${projectId}`)
   }
 
   const getStatusColor = (status: string) => {
@@ -508,10 +527,10 @@ export default function ApplicationsPage() {
 
                       {application.status === 'PENDING' && project?.status === 'OPEN' && (
                         <Button
-                          onClick={() => handleAcceptApplication(application.id)}
+                          onClick={() => handleAcceptApplication(application)}
                           className="bg-green-600 hover:bg-green-700 text-white"
                         >
-                          Accept Application
+                          Accept & Fund Project
                         </Button>
                       )}
                     </div>
@@ -522,6 +541,21 @@ export default function ApplicationsPage() {
           ))
         )}
       </div>
+
+      {/* Project Escrow Payment Modal */}
+      {project && selectedApplication && (
+        <CheckoutWrapper
+          isOpen={showCheckout}
+          onClose={() => {
+            setShowCheckout(false)
+            setSelectedApplication(null)
+          }}
+          projectId={projectId}
+          totalAmount={selectedApplication.proposedBudget || project.maxBudget}
+          serviceName={`Project: ${project.title}`}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   )
 }

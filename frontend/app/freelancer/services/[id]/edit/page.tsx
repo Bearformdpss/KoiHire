@@ -8,7 +8,6 @@ import { Progress } from '@/components/ui/progress'
 import { ArrowLeft, ArrowRight, CheckCircle, Loader2, Save } from 'lucide-react'
 import { FreelancerOnly } from '@/components/auth/RoleProtection'
 import { categoriesApi } from '@/lib/api/categories'
-import { skillsApi } from '@/lib/api/skills'
 import { servicesApi, CreateServiceData, Service } from '@/lib/api/services'
 import toast from 'react-hot-toast'
 
@@ -24,12 +23,6 @@ interface Category {
   slug: string
 }
 
-interface Skill {
-  id: string
-  name: string
-  categoryId: string
-}
-
 export default function EditServicePage() {
   const router = useRouter()
   const params = useParams()
@@ -39,7 +32,6 @@ export default function EditServicePage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
-  const [skills, setSkills] = useState<Skill[]>([])
   const [originalService, setOriginalService] = useState<Service | null>(null)
 
   const totalSteps = 5
@@ -59,7 +51,6 @@ export default function EditServicePage() {
     galleryImages: [],
     videoUrl: '',
     tags: [],
-    skills: [],
     packages: [
       {
         tier: 'BASIC',
@@ -83,10 +74,9 @@ export default function EditServicePage() {
   const fetchServiceAndInitialData = async () => {
     try {
       setLoading(true)
-      const [serviceResponse, categoriesResponse, skillsResponse] = await Promise.all([
+      const [serviceResponse, categoriesResponse] = await Promise.all([
         servicesApi.getService(serviceId),
-        categoriesApi.getCategories(),
-        skillsApi.getSkills()
+        categoriesApi.getCategories()
       ])
 
       if (serviceResponse.data?.success && serviceResponse.data?.data) {
@@ -107,7 +97,6 @@ export default function EditServicePage() {
           galleryImages: service.galleryImages || [],
           videoUrl: service.videoUrl || '',
           tags: service.tags || [],
-          skills: service.skills?.map(s => s.skillId) || [],
           packages: service.packages?.length > 0 ? service.packages.map(pkg => ({
             tier: pkg.tier,
             title: pkg.title,
@@ -140,10 +129,6 @@ export default function EditServicePage() {
 
       if (categoriesResponse.success) {
         setCategories(categoriesResponse.categories)
-      }
-
-      if (skillsResponse.success) {
-        setSkills(skillsResponse.skills || [])
       }
     } catch (error) {
       console.error('Failed to fetch service data:', error)
@@ -179,10 +164,6 @@ export default function EditServicePage() {
         }
         if (!formData.categoryId) {
           toast.error('Please select a category')
-          return false
-        }
-        if (formData.skills.length === 0) {
-          toast.error('Please select at least one skill')
           return false
         }
         return true
@@ -384,7 +365,6 @@ export default function EditServicePage() {
                   formData={formData}
                   updateFormData={updateFormData}
                   categories={categories}
-                  skills={skills}
                 />
               )}
 
@@ -413,7 +393,6 @@ export default function EditServicePage() {
                 <PreviewStep
                   formData={formData}
                   categories={categories}
-                  skills={skills}
                 />
               )}
             </CardContent>

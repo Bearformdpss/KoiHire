@@ -22,7 +22,6 @@ export interface SearchFilters {
   category: string
   minBudget: number | null
   maxBudget: number | null
-  skills: string[]
   location: string
   clientRating: number | null
   sortBy: 'newest' | 'oldest' | 'budget_high' | 'budget_low' | 'applications'
@@ -39,11 +38,6 @@ interface AdvancedSearchProps {
     name: string
     slug: string
   }>
-  skills: Array<{
-    id: string
-    name: string
-    category: string
-  }>
   onSearch: () => void
   isLoading?: boolean
 }
@@ -53,7 +47,6 @@ const initialFilters: SearchFilters = {
   category: 'all',
   minBudget: null,
   maxBudget: null,
-  skills: [],
   location: '',
   clientRating: null,
   sortBy: 'newest',
@@ -62,13 +55,12 @@ const initialFilters: SearchFilters = {
   remote: null
 }
 
-export function AdvancedSearch({ 
-  filters, 
-  onFiltersChange, 
-  categories, 
-  skills, 
-  onSearch, 
-  isLoading = false 
+export function AdvancedSearch({
+  filters,
+  onFiltersChange,
+  categories,
+  onSearch,
+  isLoading = false
 }: AdvancedSearchProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [localFilters, setLocalFilters] = useState<SearchFilters>(filters)
@@ -88,20 +80,11 @@ export function AdvancedSearch({
     onFiltersChange(initialFilters)
   }
 
-  const handleSkillToggle = (skillId: string) => {
-    const currentSkills = localFilters.skills
-    const newSkills = currentSkills.includes(skillId)
-      ? currentSkills.filter(id => id !== skillId)
-      : [...currentSkills, skillId]
-    updateFilter('skills', newSkills)
-  }
-
   const hasActiveFilters = () => {
     return localFilters.search !== '' ||
            localFilters.category !== 'all' ||
            localFilters.minBudget !== null ||
            localFilters.maxBudget !== null ||
-           localFilters.skills.length > 0 ||
            localFilters.location !== '' ||
            localFilters.clientRating !== null ||
            localFilters.sortBy !== 'newest' ||
@@ -202,28 +185,6 @@ export function AdvancedSearch({
                 placeholder="Any location"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-            </div>
-          </div>
-
-          {/* Skills Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Required Skills
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {skills.slice(0, 10).map(skill => (
-                <button
-                  key={skill.id}
-                  onClick={() => handleSkillToggle(skill.id)}
-                  className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                    localFilters.skills.includes(skill.id)
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'
-                  }`}
-                >
-                  {skill.name}
-                </button>
-              ))}
             </div>
           </div>
 

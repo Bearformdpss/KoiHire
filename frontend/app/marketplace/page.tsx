@@ -6,7 +6,6 @@ import { Search, Filter, ChevronDown, Star, MapPin, Clock, Loader2 } from 'lucid
 import { FreelancerOnly } from '@/components/auth/RoleProtection'
 import { projectsApi } from '@/lib/api/projects'
 import { categoriesApi } from '@/lib/api/categories'
-import { skillsApi } from '@/lib/api/skills'
 import BidSubmissionModal from '@/components/projects/BidSubmissionModal'
 import { AdvancedSearch, SearchFilters } from '@/components/search/AdvancedSearch'
 import { SavedSearches } from '@/components/search/SavedSearches'
@@ -30,12 +29,6 @@ interface Project {
     id: string
     name: string
   }
-  skills: Array<{
-    skill: {
-      id: string
-      name: string
-    }
-  }>
   _count: {
     applications: number
   }
@@ -45,12 +38,6 @@ interface Category {
   id: string
   name: string
   slug: string
-}
-
-interface Skill {
-  id: string
-  name: string
-  category: string
 }
 
 export default function MarketplacePage() {
@@ -70,7 +57,6 @@ export default function MarketplacePage() {
   })
   const [projects, setProjects] = useState<Project[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
@@ -109,21 +95,16 @@ export default function MarketplacePage() {
 
   const fetchInitialData = async () => {
     try {
-      const [categoriesResponse, skillsResponse] = await Promise.all([
+      const [categoriesResponse] = await Promise.all([
         categoriesApi.getCategories(),
-        skillsApi.getSkills(),
         fetchSpotlightProjects(),
         fetchFeaturedProjects()
       ])
-      
+
       if (categoriesResponse.success) {
         setCategories(categoriesResponse.categories)
       }
-      
-      if (skillsResponse.success) {
-        setSkills(skillsResponse.skills || [])
-      }
-      
+
       await fetchProjects(true)
     } catch (error) {
       console.error('Failed to fetch initial data:', error)
@@ -206,10 +187,6 @@ export default function MarketplacePage() {
 
     if (searchFilters.maxBudget) {
       params.maxBudget = searchFilters.maxBudget
-    }
-
-    if (searchFilters.skills.length > 0) {
-      params.skills = searchFilters.skills
     }
 
     if (searchFilters.location) {
@@ -375,23 +352,6 @@ export default function MarketplacePage() {
                                   <div className="text-white font-semibold text-sm">{getTimeAgo(project.createdAt)}</div>
                                 </div>
                               </div>
-
-                              {/* Skills */}
-                              <div className="flex flex-wrap gap-2">
-                                {project.skills.slice(0, 4).map((skill) => (
-                                  <span
-                                    key={skill.skill.id}
-                                    className="px-2 py-1 bg-white/20 backdrop-blur text-white text-xs rounded-full"
-                                  >
-                                    {skill.skill.name}
-                                  </span>
-                                ))}
-                                {project.skills.length > 4 && (
-                                  <span className="px-2 py-1 bg-white/10 text-purple-200 text-xs rounded-full">
-                                    +{project.skills.length - 4}
-                                  </span>
-                                )}
-                              </div>
                             </div>
 
                             {/* CTA Section */}
@@ -466,26 +426,7 @@ export default function MarketplacePage() {
                           Featured
                         </span>
                       </div>
-                      
-                      {/* Skills */}
-                      {project.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {project.skills.slice(0, 3).map((skill) => (
-                            <span
-                              key={skill.skill.id}
-                              className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded"
-                            >
-                              {skill.skill.name}
-                            </span>
-                          ))}
-                          {project.skills.length > 3 && (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                              +{project.skills.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      
+
                       <div className="flex justify-between items-center">
                         <div className="text-xs text-gray-500">
                           {project._count.applications} bids • {getTimeAgo(project.createdAt)}
@@ -525,7 +466,6 @@ export default function MarketplacePage() {
             filters={searchFilters}
             onFiltersChange={setSearchFilters}
             categories={categories}
-            skills={skills}
             onSearch={() => fetchProjects(true)}
             isLoading={refreshing}
           />
@@ -557,19 +497,7 @@ export default function MarketplacePage() {
                       </span>
                     </div>
                     <p className="text-gray-300 mb-4 leading-relaxed">{project.description}</p>
-                    
-                    {/* Skills */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {project.skills.map((skill) => (
-                        <span
-                          key={skill.skill.id}
-                          className="px-3 py-1 bg-blue-600 text-blue-100 text-sm rounded-full"
-                        >
-                          {skill.skill.name}
-                        </span>
-                      ))}
-                    </div>
-                    
+
                     {/* Project Details */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
@@ -633,12 +561,12 @@ export default function MarketplacePage() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
                 <p className="text-gray-600 mb-6">
-                  {searchFilters.search || searchFilters.category !== 'all' || searchFilters.minBudget || searchFilters.maxBudget || searchFilters.skills.length > 0 
-                    ? "Try adjusting your search criteria or filters." 
+                  {searchFilters.search || searchFilters.category !== 'all' || searchFilters.minBudget || searchFilters.maxBudget
+                    ? "Try adjusting your search criteria or filters."
                     : "No projects are currently available. Check back later!"
                   }
                 </p>
-                {(searchFilters.search || searchFilters.category !== 'all' || searchFilters.minBudget || searchFilters.maxBudget || searchFilters.skills.length > 0) && (
+                {(searchFilters.search || searchFilters.category !== 'all' || searchFilters.minBudget || searchFilters.maxBudget) && (
                   <Button 
                     onClick={() => {
                       setSearchFilters({

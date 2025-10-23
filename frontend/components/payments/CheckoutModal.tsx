@@ -10,7 +10,8 @@ import toast from 'react-hot-toast'
 interface CheckoutModalProps {
   isOpen: boolean
   onClose: () => void
-  orderId: string
+  orderId?: string  // For service orders
+  projectId?: string  // For project escrow
   totalAmount: number
   serviceName: string
   onSuccess: () => void
@@ -20,6 +21,7 @@ export function CheckoutModal({
   isOpen,
   onClose,
   orderId,
+  projectId,
   totalAmount,
   serviceName,
   onSuccess
@@ -59,8 +61,14 @@ export function CheckoutModal({
       } else if (paymentIntent && (paymentIntent.status === 'succeeded' || paymentIntent.status === 'requires_capture')) {
         console.log('✅ Payment succeeded! Status:', paymentIntent.status)
         toast.success('Payment successful! Funds are now held in escrow.')
-        onSuccess()
-        onClose()
+
+        // Wait 1.5 seconds for webhook to update database before refreshing
+        console.log('⏳ Waiting for webhook to update database...')
+        setTimeout(() => {
+          console.log('🔄 Refreshing order data...')
+          onSuccess()
+          onClose()
+        }, 1500)
       } else {
         console.log('⚠️ Unexpected payment status:', paymentIntent?.status)
         toast.error('Payment status unclear, please refresh the page')

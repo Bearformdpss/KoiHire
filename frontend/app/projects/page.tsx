@@ -23,12 +23,6 @@ interface Project {
     id: string
     name: string
   }
-  skills: Array<{
-    skill: {
-      id: string
-      name: string
-    }
-  }>
   _count: {
     applications: number
   }
@@ -117,7 +111,7 @@ export default function ProjectsPage() {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="grid md:grid-cols-4 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category
@@ -140,16 +134,6 @@ export default function ProjectsPage() {
                 <option>$1,000 - $5,000</option>
                 <option>$5,000+</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Skills
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. React, Node.js"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
             </div>
             <div className="flex items-end">
               <Button className="w-full">
@@ -182,18 +166,7 @@ export default function ProjectsPage() {
                     <p className="text-gray-600 mb-4">
                       {project.description}
                     </p>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {project.skills.map((skill) => (
-                        <span
-                          key={skill.skill.id}
-                          className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                        >
-                          {skill.skill.name}
-                        </span>
-                      ))}
-                    </div>
-                    
+
                     <div className="flex items-center gap-6 text-sm text-gray-500">
                       <span className="font-semibold text-green-600">
                         ${project.minBudget} - ${project.maxBudget}

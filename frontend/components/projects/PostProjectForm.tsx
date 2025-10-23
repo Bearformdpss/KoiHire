@@ -12,13 +12,6 @@ interface Category {
   id: string
   name: string
   slug: string
-  skills: Skill[]
-}
-
-interface Skill {
-  id: string
-  name: string
-  description: string
 }
 
 interface PostProjectFormProps {
@@ -42,8 +35,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
   const [isLoading, setIsLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState<FormStep>('details')
   const [categories, setCategories] = useState<Category[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
-  const [selectedSkills, setSelectedSkills] = useState<Skill[]>([])
   const [spotlightSlotsAvailable, setSpotlightSlotsAvailable] = useState(3)
 
   const [formData, setFormData] = useState({
@@ -54,7 +45,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
     maxBudget: '',
     timeline: '',
     categoryId: '',
-    skills: [] as string[],
     premiumTier: 'NONE' as PremiumTier
   })
 
@@ -129,38 +119,10 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
   }
 
   const handleCategoryChange = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId)
-    setSelectedCategory(category || null)
-    setSelectedSkills([])
     setFormData(prev => ({
       ...prev,
-      categoryId,
-      skills: []
+      categoryId
     }))
-  }
-
-  const handleSkillToggle = (skill: Skill) => {
-    const isSelected = selectedSkills.find(s => s.id === skill.id)
-    
-    if (isSelected) {
-      const newSkills = selectedSkills.filter(s => s.id !== skill.id)
-      setSelectedSkills(newSkills)
-      setFormData(prev => ({
-        ...prev,
-        skills: newSkills.map(s => s.id)
-      }))
-    } else {
-      if (selectedSkills.length >= 10) {
-        toast.error('You can select up to 10 skills')
-        return
-      }
-      const newSkills = [...selectedSkills, skill]
-      setSelectedSkills(newSkills)
-      setFormData(prev => ({
-        ...prev,
-        skills: newSkills.map(s => s.id)
-      }))
-    }
   }
 
   const validateForm = () => {
@@ -192,10 +154,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
 
     if (!formData.categoryId) {
       newErrors.categoryId = 'Please select a category'
-    }
-
-    if (formData.skills.length === 0) {
-      newErrors.skills = 'Please select at least one skill'
     }
 
     setErrors(newErrors)
@@ -250,7 +208,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
         maxBudget: Number(formData.maxBudget),
         timeline: formData.timeline,
         categoryId: formData.categoryId,
-        skills: formData.skills,
         // Add premium upgrade information
         featured: formData.premiumTier !== 'NONE',
         featuredLevel: formData.premiumTier !== 'NONE' ? formData.premiumTier : undefined,
@@ -472,59 +429,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
           </select>
           {errors.categoryId && <p className="text-red-600 text-sm mt-1">{errors.categoryId}</p>}
         </div>
-
-        {/* Skills */}
-        {selectedCategory && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Required Skills * ({selectedSkills.length}/10)
-            </label>
-            <div className="border border-gray-300 rounded-lg p-4 max-h-60 overflow-y-auto">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {selectedCategory.skills.map(skill => {
-                  const isSelected = selectedSkills.find(s => s.id === skill.id)
-                  return (
-                    <button
-                      key={skill.id}
-                      type="button"
-                      onClick={() => handleSkillToggle(skill)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isSelected
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {skill.name}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            {errors.skills && <p className="text-red-600 text-sm mt-1">{errors.skills}</p>}
-            {selectedSkills.length > 0 && (
-              <div className="mt-2">
-                <p className="text-sm text-gray-600 mb-2">Selected skills:</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedSkills.map(skill => (
-                    <span
-                      key={skill.id}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                    >
-                      {skill.name}
-                      <button
-                        type="button"
-                        onClick={() => handleSkillToggle(skill)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Submit Button */}
         <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">

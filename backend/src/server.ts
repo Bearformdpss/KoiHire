@@ -19,7 +19,7 @@ import publicUserRoutes from './api/users-public';
 import projectRoutes from './api/projects';
 import applicationRoutes from './api/applications';
 import messageRoutes from './api/messages';
-import paymentRoutes from './api/payments';
+import paymentRoutes, { webhookRouter } from './api/payments';
 import reviewRoutes from './api/reviews';
 import categoryRoutes from './api/categories';
 import notificationRoutes from './api/notifications';
@@ -27,7 +27,9 @@ import portfolioRoutes from './api/portfolios';
 import uploadRoutes from './api/upload';
 import serviceRoutes from './api/services';
 import serviceOrderRoutes from './api/service-orders';
+import escrowRoutes from './api/escrow';
 import fileRoutes from './routes/files.routes';
+import adminRoutes from './api/admin';
 // import projectUpdateRoutes from './routes/projectUpdates';
 
 // Load environment variables
@@ -98,7 +100,7 @@ app.use('/api/users', authMiddleware, userRoutes); // Private user routes (auth 
 app.use('/api/projects', projectRoutes);
 app.use('/api/applications', authMiddleware, applicationRoutes);
 app.use('/api/messages', authMiddleware, messageRoutes);
-app.use('/api/payments/webhook', paymentRoutes); // Webhook route MUST be before auth middleware
+app.use('/api/payments', webhookRouter); // Webhook router (no auth) - handles /api/payments/webhook
 app.use('/api/payments', authMiddleware, paymentRoutes); // All other payment routes require auth
 app.use('/api/reviews', authMiddleware, reviewRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -107,7 +109,9 @@ app.use('/api/portfolios', portfolioRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/service-orders', authMiddleware, serviceOrderRoutes);
+app.use('/api/escrow', authMiddleware, escrowRoutes);
 app.use('/api/projects', fileRoutes);
+app.use('/api/admin', authMiddleware, adminRoutes); // Admin routes (requires auth + ADMIN role)
 // app.use('/api', authMiddleware, projectUpdateRoutes);
 
 // Setup Socket.IO

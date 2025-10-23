@@ -17,7 +17,6 @@ import { ProfileCard } from './freelancer/ProfileCard'
 import { LevelProgressCard } from './freelancer/LevelProgressCard'
 import { ThisMonthCard } from './freelancer/ThisMonthCard'
 import { AvailabilityToggle } from './freelancer/AvailabilityToggle'
-import { SkillMatchedProjects } from './freelancer/SkillMatchedProjects'
 
 interface MyProject {
   id: string
@@ -42,12 +41,6 @@ interface MyProject {
     name: string
     slug: string
   }
-  skills: Array<{
-    skill: {
-      id: string
-      name: string
-    }
-  }>
 }
 
 export function FreelancerDashboard() {
@@ -260,9 +253,6 @@ export function FreelancerDashboard() {
               )}
             </div>
           </div>
-
-          {/* Skill-Matched Projects Section */}
-          <SkillMatchedProjects />
         </div>
       </div>
     </div>
