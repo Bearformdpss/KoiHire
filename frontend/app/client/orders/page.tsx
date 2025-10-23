@@ -422,23 +422,23 @@ export default function ClientOrdersPage() {
 
                         {/* Freelancer Info with Avatar */}
                         <div className="flex items-center gap-3 mb-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
-                          {order.service?.freelancer?.avatar ? (
+                          {order.freelancer?.avatar ? (
                             <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-blue-500">
                               <Image
-                                src={order.service.freelancer.avatar}
-                                alt={`${order.service.freelancer.firstName} ${order.service.freelancer.lastName}`}
+                                src={order.freelancer.avatar}
+                                alt={`${order.freelancer.firstName} ${order.freelancer.lastName}`}
                                 fill
                                 className="object-cover"
                               />
                             </div>
                           ) : (
                             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                              {order.service?.freelancer?.firstName?.[0]}{order.service?.freelancer?.lastName?.[0]}
+                              {order.freelancer?.firstName?.[0]}{order.freelancer?.lastName?.[0]}
                             </div>
                           )}
                           <div className="flex-1">
                             <p className="text-sm font-medium text-gray-900">
-                              {order.service?.freelancer?.firstName} {order.service?.freelancer?.lastName}
+                              {order.freelancer?.firstName} {order.freelancer?.lastName}
                             </p>
                             <p className="text-xs text-gray-600">Freelancer</p>
                           </div>
@@ -450,21 +450,21 @@ export default function ClientOrdersPage() {
                             <Calendar className="w-4 h-4" />
                             Ordered: {formatDate(order.createdAt)}
                           </div>
-                          {order.dueDate && (
+                          {order.deliveryDate && (
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
-                              Due: {formatDate(order.dueDate)}
+                              Due: {formatDate(order.deliveryDate)}
                             </div>
                           )}
                         </div>
 
                         <p className="text-gray-600 mb-4">
-                          Package: {order.packageTier} - {formatPrice(order.totalAmount)}
+                          Package: {order.package?.tier} - {formatPrice(order.totalAmount)}
                         </p>
 
-                        {order.notes && (
+                        {order.requirements && (
                           <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                            <p className="text-sm text-gray-700">{order.notes}</p>
+                            <p className="text-sm text-gray-700">{order.requirements}</p>
                           </div>
                         )}
                       </div>
