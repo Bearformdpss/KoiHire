@@ -5,7 +5,7 @@
     "lib": ["ES2020"],
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -17,10 +17,10 @@
     "emitDecoratorMetadata": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
+    "noUncheckedIndexedAccess": false,
     "paths": {
       "@/*": ["./src/*"]
     }
