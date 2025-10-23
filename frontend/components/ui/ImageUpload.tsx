@@ -5,6 +5,8 @@ import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { Button } from './button'
 import Image from 'next/image'
 import { api } from '@/lib/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5003'
+
 import toast from 'react-hot-toast'
 
 interface ImageUploadProps {
@@ -94,7 +96,7 @@ export function ImageUpload({
               // Find corresponding uploaded URL
               const index = files.indexOf(preview.file)
               return {
-                url: `http://localhost:5003${uploadedUrls[index]}`,
+                url: `${API_BASE_URL}${uploadedUrls[index]}`,
                 uploaded: true,
                 uploading: false
               }
@@ -115,7 +117,7 @@ export function ImageUpload({
         // Update parent component with new URLs
         const allUrls = [
           ...state.previews.filter(p => p.uploaded && !files.some(f => p.file === f)).map(p => p.url),
-          ...uploadedUrls.map((url: string) => `http://localhost:5003${url}`)
+          ...uploadedUrls.map((url: string) => `${API_BASE_URL}${url}`)
         ]
         onChange(allUrls)
 

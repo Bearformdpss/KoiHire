@@ -5,6 +5,8 @@ import { Upload, X, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5003'
+
 
 interface SingleImageUploadProps {
   value?: string
@@ -42,7 +44,7 @@ export function SingleImageUpload({
       })
 
       if (response.data.success) {
-        const uploadedUrl = `http://localhost:5003${response.data.thumbnail}`
+        const uploadedUrl = `${API_BASE_URL}${response.data.thumbnail}`
         
         // Clean up object URL
         URL.revokeObjectURL(objectUrl)

@@ -6,6 +6,8 @@ import Image from 'next/image'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5003'
+
 interface AvatarUploadProps {
   value?: string
   onChange: (url: string) => void
@@ -50,8 +52,8 @@ export function AvatarUpload({
       })
 
       if (response.data.success) {
-        const uploadedUrl = `http://localhost:5003${response.data.avatar}`
-        
+        const uploadedUrl = `${API_BASE_URL}${response.data.avatar}`
+
         // Clean up object URL
         URL.revokeObjectURL(objectUrl)
         

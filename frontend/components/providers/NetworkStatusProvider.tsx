@@ -5,6 +5,8 @@ import { NetworkMonitor } from '@/lib/utils/apiErrorHandler'
 import { WifiOff, Wifi } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5003'
+
 interface NetworkStatusContextType {
   isOnline: boolean
   isConnecting: boolean
@@ -38,7 +40,7 @@ export function NetworkStatusProvider({ children }: NetworkStatusProviderProps) 
     // Test initial connectivity on mount
     const testInitialConnectivity = async () => {
       try {
-        const response = await fetch('http://localhost:5003/health', { 
+        const response = await fetch(`${API_BASE_URL}/health`, {
           method: 'HEAD',
           cache: 'no-cache',
           signal: AbortSignal.timeout(5000)
@@ -62,9 +64,9 @@ export function NetworkStatusProvider({ children }: NetworkStatusProviderProps) 
     // Custom handlers for more detailed feedback
     const handleOnline = () => {
       setIsConnecting(true)
-      
+
       // Test actual connectivity, not just network interface
-      fetch('http://localhost:5003/health', { 
+      fetch(`${API_BASE_URL}/health`, {
         method: 'HEAD',
         cache: 'no-cache'
       })
@@ -111,7 +113,7 @@ export function NetworkStatusProvider({ children }: NetworkStatusProviderProps) 
       connectivityCheckInterval = setInterval(async () => {
         if (isOnline) {
           try {
-            const response = await fetch('http://localhost:5003/health', { 
+            const response = await fetch(`${API_BASE_URL}/health`, {
               method: 'HEAD',
               cache: 'no-cache',
               signal: AbortSignal.timeout(5000) // 5 second timeout
