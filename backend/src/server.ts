@@ -53,7 +53,7 @@ const PORT = process.env.PORT || 5000;
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'development' 
+  origin: process.env.NODE_ENV === 'development'
     ? (origin, callback) => {
         // Allow any localhost origin during development
         if (!origin || origin.startsWith('http://localhost:')) {
@@ -62,7 +62,22 @@ app.use(cors({
           callback(new Error('Not allowed by CORS'));
         }
       }
-    : process.env.FRONTEND_URL || 'http://localhost:3000',
+    : (origin, callback) => {
+        // In production, allow the configured frontend URL and its www variant
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const allowedOrigins = [
+          frontendUrl,
+          frontendUrl.replace('https://', 'https://www.'),
+          frontendUrl.replace('https://www.', 'https://'),
+          'https://koi-hire.vercel.app' // Keep old Vercel URL for transition
+        ];
+
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
   credentials: true
 }));
 
