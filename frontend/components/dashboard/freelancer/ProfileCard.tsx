@@ -43,7 +43,7 @@ export function ProfileCard() {
           {/* Edit Avatar Button */}
           <button
             onClick={handleEditProfile}
-            className="absolute bottom-0 right-0 bg-koi-orange hover:bg-koi-orange/90 text-white rounded-full p-1.5 shadow-lg transition-colors"
+            className="absolute bottom-0 left-0 bg-koi-orange hover:bg-koi-orange/90 text-white rounded-full p-1.5 shadow-lg transition-colors"
             aria-label="Edit profile"
           >
             <Camera className="w-4 h-4" />
