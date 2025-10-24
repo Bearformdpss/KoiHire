@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { Star, CheckCircle } from 'lucide-react'
+import { Star, CheckCircle, Camera } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 
 export function ProfileCard() {
@@ -17,6 +17,10 @@ export function ProfileCard() {
 
   const handleViewProfile = () => {
     router.push(`/profile/${user.username}`)
+  }
+
+  const handleEditProfile = () => {
+    router.push('/settings')
   }
 
   return (
@@ -35,6 +39,16 @@ export function ProfileCard() {
               {getInitials()}
             </div>
           )}
+
+          {/* Edit Avatar Button */}
+          <button
+            onClick={handleEditProfile}
+            className="absolute bottom-0 right-0 bg-koi-orange hover:bg-koi-orange/90 text-white rounded-full p-1.5 shadow-lg transition-colors"
+            aria-label="Edit profile"
+          >
+            <Camera className="w-4 h-4" />
+          </button>
+
           {user.isVerified && (
             <div className="absolute -bottom-1 -right-1 bg-koi-teal rounded-full p-1">
               <CheckCircle className="w-4 h-4 text-white" />
