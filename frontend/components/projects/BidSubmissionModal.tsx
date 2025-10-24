@@ -145,6 +145,7 @@ export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess
         {/* Project Summary */}
         <div className="p-6 bg-gray-50 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.title}</h3>
+          <p className="text-gray-700 mb-4">{project.description}</p>
           <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-600">
             <div>
               <span className="font-medium">Budget:</span> ${project.minBudget} - ${project.maxBudget}
