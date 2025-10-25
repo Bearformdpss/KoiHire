@@ -24,7 +24,7 @@ export default function Footer() {
             <h4 className="font-semibold mb-4">For Clients</h4>
             <ul className="space-y-2 text-gray-400">
               <li><Link href="/post-project" className="hover:text-white">Post a Project</Link></li>
-              <li><Link href="/marketplace" className="hover:text-white">Browse Services</Link></li>
+              <li><Link href="/services" className="hover:text-white">Browse Services</Link></li>
               <li><Link href="/how-it-works" className="hover:text-white">How It Works</Link></li>
             </ul>
           </div>
@@ -32,7 +32,7 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-4">For Freelancers</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><Link href="/projects" className="hover:text-white">Browse Projects</Link></li>
+              <li><Link href="/marketplace" className="hover:text-white">Browse Projects</Link></li>
               <li><Link href="/success-tips" className="hover:text-white">Success Tips</Link></li>
             </ul>
           </div>
