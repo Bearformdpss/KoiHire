@@ -41,10 +41,10 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-koi-orange to-koi-teal text-white py-16">
+      <div className="bg-gradient-to-r from-koi-orange to-koi-teal py-16">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Contact Us</h1>
-          <p className="text-xl text-white/90 max-w-3xl">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-koi-navy">Contact Us</h1>
+          <p className="text-xl max-w-3xl text-koi-navy">
             Have questions? We're here to help. Reach out and we'll respond as soon as possible.
           </p>
         </div>

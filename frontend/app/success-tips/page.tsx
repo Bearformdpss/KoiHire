@@ -6,10 +6,10 @@ export default function SuccessTipsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-koi-orange to-koi-teal text-white py-16">
+      <div className="bg-gradient-to-r from-koi-orange to-koi-teal py-16">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Success Tips for Freelancers</h1>
-          <p className="text-xl text-white/90 max-w-3xl">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-koi-navy">Success Tips for Freelancers</h1>
+          <p className="text-xl max-w-3xl text-koi-navy">
             Discover why KoiHire is the smartest choice for growing your freelance career
           </p>
         </div>
@@ -145,9 +145,9 @@ export default function SuccessTipsPage() {
         </div>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-koi-orange to-koi-teal text-white rounded-lg p-8 mt-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Grow Your Freelance Business?</h2>
-          <p className="text-xl mb-6">Join KoiHire today and start winning projects with lower fees and less competition!</p>
+        <div className="bg-gradient-to-r from-koi-orange to-koi-teal rounded-lg p-8 mt-8 text-center">
+          <h2 className="text-3xl font-bold mb-4 text-koi-navy">Ready to Grow Your Freelance Business?</h2>
+          <p className="text-xl mb-6 text-koi-navy">Join KoiHire today and start winning projects with lower fees and less competition!</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="/projects"

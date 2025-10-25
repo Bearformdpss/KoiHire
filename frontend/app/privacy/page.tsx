@@ -2,10 +2,10 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-koi-orange to-koi-teal text-white py-16">
+      <div className="bg-gradient-to-r from-koi-orange to-koi-teal py-16">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Privacy Policy</h1>
-          <p className="text-xl text-white/90">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-koi-navy">Privacy Policy</h1>
+          <p className="text-xl text-koi-navy">
             Last updated: January 25, 2025
           </p>
         </div>
