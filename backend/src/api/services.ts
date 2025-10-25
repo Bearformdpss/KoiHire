@@ -448,11 +448,6 @@ router.get('/:serviceId', asyncHandler(async (req, res) => {
         }
       },
       category: true,
-      skills: {
-        include: {
-          skill: true
-        }
-      },
       packages: {
         where: { isActive: true },
         orderBy: { tier: 'asc' }
