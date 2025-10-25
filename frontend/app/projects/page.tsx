@@ -169,7 +169,7 @@ export default function ProjectsPage() {
               </select>
             </div>
             <div className="flex items-end">
-              <button className="w-full bg-gradient-to-r from-koi-orange to-koi-teal text-white py-2 px-4 rounded-md font-semibold hover:opacity-90 transition-opacity">
+              <button className="w-full bg-white text-koi-orange py-2 px-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md border border-koi-orange">
                 Apply Filters
               </button>
             </div>
@@ -219,7 +219,7 @@ export default function ProjectsPage() {
                   <div className="ml-6">
                     <button
                       onClick={() => handleApplyNow(project.id)}
-                      className="bg-gradient-to-r from-koi-orange to-koi-teal text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-sm whitespace-nowrap"
+                      className="bg-white text-koi-orange px-6 py-2.5 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md border border-koi-orange whitespace-nowrap"
                     >
                       Apply Now
                     </button>
