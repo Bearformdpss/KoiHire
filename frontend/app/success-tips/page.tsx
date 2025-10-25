@@ -18,14 +18,14 @@ export default function SuccessTipsPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         {/* Why KoiHire Section */}
-        <div className="bg-white rounded-lg shadow-lg p-8 md:p-10 mb-8 border border-gray-100">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">Why Choose KoiHire?</h2>
+        <div className="bg-white rounded-lg shadow-lg p-8 md:p-10 mb-8 border border-gray-200">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-koi-navy mb-8">Why Choose KoiHire?</h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="flex flex-col items-start">
               <div className="bg-koi-orange/10 p-3 rounded-lg mb-4">
                 <DollarSign className="w-8 h-8 text-koi-orange" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Lower Fees</h3>
+              <h3 className="text-xl font-extrabold text-koi-navy mb-3">Lower Fees</h3>
               <p className="text-gray-700 leading-relaxed">
                 We take a smaller cut from your earnings compared to other platforms. Keep more of what you earn!
               </p>
@@ -35,7 +35,7 @@ export default function SuccessTipsPage() {
               <div className="bg-koi-teal/10 p-3 rounded-lg mb-4">
                 <Users className="w-8 h-8 text-koi-teal" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Less Competition</h3>
+              <h3 className="text-xl font-extrabold text-koi-navy mb-3">Less Competition</h3>
               <p className="text-gray-700 leading-relaxed">
                 We're not as saturated as massive marketplaces. Stand out easier and win more projects.
               </p>
@@ -45,7 +45,7 @@ export default function SuccessTipsPage() {
               <div className="bg-koi-gold/10 p-3 rounded-lg mb-4">
                 <Target className="w-8 h-8 text-koi-gold" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Dual Opportunities</h3>
+              <h3 className="text-xl font-extrabold text-koi-navy mb-3">Dual Opportunities</h3>
               <p className="text-gray-700 leading-relaxed">
                 Find work through client-posted projects AND offer your own services. Two ways to earn!
               </p>
@@ -54,12 +54,12 @@ export default function SuccessTipsPage() {
         </div>
 
         {/* Opportunity Types */}
-        <div className="bg-white rounded-lg shadow-lg p-8 md:p-10 mb-8 border border-gray-100">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">Two Ways to Find Work</h2>
+        <div className="bg-white rounded-lg shadow-lg p-8 md:p-10 mb-8 border border-gray-200">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-koi-navy mb-8">Two Ways to Find Work</h2>
 
           <div className="space-y-8">
             <div className="border-l-4 border-koi-orange pl-6 py-2">
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              <h3 className="text-2xl font-extrabold text-koi-navy mb-3">
                 <Zap className="inline w-6 h-6 mr-2" />
                 Client-Posted Projects
               </h3>
@@ -75,7 +75,7 @@ export default function SuccessTipsPage() {
             </div>
 
             <div className="border-l-4 border-koi-teal pl-6 py-2">
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              <h3 className="text-2xl font-extrabold text-koi-navy mb-3">
                 <TrendingUp className="inline w-6 h-6 mr-2" />
                 Your Service Listings
               </h3>
@@ -93,50 +93,50 @@ export default function SuccessTipsPage() {
         </div>
 
         {/* Success Tips */}
-        <div className="bg-white rounded-lg shadow-lg p-8 md:p-10 border border-gray-100">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8 flex items-center">
+        <div className="bg-white rounded-lg shadow-lg p-8 md:p-10 border border-gray-200">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-koi-navy mb-8 flex items-center">
             <Lightbulb className="w-8 h-8 mr-3 text-koi-gold" />
             Pro Tips for Success
           </h2>
 
           <div className="space-y-6">
             <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">1. Complete Your Profile</h3>
+              <h3 className="text-xl font-extrabold text-koi-navy mb-3">1. Complete Your Profile</h3>
               <p className="text-gray-700 leading-relaxed">
                 Add a professional photo, detailed bio, portfolio samples, and skills. Complete profiles win 3x more projects.
               </p>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">2. Create Compelling Service Packages</h3>
+              <h3 className="text-xl font-extrabold text-koi-navy mb-3">2. Create Compelling Service Packages</h3>
               <p className="text-gray-700 leading-relaxed">
                 Offer clear, well-defined services with attractive pricing tiers. Make it easy for clients to understand what they'll get.
               </p>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">3. Submit Quality Proposals</h3>
+              <h3 className="text-xl font-extrabold text-koi-navy mb-3">3. Submit Quality Proposals</h3>
               <p className="text-gray-700 leading-relaxed">
                 When bidding on projects, personalize each proposal. Show you understand the client's needs and explain your unique approach.
               </p>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">4. Deliver Exceptional Work</h3>
+              <h3 className="text-xl font-extrabold text-koi-navy mb-3">4. Deliver Exceptional Work</h3>
               <p className="text-gray-700 leading-relaxed">
                 Great reviews are your best marketing. Exceed expectations, communicate clearly, and deliver on time.
               </p>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">5. Stay Active & Responsive</h3>
+              <h3 className="text-xl font-extrabold text-koi-navy mb-3">5. Stay Active & Responsive</h3>
               <p className="text-gray-700 leading-relaxed">
                 Check for new projects daily and respond to client messages within 24 hours. Active freelancers get more opportunities.
               </p>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">6. Leverage Both Channels</h3>
+              <h3 className="text-xl font-extrabold text-koi-navy mb-3">6. Leverage Both Channels</h3>
               <p className="text-gray-700 leading-relaxed">
                 Don't just rely on one method. Bid on projects while also maintaining service listings. Diversify your income streams!
               </p>
