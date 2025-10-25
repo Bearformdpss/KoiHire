@@ -33,8 +33,13 @@ export function ProfileCard() {
               src={user.avatar}
               alt={`${user.firstName} ${user.lastName}`}
               className="w-20 h-20 rounded-full object-cover border-2 border-koi-orange"
+              onError={(e) => {
+                console.error('Failed to load avatar:', user.avatar)
+                e.currentTarget.style.display = 'none'
+              }}
             />
-          ) : (
+          ) : null}
+          {!user.avatar && (
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-koi-orange to-koi-teal flex items-center justify-center text-white text-2xl font-bold border-2 border-koi-orange">
               {getInitials()}
             </div>

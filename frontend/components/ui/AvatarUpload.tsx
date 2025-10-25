@@ -98,13 +98,16 @@ export function AvatarUpload({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                // For uploaded images, use Next.js Image component
-                <Image
+                // For uploaded images, use regular img tag with error handling
+                <img
                   src={preview}
                   alt="Avatar preview"
-                  fill
-                  className="object-cover"
-                  sizes={size === 'sm' ? '64px' : size === 'md' ? '96px' : '128px'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Failed to load avatar:', preview)
+                    setPreview(null)
+                    toast.error('Failed to load avatar image')
+                  }}
                 />
               )}
               
