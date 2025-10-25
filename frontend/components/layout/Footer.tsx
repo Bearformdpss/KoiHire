@@ -24,24 +24,22 @@ export default function Footer() {
             <h4 className="font-semibold mb-4">For Clients</h4>
             <ul className="space-y-2 text-gray-400">
               <li><Link href="/post-project" className="hover:text-white">Post a Project</Link></li>
-              <li><Link href="/browse-freelancers" className="hover:text-white">Browse Freelancers</Link></li>
+              <li><Link href="/marketplace" className="hover:text-white">Browse Services</Link></li>
               <li><Link href="/how-it-works" className="hover:text-white">How It Works</Link></li>
             </ul>
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-4">For Freelancers</h4>
             <ul className="space-y-2 text-gray-400">
               <li><Link href="/projects" className="hover:text-white">Browse Projects</Link></li>
-              <li><Link href="/freelancer-tips" className="hover:text-white">Success Tips</Link></li>
-              <li><Link href="/resources" className="hover:text-white">Resources</Link></li>
+              <li><Link href="/success-tips" className="hover:text-white">Success Tips</Link></li>
             </ul>
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><Link href="/help" className="hover:text-white">Help Center</Link></li>
               <li><Link href="/contact" className="hover:text-white">Contact Us</Link></li>
               <li><Link href="/terms" className="hover:text-white">Terms of Service</Link></li>
               <li><Link href="/privacy" className="hover:text-white">Privacy Policy</Link></li>
