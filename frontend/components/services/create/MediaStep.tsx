@@ -75,6 +75,7 @@ export default function MediaStep({
               <SingleImageUpload
                 value={formData.coverImage}
                 onChange={handleCoverImageUpload}
+                endpoint="service-cover"
               />
             </div>
           </CardContent>
@@ -94,6 +95,7 @@ export default function MediaStep({
               value={formData.galleryImages || []}
               onChange={handleGalleryImagesUpload}
               maxImages={10}
+              endpoint="service-gallery"
             />
           </CardContent>
         </Card>

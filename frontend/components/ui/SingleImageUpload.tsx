@@ -12,22 +12,36 @@ interface SingleImageUploadProps {
   value?: string
   onChange: (url: string) => void
   className?: string
+  endpoint?: 'portfolio-thumbnail' | 'service-cover' // Default: portfolio-thumbnail
+  fieldName?: string // Default: 'thumbnail' for portfolio, 'image' for service
 }
 
-export function SingleImageUpload({ 
-  value, 
-  onChange, 
-  className = '' 
+export function SingleImageUpload({
+  value,
+  onChange,
+  className = '',
+  endpoint = 'portfolio-thumbnail',
+  fieldName
 }: SingleImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<string | null>(value || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Determine field name and response key based on endpoint
+  const getFieldName = () => {
+    if (fieldName) return fieldName
+    return endpoint === 'service-cover' ? 'image' : 'thumbnail'
+  }
+
+  const getResponseKey = () => {
+    return endpoint === 'service-cover' ? 'coverImage' : 'thumbnail'
+  }
+
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return
 
     const file = files[0]
-    
+
     // Create preview
     const objectUrl = URL.createObjectURL(file)
     setPreview(objectUrl)
@@ -35,16 +49,20 @@ export function SingleImageUpload({
 
     try {
       const formData = new FormData()
-      formData.append('thumbnail', file)
+      formData.append(getFieldName(), file)
 
-      const response = await api.post('/upload/portfolio-thumbnail', formData, {
+      const response = await api.post(`/upload/${endpoint}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
       if (response.data.success) {
-        const uploadedUrl = `${API_BASE_URL}${response.data.thumbnail}`
+        // For S3 uploads (service-cover), the URL is already absolute
+        // For local uploads (portfolio-thumbnail), prepend API_BASE_URL
+        const uploadedUrl = endpoint === 'service-cover'
+          ? response.data[getResponseKey()]
+          : `${API_BASE_URL}${response.data[getResponseKey()]}`
         
         // Clean up object URL
         URL.revokeObjectURL(objectUrl)

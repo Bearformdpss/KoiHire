@@ -14,6 +14,8 @@ interface ImageUploadProps {
   onChange: (urls: string[]) => void
   maxImages?: number
   className?: string
+  endpoint?: 'portfolio-images' | 'service-gallery' // Default: portfolio-images
+  fieldName?: string // Default: 'images' for both
 }
 
 interface ImageUploadState {
@@ -25,17 +27,24 @@ interface ImageUploadState {
   }>
 }
 
-export function ImageUpload({ 
-  value = [], 
-  onChange, 
+export function ImageUpload({
+  value = [],
+  onChange,
   maxImages = 5,
-  className = '' 
+  className = '',
+  endpoint = 'portfolio-images',
+  fieldName = 'images'
 }: ImageUploadProps) {
   const [state, setState] = useState<ImageUploadState>({
     previews: value.map(url => ({ url, uploaded: true, uploading: false }))
   })
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Determine response key based on endpoint
+  const getResponseKey = () => {
+    return endpoint === 'service-gallery' ? 'galleryImages' : 'images'
+  }
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return
@@ -67,57 +76,64 @@ export function ImageUpload({
   const uploadFiles = async (files: File[]) => {
     const formData = new FormData()
     files.forEach(file => {
-      formData.append('images', file)
+      formData.append(fieldName, file)
     })
 
     try {
       // Mark files as uploading
       setState(prev => ({
-        previews: prev.previews.map(preview => 
-          files.some(f => preview.file === f) 
+        previews: prev.previews.map(preview =>
+          files.some(f => preview.file === f)
             ? { ...preview, uploading: true }
             : preview
         )
       }))
 
-      const response = await api.post('/upload/portfolio-images', formData, {
+      const response = await api.post(`/upload/${endpoint}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
       if (response.data.success) {
-        const uploadedUrls = response.data.images
-        
+        const uploadedUrls = response.data[getResponseKey()]
+
         // Update previews with server URLs
         setState(prev => {
           const updatedPreviews = prev.previews.map(preview => {
             if (preview.file && files.includes(preview.file)) {
               // Find corresponding uploaded URL
               const index = files.indexOf(preview.file)
+              // For S3 uploads (service-gallery), URLs are already absolute
+              // For local uploads (portfolio-images), prepend API_BASE_URL
+              const fullUrl = endpoint === 'service-gallery'
+                ? uploadedUrls[index]
+                : `${API_BASE_URL}${uploadedUrls[index]}`
               return {
-                url: `${API_BASE_URL}${uploadedUrls[index]}`,
+                url: fullUrl,
                 uploaded: true,
                 uploading: false
               }
             }
             return preview
           })
-          
+
           // Clean up object URLs
           prev.previews.forEach(preview => {
             if (preview.file && files.includes(preview.file)) {
               URL.revokeObjectURL(preview.url)
             }
           })
-          
+
           return { previews: updatedPreviews }
         })
 
         // Update parent component with new URLs
         const allUrls = [
           ...state.previews.filter(p => p.uploaded && !files.some(f => p.file === f)).map(p => p.url),
-          ...uploadedUrls.map((url: string) => `${API_BASE_URL}${url}`)
+          ...uploadedUrls.map((url: string) =>
+            endpoint === 'service-gallery' ? url : `${API_BASE_URL}${url}`
+          )
         ]
         onChange(allUrls)
 
