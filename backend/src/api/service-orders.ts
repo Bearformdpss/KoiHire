@@ -156,12 +156,7 @@ router.get('/:orderId', authMiddleware, asyncHandler(async (req: AuthRequest, re
               location: true
             }
           },
-          category: true,
-          skills: {
-            include: {
-              skill: true
-            }
-          }
+          category: true
         }
       },
       package: true,
@@ -229,6 +224,7 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
       freelancer: {
         select: {
           id: true,
+          email: true,
           firstName: true,
           lastName: true
         }
@@ -279,6 +275,7 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
       client: {
         select: {
           id: true,
+          email: true,
           username: true,
           firstName: true,
           lastName: true
@@ -287,6 +284,7 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
       freelancer: {
         select: {
           id: true,
+          email: true,
           username: true,
           firstName: true,
           lastName: true
