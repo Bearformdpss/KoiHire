@@ -326,7 +326,7 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
   }
 
   // Send email notifications to both parties
-  console.log('📧 Attempting to send order placement emails...');
+  console.log('📧📧📧 ATTEMPTING TO SEND ORDER PLACEMENT EMAILS...');
   console.log('📧 Freelancer email:', order.freelancer.email);
   console.log('📧 Client email:', order.client.email);
   try {
