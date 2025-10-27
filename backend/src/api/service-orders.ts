@@ -326,19 +326,25 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
   }
 
   // Send email notifications to both parties
+  console.log('📧 Attempting to send order placement emails...');
+  console.log('📧 Freelancer email:', order.freelancer.email);
+  console.log('📧 Client email:', order.client.email);
   try {
     await emailService.sendOrderPlacedFreelancerEmail({
       order,
       freelancer: order.freelancer,
       client: order.client
     });
+    console.log('📧 Freelancer email sent successfully');
+
     await emailService.sendOrderPlacedClientEmail({
       order,
       client: order.client,
       freelancer: order.freelancer
     });
+    console.log('📧 Client email sent successfully');
   } catch (error) {
-    console.error('Error sending order placement emails:', error);
+    console.error('❌ Error sending order placement emails:', error);
   }
 
   res.status(201).json({
