@@ -1,4 +1,4 @@
-import nodemailer, { Transporter } from 'nodemailer';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import {
   orderPlacedFreelancerEmail,
   orderPlacedClientEmail,
@@ -9,57 +9,74 @@ import {
 
 /**
  * Email Service for sending transactional emails via AWS SES
+ * Uses AWS SDK for better compatibility with hosting platforms
  */
 class EmailService {
-  private transporter: Transporter;
+  private sesClient: SESClient;
   private fromEmail: string;
   private frontendUrl: string;
+  private isConfigured: boolean;
 
   constructor() {
-    // Initialize SMTP transporter with AWS SES credentials
-    this.transporter = nodemailer.createTransport({
-      host: process.env.AWS_SES_SMTP_HOST || 'email-smtp.us-east-1.amazonaws.com',
-      port: Number(process.env.AWS_SES_SMTP_PORT) || 587,
-      secure: false, // Use STARTTLS
-      auth: {
-        user: process.env.AWS_SES_SMTP_USERNAME,
-        pass: process.env.AWS_SES_SMTP_PASSWORD,
-      },
-    });
+    // Check if AWS SES is configured
+    this.isConfigured = !!(
+      process.env.AWS_ACCESS_KEY_ID &&
+      process.env.AWS_SECRET_ACCESS_KEY &&
+      process.env.AWS_REGION
+    );
+
+    if (this.isConfigured) {
+      // Initialize AWS SES client
+      this.sesClient = new SESClient({
+        region: process.env.AWS_REGION || 'us-east-1',
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+        },
+      });
+      console.log('✅ Email service ready - AWS SES configured');
+    } else {
+      console.warn('⚠️  Email service not configured - emails will not be sent');
+      // Create dummy client to prevent errors
+      this.sesClient = new SESClient({ region: 'us-east-1' });
+    }
 
     this.fromEmail = process.env.AWS_SES_FROM_EMAIL || 'noreply@koihire.com';
     this.frontendUrl = process.env.FRONTEND_URL || 'https://koihire.com';
-
-    // Verify connection on startup
-    this.verifyConnection();
-  }
-
-  /**
-   * Verify SMTP connection
-   */
-  private async verifyConnection(): Promise<void> {
-    try {
-      await this.transporter.verify();
-      console.log('✅ Email service ready - AWS SES SMTP connection verified');
-    } catch (error) {
-      console.error('❌ Email service error - SMTP connection failed:', error);
-    }
   }
 
   /**
    * Send email with error handling
    */
   private async sendEmail(to: string | string[], subject: string, html: string): Promise<void> {
+    if (!this.isConfigured) {
+      console.log(`📧 [DEV MODE] Would send email: "${subject}" to ${Array.isArray(to) ? to.join(', ') : to}`);
+      return;
+    }
+
     try {
       const recipients = Array.isArray(to) ? to : [to];
 
-      await this.transporter.sendMail({
-        from: `KoiHire <${this.fromEmail}>`,
-        to: recipients.join(', '),
-        subject,
-        html,
+      const command = new SendEmailCommand({
+        Source: `KoiHire <${this.fromEmail}>`,
+        Destination: {
+          ToAddresses: recipients,
+        },
+        Message: {
+          Subject: {
+            Data: subject,
+            Charset: 'UTF-8',
+          },
+          Body: {
+            Html: {
+              Data: html,
+              Charset: 'UTF-8',
+            },
+          },
+        },
       });
 
+      await this.sesClient.send(command);
       console.log(`✅ Email sent: "${subject}" to ${recipients.join(', ')}`);
     } catch (error) {
       console.error(`❌ Failed to send email: "${subject}"`, error);
