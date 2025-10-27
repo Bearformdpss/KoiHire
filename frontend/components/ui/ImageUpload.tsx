@@ -14,8 +14,8 @@ interface ImageUploadProps {
   onChange: (urls: string[]) => void
   maxImages?: number
   className?: string
-  endpoint?: 'portfolio-images' | 'service-gallery' // Default: portfolio-images
-  fieldName?: string // Default: 'images' for both
+  endpoint?: 'portfolio-images' | 'portfolio-images-s3' | 'service-gallery' // Default: portfolio-images
+  fieldName?: string // Default: 'images' for all
 }
 
 interface ImageUploadState {
@@ -44,6 +44,11 @@ export function ImageUpload({
   // Determine response key based on endpoint
   const getResponseKey = () => {
     return endpoint === 'service-gallery' ? 'galleryImages' : 'images'
+  }
+
+  // Check if this endpoint uses S3 (returns absolute URLs)
+  const isS3Endpoint = () => {
+    return endpoint === 'service-gallery' || endpoint === 'portfolio-images-s3'
   }
 
   const handleFileSelect = (files: FileList | null) => {
@@ -104,9 +109,9 @@ export function ImageUpload({
             if (preview.file && files.includes(preview.file)) {
               // Find corresponding uploaded URL
               const index = files.indexOf(preview.file)
-              // For S3 uploads (service-gallery), URLs are already absolute
-              // For local uploads (portfolio-images), prepend API_BASE_URL
-              const fullUrl = endpoint === 'service-gallery'
+              // For S3 uploads, URLs are already absolute
+              // For local uploads, prepend API_BASE_URL
+              const fullUrl = isS3Endpoint()
                 ? uploadedUrls[index]
                 : `${API_BASE_URL}${uploadedUrls[index]}`
               return {
@@ -132,7 +137,7 @@ export function ImageUpload({
         const allUrls = [
           ...state.previews.filter(p => p.uploaded && !files.some(f => p.file === f)).map(p => p.url),
           ...uploadedUrls.map((url: string) =>
-            endpoint === 'service-gallery' ? url : `${API_BASE_URL}${url}`
+            isS3Endpoint() ? url : `${API_BASE_URL}${url}`
           )
         ]
         onChange(allUrls)

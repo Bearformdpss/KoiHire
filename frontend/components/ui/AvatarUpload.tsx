@@ -45,14 +45,16 @@ export function AvatarUpload({
       const formData = new FormData()
       formData.append('avatar', file)
 
-      const response = await api.post('/upload/avatar', formData, {
+      // Use S3 endpoint for permanent storage
+      const response = await api.post('/upload/avatar-s3', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
       if (response.data.success) {
-        const uploadedUrl = `${API_BASE_URL}${response.data.avatar}`
+        // S3 returns absolute URL, no need to prepend API_BASE_URL
+        const uploadedUrl = response.data.avatar
 
         // Clean up object URL
         URL.revokeObjectURL(objectUrl)

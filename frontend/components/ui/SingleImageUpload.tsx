@@ -12,8 +12,8 @@ interface SingleImageUploadProps {
   value?: string
   onChange: (url: string) => void
   className?: string
-  endpoint?: 'portfolio-thumbnail' | 'service-cover' // Default: portfolio-thumbnail
-  fieldName?: string // Default: 'thumbnail' for portfolio, 'image' for service
+  endpoint?: 'portfolio-thumbnail' | 'portfolio-thumbnail-s3' | 'service-cover' | 'avatar-s3' // Default: portfolio-thumbnail
+  fieldName?: string // Default varies by endpoint
 }
 
 export function SingleImageUpload({
@@ -30,11 +30,22 @@ export function SingleImageUpload({
   // Determine field name and response key based on endpoint
   const getFieldName = () => {
     if (fieldName) return fieldName
-    return endpoint === 'service-cover' ? 'image' : 'thumbnail'
+    if (endpoint === 'service-cover') return 'image'
+    if (endpoint === 'avatar-s3') return 'avatar'
+    return 'thumbnail' // portfolio-thumbnail, portfolio-thumbnail-s3
   }
 
   const getResponseKey = () => {
-    return endpoint === 'service-cover' ? 'coverImage' : 'thumbnail'
+    if (endpoint === 'service-cover') return 'coverImage'
+    if (endpoint === 'avatar-s3') return 'avatar'
+    return 'thumbnail' // portfolio-thumbnail, portfolio-thumbnail-s3
+  }
+
+  // Check if this endpoint uses S3 (returns absolute URLs)
+  const isS3Endpoint = () => {
+    return endpoint === 'service-cover' ||
+           endpoint === 'avatar-s3' ||
+           endpoint === 'portfolio-thumbnail-s3'
   }
 
   const handleFileSelect = async (files: FileList | null) => {
@@ -58,9 +69,9 @@ export function SingleImageUpload({
       })
 
       if (response.data.success) {
-        // For S3 uploads (service-cover), the URL is already absolute
-        // For local uploads (portfolio-thumbnail), prepend API_BASE_URL
-        const uploadedUrl = endpoint === 'service-cover'
+        // For S3 uploads, the URL is already absolute
+        // For local uploads, prepend API_BASE_URL
+        const uploadedUrl = isS3Endpoint()
           ? response.data[getResponseKey()]
           : `${API_BASE_URL}${response.data[getResponseKey()]}`
         

@@ -312,4 +312,110 @@ router.post('/service-gallery', authMiddleware, s3Upload.array('images', 10), as
   }
 })
 
+// POST /api/upload/avatar-s3 - Upload avatar to S3
+router.post('/avatar-s3', authMiddleware, s3Upload.single('avatar'), async (req: AuthRequest, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No avatar uploaded'
+      })
+    }
+
+    const userId = req.user!.id
+
+    // Upload to S3
+    const avatarUrl = await uploadImageToS3(req.file, {
+      userId,
+      folder: 'avatars',
+      maxWidth: 400,
+      maxHeight: 400,
+      quality: 90
+    })
+
+    res.json({
+      success: true,
+      avatar: avatarUrl,
+      message: 'Avatar uploaded successfully'
+    })
+  } catch (error) {
+    console.error('Error uploading avatar:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload avatar'
+    })
+  }
+})
+
+// POST /api/upload/portfolio-images-s3 - Upload portfolio images to S3
+router.post('/portfolio-images-s3', authMiddleware, s3Upload.array('images', 10), async (req: AuthRequest, res) => {
+  try {
+    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No images uploaded'
+      })
+    }
+
+    const userId = req.user!.id
+    const files = req.files as Express.Multer.File[]
+
+    // Upload all images to S3
+    const imageUrls = await uploadMultipleImagesToS3(files, {
+      userId,
+      folder: 'portfolios',
+      maxWidth: 1920,
+      maxHeight: 1080,
+      quality: 85
+    })
+
+    res.json({
+      success: true,
+      images: imageUrls,
+      message: `Successfully uploaded ${files.length} image${files.length > 1 ? 's' : ''}`
+    })
+  } catch (error) {
+    console.error('Error uploading portfolio images:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload portfolio images'
+    })
+  }
+})
+
+// POST /api/upload/portfolio-thumbnail-s3 - Upload portfolio thumbnail to S3
+router.post('/portfolio-thumbnail-s3', authMiddleware, s3Upload.single('thumbnail'), async (req: AuthRequest, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No thumbnail uploaded'
+      })
+    }
+
+    const userId = req.user!.id
+
+    // Upload to S3
+    const thumbnailUrl = await uploadImageToS3(req.file, {
+      userId,
+      folder: 'portfolios/thumbnails',
+      maxWidth: 800,
+      maxHeight: 600,
+      quality: 85
+    })
+
+    res.json({
+      success: true,
+      thumbnail: thumbnailUrl,
+      message: 'Thumbnail uploaded successfully'
+    })
+  } catch (error) {
+    console.error('Error uploading thumbnail:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload thumbnail'
+    })
+  }
+})
+
 export default router

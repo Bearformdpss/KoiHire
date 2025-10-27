@@ -264,6 +264,7 @@ export function PortfolioForm({ open, onOpenChange, portfolio, onSuccess }: Port
             <SingleImageUpload
               value={formData.thumbnail}
               onChange={(url) => setFormData(prev => ({ ...prev, thumbnail: url }))}
+              endpoint="portfolio-thumbnail-s3"
               className=""
             />
           </div>
@@ -310,6 +311,7 @@ export function PortfolioForm({ open, onOpenChange, portfolio, onSuccess }: Port
               value={formData.images}
               onChange={(urls) => setFormData(prev => ({ ...prev, images: urls }))}
               maxImages={5}
+              endpoint="portfolio-images-s3"
               className=""
             />
           </div>
