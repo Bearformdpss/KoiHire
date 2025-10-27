@@ -4,6 +4,7 @@ import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest, requireRole } from '../middleware/auth';
 import { validate, applicationSchema } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
+import { emailService } from '../services/emailService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -222,10 +223,19 @@ router.post('/:projectId', requireRole(['FREELANCER']), validate(applicationSche
     where: { id: projectId },
     select: {
       id: true,
+      title: true,
       status: true,
       clientId: true,
       minBudget: true,
-      maxBudget: true
+      maxBudget: true,
+      client: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true
+        }
+      }
     }
   });
 
@@ -285,10 +295,16 @@ router.post('/:projectId', requireRole(['FREELANCER']), validate(applicationSche
           firstName: true,
           lastName: true,
           avatar: true,
-          rating: true
+          rating: true,
+          location: true
         }
       }
     }
+  });
+
+  // Get total applications count for this project
+  const totalApplications = await prisma.application.count({
+    where: { projectId }
   });
 
   // Send notification to client about new application
@@ -303,6 +319,19 @@ router.post('/:projectId', requireRole(['FREELANCER']), validate(applicationSche
   } catch (error) {
     console.error('Error sending application notification:', error);
     // Don't fail the request if notification fails
+  }
+
+  // Send email notification to client
+  try {
+    await emailService.sendApplicationReceivedClientEmail({
+      application,
+      client: project.client,
+      freelancer: application.freelancer,
+      project: { id: projectId, title: project.title },
+      totalApplications
+    });
+  } catch (error) {
+    console.error('Error sending application email:', error);
   }
 
   res.status(201).json({

@@ -4,6 +4,7 @@ import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest, authMiddleware, requireRole } from '../middleware/auth';
 import { validate, serviceOrderSchema, serviceReviewSchema } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
+import { emailService } from '../services/emailService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -326,6 +327,22 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
     console.error('Error sending order notification:', error);
   }
 
+  // Send email notifications to both parties
+  try {
+    await emailService.sendOrderPlacedFreelancerEmail({
+      order,
+      freelancer: order.freelancer,
+      client: order.client
+    });
+    await emailService.sendOrderPlacedClientEmail({
+      order,
+      client: order.client,
+      freelancer: order.freelancer
+    });
+  } catch (error) {
+    console.error('Error sending order placement emails:', error);
+  }
+
   res.status(201).json({
     success: true,
     message: 'Order placed successfully',
@@ -423,7 +440,23 @@ router.post('/:orderId/deliver', authMiddleware, requireRole(['FREELANCER']), as
     where: { id: orderId },
     include: {
       service: { select: { title: true } },
-      client: { select: { id: true, firstName: true, lastName: true } }
+      package: { select: { revisions: true } },
+      client: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true
+        }
+      },
+      freelancer: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true
+        }
+      }
     }
   });
 
@@ -455,6 +488,10 @@ router.post('/:orderId/deliver', authMiddleware, requireRole(['FREELANCER']), as
     data: {
       status: 'DELIVERED',
       deliveredAt: new Date()
+    },
+    include: {
+      service: { select: { title: true } },
+      package: { select: { revisions: true } }
     }
   });
 
@@ -469,6 +506,18 @@ router.post('/:orderId/deliver', authMiddleware, requireRole(['FREELANCER']), as
     );
   } catch (error) {
     console.error('Error sending delivery notification:', error);
+  }
+
+  // Send email notification to client
+  try {
+    await emailService.sendOrderDeliveredClientEmail({
+      order: updatedOrder,
+      client: order.client,
+      freelancer: order.freelancer,
+      deliverable
+    });
+  } catch (error) {
+    console.error('Error sending delivery email:', error);
   }
 
   res.json({
@@ -489,7 +538,22 @@ router.post('/:orderId/approve', authMiddleware, requireRole(['CLIENT']), asyncH
     where: { id: orderId },
     include: {
       service: { select: { title: true } },
-      freelancer: { select: { id: true, firstName: true, lastName: true } }
+      client: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true
+        }
+      },
+      freelancer: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true
+        }
+      }
     }
   });
 
@@ -507,7 +571,10 @@ router.post('/:orderId/approve', authMiddleware, requireRole(['CLIENT']), asyncH
 
   const updatedOrder = await prisma.serviceOrder.update({
     where: { id: orderId },
-    data: { status: 'COMPLETED' }
+    data: { status: 'COMPLETED' },
+    include: {
+      service: { select: { title: true } }
+    }
   });
 
   // Update service metrics
@@ -529,6 +596,17 @@ router.post('/:orderId/approve', authMiddleware, requireRole(['CLIENT']), asyncH
     );
   } catch (error) {
     console.error('Error sending approval notification:', error);
+  }
+
+  // Send email notification to freelancer (payment released)
+  try {
+    await emailService.sendOrderCompletedFreelancerEmail({
+      order: updatedOrder,
+      freelancer: order.freelancer,
+      client: order.client
+    });
+  } catch (error) {
+    console.error('Error sending completion email:', error);
   }
 
   res.json({
