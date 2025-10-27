@@ -253,61 +253,8 @@ router.get('/dashboard/stats', asyncHandler(async (req: AuthRequest, res) => {
   }
 }));
 
-// Get monthly stats for freelancer
-router.get('/stats/monthly', asyncHandler(async (req: AuthRequest, res) => {
-  if (!req.user || req.user.role !== 'FREELANCER') {
-    throw new AppError('Only freelancers can access monthly stats', 403);
-  }
-
-  const userId = req.user.id;
-
-  // Get start and end of current month
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-  // Get earnings this month (from completed payments)
-  const monthlyEarnings = await prisma.payment.aggregate({
-    where: {
-      project: {
-        freelancerId: userId
-      },
-      status: 'COMPLETED',
-      createdAt: {
-        gte: monthStart,
-        lte: monthEnd
-      }
-    },
-    _sum: {
-      amount: true
-    }
-  });
-
-  // Get active projects count
-  const activeProjects = await prisma.project.count({
-    where: {
-      freelancerId: userId,
-      status: 'IN_PROGRESS'
-    }
-  });
-
-  // Get pending applications count
-  const pendingApplications = await prisma.application.count({
-    where: {
-      freelancerId: userId,
-      status: 'PENDING'
-    }
-  });
-
-  res.json({
-    success: true,
-    data: {
-      earnings: monthlyEarnings._sum.amount || 0,
-      activeProjects,
-      applications: pendingApplications
-    }
-  });
-}));
+// REMOVED: Monthly stats endpoint - causing errors due to missing payment model
+// The ThisMonthCard component has been removed from the frontend
 
 // Get level progress for freelancer
 router.get('/level-progress', asyncHandler(async (req: AuthRequest, res) => {

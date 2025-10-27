@@ -15,7 +15,6 @@ import { useRouter } from 'next/navigation'
 import { FreelancerSidebar } from './freelancer/FreelancerSidebar'
 import { ProfileCard } from './freelancer/ProfileCard'
 import { LevelProgressCard } from './freelancer/LevelProgressCard'
-import { ThisMonthCard } from './freelancer/ThisMonthCard'
 import { AvailabilityToggle } from './freelancer/AvailabilityToggle'
 
 interface MyProject {
@@ -114,7 +113,6 @@ export function FreelancerDashboard() {
             </div>
             <ProfileCard />
             <LevelProgressCard />
-            <ThisMonthCard />
             <AvailabilityToggle />
           </div>
         </div>
