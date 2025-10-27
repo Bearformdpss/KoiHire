@@ -3,6 +3,7 @@ import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { uploadImageToS3, uploadMultipleImagesToS3 } from '../utils/s3Upload'
 
 const router = express.Router()
 
@@ -67,6 +68,17 @@ const deliverableUpload = multer({
   fileFilter: deliverableFileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit for deliverables
+  }
+})
+
+// Memory storage for S3 uploads (files stored in memory, not on disk)
+const memoryStorage = multer.memoryStorage()
+
+const s3Upload = multer({
+  storage: memoryStorage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
   }
 })
 
@@ -221,6 +233,81 @@ router.delete('/:filename', authMiddleware, async (req: AuthRequest, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to delete file'
+    })
+  }
+})
+
+// ============================================================================
+// S3-BASED UPLOADS (for service images - permanent storage)
+// ============================================================================
+
+// POST /api/upload/service-cover - Upload service cover image to S3
+router.post('/service-cover', authMiddleware, s3Upload.single('image'), async (req: AuthRequest, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image uploaded'
+      })
+    }
+
+    const userId = req.user!.id
+
+    // Upload to S3
+    const imageUrl = await uploadImageToS3(req.file, {
+      userId,
+      folder: 'services/covers',
+      maxWidth: 1200,
+      maxHeight: 800,
+      quality: 90
+    })
+
+    res.json({
+      success: true,
+      coverImage: imageUrl,
+      message: 'Cover image uploaded successfully'
+    })
+  } catch (error) {
+    console.error('Error uploading service cover:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload cover image'
+    })
+  }
+})
+
+// POST /api/upload/service-gallery - Upload service gallery images to S3
+router.post('/service-gallery', authMiddleware, s3Upload.array('images', 10), async (req: AuthRequest, res) => {
+  try {
+    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No images uploaded'
+      })
+    }
+
+    const userId = req.user!.id
+    const files = req.files as Express.Multer.File[]
+
+    // Upload all images to S3
+    const imageUrls = await uploadMultipleImagesToS3(files, {
+      userId,
+      folder: 'services/gallery',
+      maxWidth: 1920,
+      maxHeight: 1080,
+      quality: 85
+    })
+
+    res.json({
+      success: true,
+      galleryImages: imageUrls,
+      message: `Successfully uploaded ${files.length} image${files.length > 1 ? 's' : ''}`
+    })
+  } catch (error) {
+    console.error('Error uploading service gallery:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload gallery images'
     })
   }
 })
