@@ -916,6 +916,7 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), asyncH
       client: {
         select: {
           id: true,
+          email: true,
           username: true,
           firstName: true,
           lastName: true,
@@ -925,6 +926,7 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), asyncH
       freelancer: {
         select: {
           id: true,
+          email: true,
           username: true,
           firstName: true,
           lastName: true,
@@ -964,6 +966,30 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), asyncH
     );
   } catch (error) {
     console.error('Error sending order notification:', error);
+  }
+
+  // Send email notifications to both parties
+  console.log('📧📧📧 ATTEMPTING TO SEND ORDER PLACEMENT EMAILS FROM SERVICES.TS...');
+  console.log('📧 Freelancer email:', order.freelancer.email);
+  console.log('📧 Client email:', order.client.email);
+  try {
+    const { emailService } = await import('../services/emailService');
+
+    await emailService.sendOrderPlacedFreelancerEmail({
+      order,
+      freelancer: order.freelancer,
+      client: order.client
+    });
+    console.log('📧 Freelancer email sent successfully');
+
+    await emailService.sendOrderPlacedClientEmail({
+      order,
+      client: order.client,
+      freelancer: order.freelancer
+    });
+    console.log('📧 Client email sent successfully');
+  } catch (error) {
+    console.error('❌ Error sending order placement emails:', error);
   }
 
   res.status(201).json({
