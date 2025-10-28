@@ -1,4 +1,4 @@
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { Resend } from 'resend';
 import {
   orderPlacedFreelancerEmail,
   orderPlacedClientEmail,
@@ -8,40 +8,30 @@ import {
 } from '../templates/emailTemplates';
 
 /**
- * Email Service for sending transactional emails via AWS SES
- * Uses AWS SDK for better compatibility with hosting platforms
+ * Email Service for sending transactional emails via Resend
+ * Simple, reliable, and developer-friendly email service
  */
 class EmailService {
-  private sesClient: SESClient;
+  private resend: Resend;
   private fromEmail: string;
   private frontendUrl: string;
   private isConfigured: boolean;
 
   constructor() {
-    // Check if AWS SES is configured
-    this.isConfigured = !!(
-      process.env.AWS_ACCESS_KEY_ID &&
-      process.env.AWS_SECRET_ACCESS_KEY &&
-      process.env.AWS_REGION
-    );
+    // Check if Resend is configured
+    this.isConfigured = !!process.env.RESEND_API_KEY;
 
     if (this.isConfigured) {
-      // Initialize AWS SES client
-      this.sesClient = new SESClient({
-        region: process.env.AWS_REGION || 'us-east-1',
-        credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-        },
-      });
-      console.log('✅ Email service ready - AWS SES configured');
+      // Initialize Resend client
+      this.resend = new Resend(process.env.RESEND_API_KEY);
+      console.log('✅ Email service ready - Resend configured');
     } else {
       console.warn('⚠️  Email service not configured - emails will not be sent');
       // Create dummy client to prevent errors
-      this.sesClient = new SESClient({ region: 'us-east-1' });
+      this.resend = new Resend('dummy-key');
     }
 
-    this.fromEmail = process.env.AWS_SES_FROM_EMAIL || 'noreply@koihire.com';
+    this.fromEmail = process.env.FROM_EMAIL || 'noreply@koihire.com';
     this.frontendUrl = process.env.FRONTEND_URL || 'https://koihire.com';
   }
 
@@ -57,27 +47,18 @@ class EmailService {
     try {
       const recipients = Array.isArray(to) ? to : [to];
 
-      const command = new SendEmailCommand({
-        Source: `KoiHire <${this.fromEmail}>`,
-        Destination: {
-          ToAddresses: recipients,
-        },
-        Message: {
-          Subject: {
-            Data: subject,
-            Charset: 'UTF-8',
-          },
-          Body: {
-            Html: {
-              Data: html,
-              Charset: 'UTF-8',
-            },
-          },
-        },
+      const { data, error } = await this.resend.emails.send({
+        from: `KoiHire <${this.fromEmail}>`,
+        to: recipients,
+        subject,
+        html,
       });
 
-      await this.sesClient.send(command);
-      console.log(`✅ Email sent: "${subject}" to ${recipients.join(', ')}`);
+      if (error) {
+        throw error;
+      }
+
+      console.log(`✅ Email sent: "${subject}" to ${recipients.join(', ')} (ID: ${data?.id})`);
     } catch (error) {
       console.error(`❌ Failed to send email: "${subject}"`, error);
       // Don't throw - we don't want email failures to crash the API
