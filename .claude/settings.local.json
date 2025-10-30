@@ -47,7 +47,8 @@
       "Bash(git branch:*)",
       "Bash(git push:*)",
       "Bash(del check-order.ts)",
-      "Bash(cmd //c start-dev.bat)"
+      "Bash(cmd //c start-dev.bat)",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": []

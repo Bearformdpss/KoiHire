@@ -33,11 +33,12 @@ export function useUnreadMessages() {
 
   useEffect(() => {
     fetchUnreadCount()
-    
+
+    // TEMPORARILY DISABLED - causing 429 rate limit errors
     // Set up polling to check for new messages every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000)
-    
-    return () => clearInterval(interval)
+    // const interval = setInterval(fetchUnreadCount, 30000)
+
+    // return () => clearInterval(interval)
   }, [isAuthenticated, user])
 
   const markAsRead = () => {

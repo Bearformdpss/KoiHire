@@ -106,43 +106,44 @@ export function NetworkStatusProvider({ children }: NetworkStatusProviderProps) 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
+    // TEMPORARILY DISABLED - causing 429 rate limit errors
     // Periodic connectivity check (every 30 seconds when online)
-    let connectivityCheckInterval: NodeJS.Timeout | null = null
+    // let connectivityCheckInterval: NodeJS.Timeout | null = null
 
-    const startConnectivityCheck = () => {
-      connectivityCheckInterval = setInterval(async () => {
-        if (isOnline) {
-          try {
-            const response = await fetch(`${API_BASE_URL}/health`, {
-              method: 'HEAD',
-              cache: 'no-cache',
-              signal: AbortSignal.timeout(5000) // 5 second timeout
-            })
-            
-            if (!response.ok) {
-              throw new Error('Server unreachable')
-            }
-          } catch (error) {
-            // Connection lost
-            setIsOnline(false)
-            toast.error('Connection lost', {
-              icon: <WifiOff className="w-4 h-4" />,
-              duration: 0
-            })
-          }
-        }
-      }, 30000) // Check every 30 seconds
-    }
+    // const startConnectivityCheck = () => {
+    //   connectivityCheckInterval = setInterval(async () => {
+    //     if (isOnline) {
+    //       try {
+    //         const response = await fetch(`${API_BASE_URL}/health`, {
+    //           method: 'HEAD',
+    //           cache: 'no-cache',
+    //           signal: AbortSignal.timeout(5000) // 5 second timeout
+    //         })
 
-    startConnectivityCheck()
+    //         if (!response.ok) {
+    //           throw new Error('Server unreachable')
+    //         }
+    //       } catch (error) {
+    //         // Connection lost
+    //         setIsOnline(false)
+    //         toast.error('Connection lost', {
+    //           icon: <WifiOff className="w-4 h-4" />,
+    //           duration: 0
+    //         })
+    //       }
+    //     }
+    //   }, 30000) // Check every 30 seconds
+    // }
+
+    // startConnectivityCheck()
 
     return () => {
       cleanup?.()
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
-      if (connectivityCheckInterval) {
-        clearInterval(connectivityCheckInterval)
-      }
+      // if (connectivityCheckInterval) {
+      //   clearInterval(connectivityCheckInterval)
+      // }
     }
   }, [isOnline])
 
