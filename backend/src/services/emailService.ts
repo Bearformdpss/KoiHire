@@ -5,6 +5,7 @@ import {
   orderDeliveredClientEmail,
   orderCompletedFreelancerEmail,
   applicationReceivedClientEmail,
+  passwordResetEmail,
 } from '../templates/emailTemplates';
 
 /**
@@ -226,6 +227,29 @@ class EmailService {
     await this.sendEmail(
       client.email,
       `📬 New Proposal Received - ${project.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #6: Password Reset Request
+   */
+  async sendPasswordResetEmail(data: {
+    email: string;
+    firstName: string;
+    resetToken: string;
+  }): Promise<void> {
+    const resetUrl = `${this.frontendUrl}/reset-password?token=${data.resetToken}`;
+
+    const html = passwordResetEmail({
+      firstName: data.firstName,
+      resetToken: data.resetToken,
+      resetUrl,
+    });
+
+    await this.sendEmail(
+      data.email,
+      'Reset Your KoiHire Password',
       html
     );
   }

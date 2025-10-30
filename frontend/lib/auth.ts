@@ -68,6 +68,33 @@ export const authApi = {
     const response = await apiRequest.put<{ user: User }>('/users/profile', data);
     return response;
   },
+
+  forgotPassword: async (email: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiRequest.post<{ success: boolean; message: string }>('/auth/forgot-password', {
+      email,
+    });
+    return response;
+  },
+
+  validateResetToken: async (token: string): Promise<{ success: boolean; valid: boolean; message: string }> => {
+    const response = await apiRequest.get<{ success: boolean; valid: boolean; message: string }>(
+      `/auth/reset-password/${token}`
+    );
+    return response;
+  },
+
+  resetPassword: async (
+    token: string,
+    password: string,
+    confirmPassword: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const response = await apiRequest.post<{ success: boolean; message: string }>('/auth/reset-password', {
+      token,
+      password,
+      confirmPassword,
+    });
+    return response;
+  },
 };
 
 export const getStoredAuth = () => {

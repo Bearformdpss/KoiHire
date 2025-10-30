@@ -338,3 +338,56 @@ export function applicationReceivedClientEmail(data: {
 
   return emailWrapper(content);
 }
+
+/**
+ * EMAIL #6: Password Reset Request
+ */
+export function passwordResetEmail(data: {
+  firstName: string;
+  resetToken: string;
+  resetUrl: string;
+}): string {
+  const content = `
+    <h2 style="margin: 0 0 20px 0; color: ${COLORS.navy}; font-size: 24px;">🔐 Reset Your Password</h2>
+
+    <p style="margin: 0 0 20px 0; color: ${COLORS.navy}; font-size: 16px; line-height: 1.6;">
+      Hi <strong>${data.firstName}</strong>,
+    </p>
+
+    <p style="margin: 0 0 20px 0; color: ${COLORS.navy}; font-size: 16px; line-height: 1.6;">
+      We received a request to reset your password for your KoiHire account. Click the button below to create a new password:
+    </p>
+
+    <div style="margin: 30px 0; text-align: center;">
+      ${button('Reset Password', data.resetUrl)}
+    </div>
+
+    <div style="background-color: ${COLORS.lightGray}; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid ${COLORS.orange};">
+      <p style="margin: 0 0 10px 0; color: ${COLORS.navy}; font-size: 14px; font-weight: 600;">
+        ⏰ This link expires in 1 hour
+      </p>
+      <p style="margin: 0; color: ${COLORS.gray}; font-size: 13px; line-height: 1.5;">
+        For security reasons, this password reset link will only work once and expires in 1 hour.
+      </p>
+    </div>
+
+    <p style="margin: 20px 0 0 0; color: ${COLORS.gray}; font-size: 14px; line-height: 1.6;">
+      If the button doesn't work, copy and paste this link into your browser:
+    </p>
+    <p style="margin: 10px 0 20px 0; color: ${COLORS.teal}; font-size: 13px; word-break: break-all; background-color: ${COLORS.lightGray}; padding: 10px; border-radius: 4px;">
+      ${data.resetUrl}
+    </p>
+
+    <div style="background-color: #FEF3C7; border: 1px solid #FCD34D; padding: 15px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0; color: #92400E; font-size: 14px; line-height: 1.6;">
+        <strong>⚠️ Security Notice:</strong> If you didn't request a password reset, please ignore this email. Your password will remain unchanged and your account is secure.
+      </p>
+    </div>
+
+    <p style="margin: 20px 0 0 0; color: ${COLORS.gray}; font-size: 14px; line-height: 1.6;">
+      Need help? Contact our support team at <a href="mailto:support@koihire.com" style="color: ${COLORS.orange}; text-decoration: none;">support@koihire.com</a>
+    </p>
+  `;
+
+  return emailWrapper(content);
+}
