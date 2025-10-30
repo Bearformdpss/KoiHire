@@ -102,8 +102,8 @@ export function LoginForm() {
           </div>
 
           <div>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full"
               disabled={isLoading}
             >
@@ -116,21 +116,6 @@ export function LoginForm() {
                 'Sign in'
               )}
             </Button>
-          </div>
-
-          {/* Demo accounts section */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="text-sm text-blue-800 mb-3 font-medium">Demo accounts:</div>
-            <div className="space-y-2 text-sm">
-              <div className="p-3 bg-white rounded border border-blue-100">
-                <div className="font-medium text-blue-900">Client Account</div>
-                <div className="text-blue-700">john.client@example.com / password123</div>
-              </div>
-              <div className="p-3 bg-white rounded border border-blue-100">
-                <div className="font-medium text-blue-900">Freelancer Account</div>
-                <div className="text-blue-700">mike.dev@example.com / password123</div>
-              </div>
-            </div>
           </div>
         </form>
       </div>
