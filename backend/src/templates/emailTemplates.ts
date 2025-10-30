@@ -31,7 +31,7 @@ function emailWrapper(content: string): string {
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, ${COLORS.orange} 0%, ${COLORS.teal} 100%); padding: 30px 40px; text-align: center;">
-              <h1 style="margin: 0; color: ${COLORS.navy} !important; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">KoiHire</h1>
+              <h1 style="margin: 0; color: #FF6B35 !important; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">KoiHire</h1>
             </td>
           </tr>
           <!-- Content -->
