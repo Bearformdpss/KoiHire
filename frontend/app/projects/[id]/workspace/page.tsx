@@ -46,12 +46,6 @@ interface Project {
     name: string
     slug: string
   }
-  skills: Array<{
-    skill: {
-      id: string
-      name: string
-    }
-  }>
 }
 
 export default function ProjectWorkspacePage() {
@@ -313,20 +307,6 @@ export default function ProjectWorkspacePage() {
                         <p className="text-gray-700 leading-relaxed">{project.requirements}</p>
                       </div>
                     )}
-
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Skills Required</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {project.skills.map((skill) => (
-                          <span
-                            key={skill.skill.id}
-                            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
-                          >
-                            {skill.skill.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
                   </div>
 
                   {/* Sidebar */}
