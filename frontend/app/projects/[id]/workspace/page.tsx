@@ -20,6 +20,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { projectsApi } from '@/lib/api/projects'
+import { ProjectFiles } from '@/components/files/ProjectFiles'
 import toast from 'react-hot-toast'
 
 interface Project {
@@ -273,8 +274,8 @@ export default function ProjectWorkspacePage() {
                           <div className="flex items-center text-green-600 font-semibold">
                             <DollarSign className="w-4 h-4 mr-1" />
                             {project.agreedAmount
-                              ? `$${project.agreedAmount.toLocaleString()}`
-                              : `$${project.minBudget.toLocaleString()} - $${project.maxBudget.toLocaleString()}`
+                              ? project.agreedAmount.toLocaleString()
+                              : `${project.minBudget.toLocaleString()} - ${project.maxBudget.toLocaleString()}`
                             }
                           </div>
                         </div>
@@ -359,14 +360,11 @@ export default function ProjectWorkspacePage() {
               )}
 
               {activeTab === 'files' && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Files</h3>
-                  <div className="text-center py-12">
-                    <Upload className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h4 className="text-lg font-medium text-gray-900 mb-2">File Management Coming Soon</h4>
-                    <p className="text-gray-600">Upload deliverables and share files with your client.</p>
-                  </div>
-                </div>
+                <ProjectFiles
+                  projectId={projectId}
+                  projectTitle={project.title}
+                  canUpload={true}
+                />
               )}
 
               {activeTab === 'communication' && (

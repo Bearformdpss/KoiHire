@@ -16,10 +16,9 @@ export const filesApi = {
   },
 
   downloadFile: async (fileId: string) => {
-    const response = await api.get(`/files/download/${fileId}`, {
-      responseType: 'blob'
-    })
-    return response.data
+    // Backend now returns signed S3 URL instead of blob
+    const response = await api.get(`/files/download/${fileId}`)
+    return response.data.data // Returns { downloadUrl, fileName }
   },
 
   deleteFile: async (fileId: string) => {

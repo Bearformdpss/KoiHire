@@ -1,36 +1,21 @@
 import { Router } from 'express'
 import multer from 'multer'
 import path from 'path'
-import fs from 'fs'
-import { v4 as uuidv4 } from 'uuid'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { PrismaClient } from '@prisma/client'
+import {
+  uploadProjectFileToS3,
+  getProjectFileDownloadUrl,
+  deleteProjectFileFromS3
+} from '../utils/s3ProjectFiles'
 
 const prisma = new PrismaClient()
 
 const router = Router()
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const projectId = req.params.projectId
-    const uploadPath = path.join(__dirname, '../../uploads/projects', projectId)
-
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true })
-    }
-
-    cb(null, uploadPath)
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`
-    cb(null, uniqueName)
-  }
-})
-
+// Configure multer for memory storage (files uploaded to S3, not disk)
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
@@ -75,8 +60,6 @@ router.post('/:projectId/files', authMiddleware, upload.array('files', 10), asyn
     })
 
     if (!project) {
-      // Clean up uploaded files
-      files.forEach(file => fs.unlinkSync(file.path))
       return res.status(404).json({
         success: false,
         message: 'Project not found'
@@ -88,25 +71,29 @@ router.post('/:projectId/files', authMiddleware, upload.array('files', 10), asyn
     const isFreelancer = project.freelancerId === userId || project.applications.length > 0
 
     if (!isClient && !isFreelancer) {
-      // Clean up uploaded files
-      files.forEach(file => fs.unlinkSync(file.path))
       return res.status(403).json({
         success: false,
         message: 'You do not have access to this project'
       })
     }
 
+    // Upload files to S3
+    const s3UploadPromises = files.map(file =>
+      uploadProjectFileToS3(file, { projectId, userId })
+    )
+    const s3Urls = await Promise.all(s3UploadPromises)
+
     // Create database records for uploaded files
     const uploadedFiles = await Promise.all(
-      files.map(file =>
+      files.map((file, index) =>
         prisma.projectFile.create({
           data: {
             projectId,
-            fileName: file.filename,
+            fileName: path.basename(s3Urls[index]), // Extract filename from S3 URL
             originalName: file.originalname,
             fileSize: file.size,
             mimeType: file.mimetype,
-            filePath: file.path,
+            filePath: s3Urls[index], // Store S3 URL instead of local path
             uploadedById: userId
           },
           include: {
@@ -204,7 +191,7 @@ router.get('/:projectId/files', authMiddleware, async (req: AuthRequest, res) =>
   }
 })
 
-// Download a file
+// Download a file (returns signed S3 URL)
 router.get('/download/:fileId', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { fileId } = req.params
@@ -244,21 +231,22 @@ router.get('/download/:fileId', authMiddleware, async (req: AuthRequest, res) =>
       })
     }
 
-    // Check if file exists on disk
-    if (!fs.existsSync(file.filePath)) {
-      return res.status(404).json({
-        success: false,
-        message: 'File not found on server'
-      })
-    }
+    // Generate signed S3 URL (expires in 1 hour)
+    const signedUrl = await getProjectFileDownloadUrl(file.filePath)
 
-    // Send file
-    res.download(file.filePath, file.originalName)
+    // Return signed URL to frontend
+    res.json({
+      success: true,
+      data: {
+        downloadUrl: signedUrl,
+        fileName: file.originalName
+      }
+    })
   } catch (error: any) {
     console.error('File download error:', error)
     res.status(500).json({
       success: false,
-      message: 'Failed to download file'
+      message: 'Failed to generate download URL'
     })
   }
 })
@@ -294,10 +282,8 @@ router.delete('/:fileId', authMiddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    // Delete file from disk
-    if (fs.existsSync(file.filePath)) {
-      fs.unlinkSync(file.filePath)
-    }
+    // Delete file from S3
+    await deleteProjectFileFromS3(file.filePath)
 
     // Delete database record
     await prisma.projectFile.delete({

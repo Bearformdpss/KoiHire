@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import {
   Download,
   Trash2,
-  Eye,
   Upload,
   Folder,
   File as FileIcon,
@@ -13,7 +12,6 @@ import {
   FileText,
   Loader2,
   Plus,
-  Share2,
   X
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -113,17 +111,21 @@ export function ProjectFiles({ projectId, projectTitle, canUpload = false }: Pro
 
   const handleDownloadFile = async (file: ProjectFile) => {
     try {
-      const blob = await filesApi.downloadFile(file.id)
-      const url = window.URL.createObjectURL(blob)
+      // Backend returns signed S3 URL
+      const response = await filesApi.downloadFile(file.id)
+      const { downloadUrl, fileName } = response
+
+      // Open signed URL in new tab to trigger download
       const a = document.createElement('a')
       a.style.display = 'none'
-      a.href = url
-      a.download = file.originalName
+      a.href = downloadUrl
+      a.download = fileName || file.originalName
+      a.target = '_blank'
       document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      toast.success('File downloaded successfully')
+
+      toast.success('File download started')
     } catch (error: any) {
       console.error('Failed to download file:', error)
       toast.error(error.response?.data?.message || 'Failed to download file')
@@ -363,21 +365,7 @@ export function ProjectFiles({ projectId, projectTitle, canUpload = false }: Pro
                     >
                       <Download className="w-4 h-4" />
                     </Button>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </Button>
-                    
+
                     {(canUpload || file.uploadedBy.id === user?.id) && (
                       <Button
                         variant="ghost"
