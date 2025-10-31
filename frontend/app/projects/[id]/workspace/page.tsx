@@ -29,6 +29,7 @@ interface Project {
   requirements?: string
   minBudget: number
   maxBudget: number
+  agreedAmount?: number
   timeline: string
   status: string
   createdAt: string
@@ -56,14 +57,6 @@ export default function ProjectWorkspacePage() {
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
-  
-  // Progress update form state
-  const [updateForm, setUpdateForm] = useState({
-    type: 'PROGRESS',
-    title: '',
-    description: '',
-    attachments: [] as string[]
-  })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -115,44 +108,6 @@ export default function ProjectWorkspacePage() {
     })
   }
 
-  const handleFormChange = (field: keyof typeof updateForm, value: string) => {
-    setUpdateForm(prev => ({
-      ...prev,
-      [field]: value
-    }))
-  }
-
-  const handleSubmitUpdate = async () => {
-    if (!updateForm.title.trim() || !updateForm.description.trim()) {
-      toast.error('Please fill in all required fields')
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      // TODO: API call to submit progress update
-      // const response = await projectUpdatesApi.create(projectId, updateForm)
-      
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      toast.success('Progress update submitted successfully!')
-      setUpdateForm({
-        type: 'PROGRESS',
-        title: '',
-        description: '',
-        attachments: []
-      })
-      
-      // TODO: Refresh progress updates list
-    } catch (error) {
-      console.error('Failed to submit progress update:', error)
-      toast.error('Failed to submit progress update')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   const handleMarkForReview = async () => {
     const confirmed = window.confirm(
       'Are you sure you want to submit this project for client approval? This will change the project status to "Pending Review" and notify the client.'
@@ -185,7 +140,6 @@ export default function ProjectWorkspacePage() {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: FileText },
-    { id: 'progress', label: 'Progress', icon: CheckCircle },
     { id: 'files', label: 'Files', icon: Upload },
     { id: 'communication', label: 'Messages', icon: MessageCircle }
   ]
@@ -315,10 +269,13 @@ export default function ProjectWorkspacePage() {
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Info</h3>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-600">Budget</span>
+                          <span className="text-gray-600">Project Value</span>
                           <div className="flex items-center text-green-600 font-semibold">
                             <DollarSign className="w-4 h-4 mr-1" />
-                            ${project.minBudget.toLocaleString()} - ${project.maxBudget.toLocaleString()}
+                            {project.agreedAmount
+                              ? `$${project.agreedAmount.toLocaleString()}`
+                              : `$${project.minBudget.toLocaleString()} - $${project.maxBudget.toLocaleString()}`
+                            }
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -375,16 +332,12 @@ export default function ProjectWorkspacePage() {
                     <div className="bg-white rounded-lg shadow-sm p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                       <div className="space-y-3">
-                        <Button className="w-full" onClick={() => setActiveTab('progress')}>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Update Progress
-                        </Button>
                         <Button className="w-full" variant="outline" onClick={() => setActiveTab('files')}>
                           <Upload className="w-4 h-4 mr-2" />
                           Upload Files
                         </Button>
                         {project.status === 'IN_PROGRESS' && (
-                          <Button 
+                          <Button
                             className="w-full bg-green-600 hover:bg-green-700 text-white"
                             onClick={handleMarkForReview}
                             disabled={isSubmitting}
@@ -399,159 +352,6 @@ export default function ProjectWorkspacePage() {
                             Submitted for Client Approval
                           </div>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'progress' && (
-                <div className="space-y-6">
-                  {/* Progress Update Form */}
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">Create Progress Update</h3>
-                      <Button 
-                        onClick={handleSubmitUpdate}
-                        disabled={isSubmitting || !updateForm.title.trim() || !updateForm.description.trim()}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        {isSubmitting ? 'Submitting...' : 'Submit Update'}
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Update Type
-                        </label>
-                        <select 
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          value={updateForm.type}
-                          onChange={(e) => handleFormChange('type', e.target.value)}
-                        >
-                          <option value="PROGRESS">General Progress</option>
-                          <option value="MILESTONE">Milestone Completion</option>
-                          <option value="DELIVERABLE">Deliverable Submission</option>
-                          <option value="ISSUE">Issue or Blocker</option>
-                          <option value="QUESTION">Question for Client</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Title *
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Brief summary of your update..."
-                          value={updateForm.title}
-                          onChange={(e) => handleFormChange('title', e.target.value)}
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Description *
-                        </label>
-                        <textarea
-                          rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Detailed description of your progress, achievements, or questions..."
-                          value={updateForm.description}
-                          onChange={(e) => handleFormChange('description', e.target.value)}
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Attachments (Optional)
-                        </label>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-600">
-                            Drop files here or <span className="text-blue-600 hover:text-blue-500 cursor-pointer">browse</span>
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Images, documents, and archives up to 10MB
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Progress Timeline */}
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-6">Progress Timeline</h3>
-                    
-                    {/* Sample Progress Updates */}
-                    <div className="space-y-6">
-                      <div className="flex space-x-4">
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="text-sm font-medium text-gray-900">Milestone Completion</span>
-                            <span className="text-xs text-gray-500">2 days ago</span>
-                          </div>
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Initial design mockups completed
-                          </h4>
-                          <p className="text-sm text-gray-600 mb-3">
-                            Finished creating the initial wireframes and design mockups for the main pages. 
-                            Ready for client review and feedback.
-                          </p>
-                          <div className="flex space-x-2">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              📎 design-mockups.zip
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex space-x-4">
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Clock className="w-4 h-4 text-blue-600" />
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="text-sm font-medium text-gray-900">General Progress</span>
-                            <span className="text-xs text-gray-500">5 days ago</span>
-                          </div>
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Project setup and research phase
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            Set up the development environment and completed initial research on user requirements. 
-                            Beginning work on wireframes next.
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex space-x-4">
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                            <User className="w-4 h-4 text-gray-600" />
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="text-sm font-medium text-gray-900">Project Started</span>
-                            <span className="text-xs text-gray-500">1 week ago</span>
-                          </div>
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Welcome! Project has been assigned
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            Looking forward to working on this project. Will begin with research and planning phase.
-                          </p>
-                        </div>
                       </div>
                     </div>
                   </div>
