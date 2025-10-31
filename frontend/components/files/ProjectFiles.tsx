@@ -194,7 +194,10 @@ export function ProjectFiles({ projectId, projectTitle, canUpload = false }: Pro
           <h3 className="text-lg font-semibold text-koi-navy mb-4">Upload Files</h3>
 
           {/* File Input */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-koi-teal transition-colors">
+          <div
+            className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-koi-teal transition-colors cursor-pointer"
+            onClick={() => !uploading && fileInputRef.current?.click()}
+          >
             <input
               ref={fileInputRef}
               type="file"
@@ -366,7 +369,7 @@ export function ProjectFiles({ projectId, projectTitle, canUpload = false }: Pro
                       <Download className="w-4 h-4" />
                     </Button>
 
-                    {(canUpload || file.uploadedBy.id === user?.id) && (
+                    {file.uploadedBy.id === user?.id && (
                       <Button
                         variant="ghost"
                         size="sm"
