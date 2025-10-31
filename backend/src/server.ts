@@ -129,7 +129,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/service-orders', authMiddleware, serviceOrderRoutes);
 app.use('/api/escrow', authMiddleware, escrowRoutes);
-app.use('/api/projects', fileRoutes);
+app.use('/api', fileRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes); // Admin routes (requires auth + ADMIN role)
 // app.use('/api', authMiddleware, projectUpdateRoutes);
 
