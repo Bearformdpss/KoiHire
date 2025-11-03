@@ -5,6 +5,7 @@ import { AuthRequest, authMiddleware, requireRole } from '../middleware/auth';
 import { validate, serviceOrderSchema, serviceReviewSchema } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
 import { emailService } from '../services/emailService';
+import { releaseServiceOrderPayment } from '../services/stripeService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -588,6 +589,21 @@ router.post('/:orderId/approve', authMiddleware, requireRole(['CLIENT']), asyncH
       orders: { increment: 1 }
     }
   });
+
+  // Release payment to freelancer
+  try {
+    console.log(`🔄 Releasing payment for order ${orderId}...`);
+    await releaseServiceOrderPayment(orderId);
+    console.log(`✅ Payment released successfully for order ${orderId}`);
+  } catch (error: any) {
+    console.error(`❌ Error releasing payment for order ${orderId}:`, error);
+    // Rollback order status if payment fails
+    await prisma.serviceOrder.update({
+      where: { id: orderId },
+      data: { status: 'DELIVERED' }
+    });
+    throw new AppError(`Failed to release payment: ${error.message}`, 500);
+  }
 
   // Send notification to freelancer
   try {
