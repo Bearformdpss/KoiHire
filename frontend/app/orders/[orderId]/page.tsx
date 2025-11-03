@@ -341,12 +341,14 @@ export default function OrderDetailPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Package Price</span>
                   <span className="font-medium text-gray-900">
-                    ${order.package.price.toFixed(2)}
+                    ${order.packagePrice ? order.packagePrice.toFixed(2) : order.package.price.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Service Fee</span>
-                  <span className="font-medium text-gray-900">$0.00</span>
+                  <span className="text-gray-600">Buyer Service Fee (2.5%)</span>
+                  <span className="font-medium text-gray-900">
+                    ${order.buyerFee ? order.buyerFee.toFixed(2) : '0.00'}
+                  </span>
                 </div>
                 <div className="border-t pt-3 flex justify-between">
                   <span className="font-semibold text-gray-900">Total</span>
@@ -354,6 +356,13 @@ export default function OrderDetailPage() {
                     ${order.totalAmount.toFixed(2)}
                   </span>
                 </div>
+                {order.buyerFee && order.buyerFee > 0 && (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-gray-500">
+                      Our 2.5% service fee helps maintain secure payments and platform support.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

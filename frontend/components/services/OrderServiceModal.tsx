@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Clock, RotateCw, Check, Shield, AlertCircle } from 'lucide-react'
+import { Loader2, Clock, RotateCw, Check, Shield, AlertCircle, Info } from 'lucide-react'
 import { Service, ServicePackage } from '@/lib/api/services'
 import { serviceOrdersApi } from '@/lib/api/service-orders'
+import { calculateServiceOrderPricing } from '@/lib/utils/pricing'
 
 interface OrderServiceModalProps {
   isOpen: boolean
@@ -275,15 +276,29 @@ export function OrderServiceModal({
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Service Fee</span>
-              <span className="font-medium text-gray-900">$0.00</span>
+              <div className="flex items-center gap-1">
+                <span className="text-gray-600">Buyer Service Fee (2.5%)</span>
+                <Info className="w-3 h-3 text-gray-400" />
+              </div>
+              <span className="font-medium text-gray-900">
+                ${calculateServiceOrderPricing(selectedPackage.price).buyerFee.toFixed(2)}
+              </span>
             </div>
             <div className="border-t pt-2 flex justify-between items-center">
               <span className="font-semibold text-gray-900">Total</span>
               <span className="font-bold text-2xl text-gray-900">
-                ${selectedPackage.price.toFixed(2)}
+                ${calculateServiceOrderPricing(selectedPackage.price).totalCharged.toFixed(2)}
               </span>
             </div>
+          </div>
+
+          {/* Fee info message */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs text-blue-800">
+              <strong>Competitive rates:</strong> Our 2.5% service fee is lower than most platforms
+              (Fiverr: 5-10%, Upwork: 3-5%). This helps us maintain platform security,
+              payment protection, and 24/7 support.
+            </p>
           </div>
 
           {/* "You won't be charged yet" message */}
@@ -314,7 +329,7 @@ export function OrderServiceModal({
                   Placing Order...
                 </>
               ) : (
-                <>Place Order (${selectedPackage.price.toFixed(2)})</>
+                <>Place Order (${calculateServiceOrderPricing(selectedPackage.price).totalCharged.toFixed(2)})</>
               )}
             </Button>
           </div>

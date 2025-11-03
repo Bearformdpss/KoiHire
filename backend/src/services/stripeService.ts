@@ -415,9 +415,21 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
   // Capture the payment (release from escrow)
   await stripe.paymentIntents.capture(depositTransaction.stripeId);
 
-  // Calculate platform fee (10%)
-  const platformFee = order.totalAmount * 0.10;
-  const freelancerAmount = order.totalAmount - platformFee;
+  // Calculate amounts using the new fee structure
+  // Total held in escrow: packagePrice + buyerFee
+  // Platform keeps: buyerFee + sellerCommission
+  // Freelancer receives: packagePrice - sellerCommission
+  const freelancerAmount = order.packagePrice - order.sellerCommission;
+  const totalPlatformFee = order.buyerFee + order.sellerCommission;
+
+  console.log(`💸 Payment breakdown:`, {
+    totalHeld: order.totalAmount,
+    packagePrice: order.packagePrice,
+    buyerFee: order.buyerFee,
+    sellerCommission: order.sellerCommission,
+    freelancerReceives: freelancerAmount,
+    platformTotal: totalPlatformFee
+  });
 
   await prisma.$transaction([
     // Update order payment status
@@ -426,6 +438,28 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
       data: {
         paymentStatus: 'RELEASED',
         status: 'COMPLETED'
+      }
+    }),
+    // Create buyer fee transaction (platform revenue from buyer)
+    prisma.transaction.create({
+      data: {
+        userId: order.clientId,
+        serviceOrderId: order.id,
+        type: 'FEE',
+        amount: order.buyerFee,
+        status: 'COMPLETED',
+        description: `Buyer service fee (2.5%): ${order.service.title}`
+      }
+    }),
+    // Create seller commission transaction (platform revenue from seller)
+    prisma.transaction.create({
+      data: {
+        userId: order.freelancerId,
+        serviceOrderId: order.id,
+        type: 'FEE',
+        amount: order.sellerCommission,
+        status: 'COMPLETED',
+        description: `Seller commission (12.5%): ${order.service.title}`
       }
     }),
     // Create freelancer payout transaction
@@ -437,17 +471,6 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
         amount: freelancerAmount,
         status: 'COMPLETED',
         description: `Earnings from service: ${order.service.title}`
-      }
-    }),
-    // Create platform fee transaction
-    prisma.transaction.create({
-      data: {
-        userId: order.freelancerId,
-        serviceOrderId: order.id,
-        type: 'FEE',
-        amount: platformFee,
-        status: 'COMPLETED',
-        description: `Platform fee for service: ${order.service.title}`
       }
     }),
     // Update freelancer total earnings

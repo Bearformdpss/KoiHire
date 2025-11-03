@@ -6,6 +6,7 @@ import { validate, serviceOrderSchema, serviceReviewSchema } from '../utils/vali
 import { notificationService } from '../services/notificationService';
 import { emailService } from '../services/emailService';
 import { releaseServiceOrderPayment } from '../services/stripeService';
+import { calculateServiceOrderPricing } from '../utils/pricing';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -253,6 +254,9 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
   const deliveryDate = new Date();
   deliveryDate.setDate(deliveryDate.getDate() + servicePackage.deliveryTime);
 
+  // Calculate pricing with fees
+  const pricing = calculateServiceOrderPricing(servicePackage.price);
+
   // Create order
   const order = await prisma.serviceOrder.create({
     data: {
@@ -261,7 +265,10 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
       clientId: req.user!.id,
       freelancerId: service.freelancer.id,
       orderNumber: generateOrderNumber(),
-      totalAmount: servicePackage.price,
+      packagePrice: pricing.packagePrice,
+      buyerFee: pricing.buyerFee,
+      sellerCommission: pricing.sellerCommission,
+      totalAmount: pricing.totalCharged,
       requirements,
       deliveryDate,
       status: 'PENDING'

@@ -603,7 +603,13 @@ model ServiceOrder {
   freelancerId String
 
   orderNumber  String  @unique
-  totalAmount  Float
+
+  // Fee structure fields
+  packagePrice     Float   @default(0) // Original package price (base amount)
+  buyerFee         Float   @default(0) // 2.5% fee paid by buyer
+  sellerCommission Float   @default(0) // 12.5% commission taken from seller
+  totalAmount      Float   // Total charged to buyer (packagePrice + buyerFee)
+
   requirements String?
 
   status        ServiceOrderStatus @default(PENDING)

@@ -44,6 +44,9 @@ export interface ServiceOrder {
   clientId: string
   freelancerId: string
   orderNumber: string
+  packagePrice: number
+  buyerFee: number
+  sellerCommission: number
   totalAmount: number
   requirements?: string
   status: 'PENDING' | 'ACCEPTED' | 'IN_PROGRESS' | 'DELIVERED' | 'REVISION_REQUESTED' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED'
