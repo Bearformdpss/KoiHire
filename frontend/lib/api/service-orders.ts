@@ -206,7 +206,7 @@ export const serviceOrdersApi = {
 
   // Place order (clients only)
   async placeOrder(serviceId: string, data: CreateOrderData) {
-    return apiClient.post(`/services/${serviceId}/order`, data)
+    return apiClient.post(`/service-orders/${serviceId}/order`, data)
   },
 
   // Accept order (freelancer only)
