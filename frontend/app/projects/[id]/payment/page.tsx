@@ -18,6 +18,11 @@ interface Project {
   status: string
   minBudget: number
   maxBudget: number
+  agreedAmount?: number
+  buyerFee?: number
+  sellerCommission?: number
+  totalCharged?: number
+  paymentStatus?: string
   clientId: string
   client: {
     id: string
@@ -239,6 +244,37 @@ export default function ProjectPaymentPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Payment Breakdown */}
+              {project.agreedAmount && project.totalCharged && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h4 className="font-medium text-gray-900 mb-3">Payment Summary</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Agreed Amount</span>
+                      <span className="font-medium text-gray-900">
+                        ${project.agreedAmount.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Buyer Service Fee (2.5%)</span>
+                      <span className="font-medium text-gray-900">
+                        ${(project.buyerFee || 0).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between">
+                      <span className="font-semibold text-gray-900">Total to Pay</span>
+                      <span className="font-bold text-xl text-gray-900">
+                        ${project.totalCharged.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="pt-2 text-xs text-gray-500">
+                      Our 2.5% service fee helps maintain secure payments and platform support.
+                      Freelancer receives ${((project.agreedAmount || 0) - (project.sellerCommission || 0)).toFixed(2)} after 12.5% commission.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {project.freelancer && (
                 <div className="mt-6 pt-6 border-t border-gray-200">

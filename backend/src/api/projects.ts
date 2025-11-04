@@ -4,6 +4,8 @@ import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest, authMiddleware, requireRole } from '../middleware/auth';
 import { validate, projectSchema } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
+import { calculateProjectPricing } from '../utils/pricing';
+import { releaseProjectEscrowPayment } from '../services/stripeService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -427,15 +429,30 @@ router.post('/:projectId/accept/:applicationId', authMiddleware, asyncHandler(as
   const acceptedApplication = allApplications.find(app => app.id === applicationId);
   const rejectedApplications = allApplications.filter(app => app.id !== applicationId);
 
-  // Update project and application status
-  // Set agreedAmount from the accepted application's proposedBudget
+  // Calculate pricing with fees
+  const agreedAmount = application.proposedBudget || project.maxBudget;
+  const pricing = calculateProjectPricing(agreedAmount);
+
+  console.log('💰 Project pricing calculated:', {
+    agreedAmount: pricing.agreedAmount,
+    buyerFee: pricing.buyerFee,
+    sellerCommission: pricing.sellerCommission,
+    totalCharged: pricing.totalCharged,
+    freelancerReceives: pricing.freelancerReceives
+  });
+
+  // Update project and application status with fee structure
   await prisma.$transaction([
     prisma.project.update({
       where: { id: projectId },
       data: {
         status: 'IN_PROGRESS',
         freelancerId: application.freelancerId,
-        agreedAmount: application.proposedBudget || project.maxBudget // Use proposedBudget or fallback to maxBudget
+        agreedAmount: pricing.agreedAmount,
+        buyerFee: pricing.buyerFee,
+        sellerCommission: pricing.sellerCommission,
+        totalCharged: pricing.totalCharged,
+        paymentStatus: 'PENDING'
       }
     }),
     prisma.application.update({
@@ -797,7 +814,7 @@ router.post('/:projectId/approve', authMiddleware, asyncHandler(async (req: Auth
   // Update project status to COMPLETED
   await prisma.project.update({
     where: { id: projectId },
-    data: { 
+    data: {
       status: 'COMPLETED',
       completedAt: new Date()
     }
@@ -817,11 +834,27 @@ router.post('/:projectId/approve', authMiddleware, asyncHandler(async (req: Auth
     // Don't fail the request if notification fails
   }
 
-  // TODO: Process payment release to freelancer
+  // Release payment to freelancer
+  try {
+    console.log(`🔄 Releasing payment for project ${projectId}...`);
+    await releaseProjectEscrowPayment(projectId);
+    console.log(`✅ Payment released successfully for project ${projectId}`);
+  } catch (error: any) {
+    console.error(`❌ Error releasing payment for project ${projectId}:`, error);
+    // Rollback project status if payment fails
+    await prisma.project.update({
+      where: { id: projectId },
+      data: {
+        status: 'PENDING_REVIEW',
+        completedAt: null
+      }
+    });
+    throw new AppError(`Failed to release payment: ${error.message}`, 500);
+  }
 
   res.json({
     success: true,
-    message: 'Project approved and completed successfully. Payment will be released to the freelancer.'
+    message: 'Project approved and completed successfully. Payment has been released to the freelancer.'
   });
 }));
 

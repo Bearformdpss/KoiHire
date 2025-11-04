@@ -38,7 +38,10 @@ router.post('/project/create-payment-intent', asyncHandler(async (req: AuthReque
       freelancerId: true,
       status: true,
       agreedAmount: true,
-      maxBudget: true
+      maxBudget: true,
+      totalCharged: true,
+      buyerFee: true,
+      sellerCommission: true
     }
   });
 
@@ -58,8 +61,15 @@ router.post('/project/create-payment-intent', asyncHandler(async (req: AuthReque
     throw new AppError('Project must have an assigned freelancer', 400);
   }
 
-  // Use agreedAmount (from accepted application) or fallback to maxBudget
-  const escrowAmount = project.agreedAmount || project.maxBudget;
+  // Use totalCharged (includes buyer fee) or fallback to agreedAmount or maxBudget
+  const escrowAmount = project.totalCharged || project.agreedAmount || project.maxBudget;
+
+  console.log('💰 Escrow payment amount:', {
+    totalCharged: project.totalCharged,
+    agreedAmount: project.agreedAmount,
+    maxBudget: project.maxBudget,
+    usingAmount: escrowAmount
+  });
 
   // Check if escrow already exists and is funded
   const existingEscrow = await prisma.escrow.findUnique({
@@ -490,7 +500,7 @@ router.post('/service-order/:orderId/refund', asyncHandler(async (req: AuthReque
     throw new AppError('Not authorized to refund this order', 403);
   }
 
-  if (order.paymentStatus !== 'PAID') {
+  if (order.paymentStatus !== 'PAID' && order.paymentStatus !== 'RELEASED') {
     throw new AppError('Cannot refund unpaid order', 400);
   }
 

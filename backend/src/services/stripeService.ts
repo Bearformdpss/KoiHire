@@ -68,12 +68,15 @@ export const confirmProjectEscrowPayment = async (projectId: string, paymentInte
     status: project.status
   });
 
+  // Use totalCharged or agreedAmount or maxBudget for escrow amount
+  const escrowAmount = project.totalCharged || project.agreedAmount || project.maxBudget;
+
   // Create or update escrow record
   const escrow = await prisma.escrow.upsert({
     where: { projectId },
     create: {
       projectId,
-      amount: project.maxBudget, // Using maxBudget as agreed amount
+      amount: escrowAmount,
       status: 'FUNDED',
       stripePaymentId: paymentIntentId
     },
@@ -87,6 +90,14 @@ export const confirmProjectEscrowPayment = async (projectId: string, paymentInte
     id: escrow.id,
     amount: escrow.amount,
     status: escrow.status
+  });
+
+  // Update project payment status to PAID
+  await prisma.project.update({
+    where: { id: projectId },
+    data: {
+      paymentStatus: 'PAID'
+    }
   });
 
   // Create transaction record
@@ -114,7 +125,7 @@ export const confirmProjectEscrowPayment = async (projectId: string, paymentInte
 /**
  * Release project escrow payment to freelancer
  * Called when client approves completed work
- * Captures payment and distributes funds
+ * Captures payment and distributes funds with proper fee structure
  */
 export const releaseProjectEscrowPayment = async (projectId: string) => {
   console.log(`🔍 releaseProjectEscrowPayment called for projectId: ${projectId}`);
@@ -147,7 +158,10 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
   console.log(`💰 Escrow found:`, {
     id: escrow.id,
     amount: escrow.amount,
-    status: escrow.status
+    status: escrow.status,
+    agreedAmount: escrow.project.agreedAmount,
+    buyerFee: escrow.project.buyerFee,
+    sellerCommission: escrow.project.sellerCommission
   });
 
   // Find the original payment intent from transaction
@@ -160,14 +174,23 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
   console.log(`📥 Capturing payment: ${depositTransaction.stripeId}`);
   await stripe.paymentIntents.capture(depositTransaction.stripeId);
 
-  // Calculate platform fee (5% for projects)
-  const platformFee = escrow.amount * 0.05;
-  const freelancerAmount = escrow.amount - platformFee;
+  // Calculate amounts using the new fee structure
+  // Total held in escrow: agreedAmount + buyerFee (totalCharged)
+  // Platform keeps: buyerFee + sellerCommission
+  // Freelancer receives: agreedAmount - sellerCommission
+  const agreedAmount = escrow.project.agreedAmount || escrow.amount;
+  const buyerFee = escrow.project.buyerFee || 0;
+  const sellerCommission = escrow.project.sellerCommission || 0;
+  const freelancerAmount = agreedAmount - sellerCommission;
+  const totalPlatformFee = buyerFee + sellerCommission;
 
   console.log(`💸 Payment breakdown:`, {
-    total: escrow.amount,
-    platformFee,
-    freelancerAmount
+    totalHeld: escrow.amount,
+    agreedAmount,
+    buyerFee,
+    sellerCommission,
+    freelancerReceives: freelancerAmount,
+    platformTotal: totalPlatformFee
   });
 
   await prisma.$transaction([
@@ -179,6 +202,35 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
         releasedAt: new Date()
       }
     }),
+    // Update project payment status
+    prisma.project.update({
+      where: { id: projectId },
+      data: {
+        paymentStatus: 'RELEASED'
+      }
+    }),
+    // Create buyer fee transaction (platform revenue from buyer)
+    prisma.transaction.create({
+      data: {
+        userId: escrow.project.clientId,
+        escrowId: escrow.id,
+        type: 'FEE',
+        amount: buyerFee,
+        status: 'COMPLETED',
+        description: `Buyer service fee (2.5%): ${escrow.project.title}`
+      }
+    }),
+    // Create seller commission transaction (platform revenue from seller)
+    prisma.transaction.create({
+      data: {
+        userId: escrow.project.freelancerId!,
+        escrowId: escrow.id,
+        type: 'FEE',
+        amount: sellerCommission,
+        status: 'COMPLETED',
+        description: `Seller commission (12.5%): ${escrow.project.title}`
+      }
+    }),
     // Create freelancer payout transaction
     prisma.transaction.create({
       data: {
@@ -188,17 +240,6 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
         amount: freelancerAmount,
         status: 'COMPLETED',
         description: `Earnings from project: ${escrow.project.title}`
-      }
-    }),
-    // Create platform fee transaction
-    prisma.transaction.create({
-      data: {
-        userId: escrow.project.freelancerId!,
-        escrowId: escrow.id,
-        type: 'FEE',
-        amount: platformFee,
-        status: 'COMPLETED',
-        description: `Platform fee for project: ${escrow.project.title}`
       }
     }),
     // Update freelancer total earnings
@@ -597,18 +638,8 @@ export const handleStripeWebhook = async (event: Stripe.Event) => {
         // Or for automatic capture payments
         console.log(`💸 Service order ${orderId} payment captured/succeeded`);
       } else if (projectId) {
-        // Project escrow payment succeeded
-        const escrow = await prisma.escrow.findFirst({
-          where: {
-            projectId,
-            stripePaymentId: paymentIntent.id
-          }
-        });
-
-        if (escrow) {
-          await confirmEscrowPayment(escrow.id);
-          console.log(`✅ Project escrow ${escrow.id} payment confirmed`);
-        }
+        // Project escrow payment succeeded - already handled in amount_capturable_updated event
+        console.log(`💸 Project ${projectId} payment captured/succeeded`);
       }
       break;
 
