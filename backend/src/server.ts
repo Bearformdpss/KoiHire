@@ -69,12 +69,16 @@ app.use(cors({
           frontendUrl,
           frontendUrl.replace('https://', 'https://www.'),
           frontendUrl.replace('https://www.', 'https://'),
-          'https://koi-hire.vercel.app' // Keep old Vercel URL for transition
+          'https://koi-hire.vercel.app', // Keep old Vercel URL for transition
+          'https://koihire-production.vercel.app' // Add production Vercel URL
         ];
+
+        console.log('🔒 CORS Check:', { origin, allowedOrigins, frontendUrl: process.env.FRONTEND_URL });
 
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
+          console.error('❌ CORS Rejected:', origin);
           callback(new Error('Not allowed by CORS'));
         }
       },
