@@ -43,8 +43,11 @@ app.set('trust proxy', 1);
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    methods: ['GET', 'POST']
+    origin: process.env.NODE_ENV === 'development'
+      ? 'http://localhost:3000'
+      : ['https://koihire.com', 'https://www.koihire.com', 'https://koi-hire.vercel.app', 'https://koihire-production.vercel.app'],
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
@@ -69,13 +72,19 @@ app.use(cors({
           frontendUrl,
           frontendUrl.replace('https://', 'https://www.'),
           frontendUrl.replace('https://www.', 'https://'),
-          'https://koi-hire.vercel.app', // Keep old Vercel URL for transition
-          'https://koihire-production.vercel.app' // Add production Vercel URL
+          'https://koi-hire.vercel.app', // Old Vercel URL
+          'https://koihire-production.vercel.app', // Production Vercel URL
+          'https://koihire.com', // Custom domain
+          'https://www.koihire.com' // Custom domain with www
         ];
 
         console.log('🔒 CORS Check:', { origin, allowedOrigins, frontendUrl: process.env.FRONTEND_URL });
 
-        if (!origin || allowedOrigins.includes(origin)) {
+        // Also allow any vercel.app subdomain for the project
+        const isVercelDomain = origin && origin.includes('vercel.app');
+        const isAllowedOrigin = !origin || allowedOrigins.includes(origin) || isVercelDomain;
+
+        if (isAllowedOrigin) {
           callback(null, true);
         } else {
           console.error('❌ CORS Rejected:', origin);
