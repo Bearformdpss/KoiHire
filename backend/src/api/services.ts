@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest, authMiddleware, requireRole } from '../middleware/auth';
+import { requireStripeConnect } from '../middleware/stripeConnect';
 import { validate, serviceSchema } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
 
@@ -555,7 +556,7 @@ router.get('/:serviceId/reviews', asyncHandler(async (req, res) => {
 }));
 
 // Create service (freelancers only)
-router.post('/', authMiddleware, requireRole(['FREELANCER']), validate(serviceSchema), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/', authMiddleware, requireRole(['FREELANCER']), requireStripeConnect, validate(serviceSchema), asyncHandler(async (req: AuthRequest, res) => {
   const {
     title,
     description,

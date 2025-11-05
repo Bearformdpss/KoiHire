@@ -13,6 +13,11 @@ export interface User {
   rating?: number;
   totalEarnings: number;
   totalSpent: number;
+  stripeConnectAccountId?: string | null;
+  stripeOnboardingComplete?: boolean;
+  stripePayoutsEnabled?: boolean;
+  stripeDetailsSubmitted?: boolean;
+  stripeChargesEnabled?: boolean;
 }
 
 export interface AuthResponse {

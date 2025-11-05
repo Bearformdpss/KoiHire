@@ -9,6 +9,8 @@ import { ArrowLeft, ArrowRight, CheckCircle, Loader2 } from 'lucide-react'
 import { FreelancerOnly } from '@/components/auth/RoleProtection'
 import { categoriesApi } from '@/lib/api/categories'
 import { servicesApi, CreateServiceData, ServicePackage, ServiceFAQ } from '@/lib/api/services'
+import { useAuthStore } from '@/lib/store/authStore'
+import { StripeConnectModal } from '@/components/stripe/StripeConnectModal'
 import toast from 'react-hot-toast'
 
 import BasicDetailsStep from '@/components/services/create/BasicDetailsStep'
@@ -25,13 +27,22 @@ interface Category {
 
 export default function CreateServicePage() {
   const router = useRouter()
+  const { user } = useAuthStore()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+  const [showStripeModal, setShowStripeModal] = useState(false)
 
   const totalSteps = 5
   const progress = (currentStep / totalSteps) * 100
+
+  // Check if Stripe Connect is set up
+  useEffect(() => {
+    if (user && !user.stripePayoutsEnabled) {
+      setShowStripeModal(true)
+    }
+  }, [user])
 
   // Form data state
   const [formData, setFormData] = useState<CreateServiceData>({
@@ -250,6 +261,14 @@ export default function CreateServicePage() {
 
   return (
     <FreelancerOnly>
+      <StripeConnectModal
+        isOpen={showStripeModal}
+        onClose={() => {
+          setShowStripeModal(false)
+          router.push('/dashboard')
+        }}
+        context="service"
+      />
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Header */}

@@ -16,6 +16,7 @@ import { FreelancerSidebar } from './freelancer/FreelancerSidebar'
 import { ProfileCard } from './freelancer/ProfileCard'
 import { LevelProgressCard } from './freelancer/LevelProgressCard'
 import { AvailabilityToggle } from './freelancer/AvailabilityToggle'
+import { StripeConnectAlert } from '@/components/stripe/StripeConnectAlert'
 
 interface MyProject {
   id: string
@@ -139,6 +140,12 @@ export function FreelancerDashboard() {
               Manage your projects and discover new opportunities.
             </p>
           </div>
+
+          {/* Stripe Connect Alert */}
+          <StripeConnectAlert
+            stripeConnectAccountId={user?.stripeConnectAccountId}
+            stripePayoutsEnabled={user?.stripePayoutsEnabled}
+          />
 
           {/* Active Projects Section */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { X, DollarSign, Clock, FileText, Send } from 'lucide-react'
 import { applicationsApi } from '@/lib/api/applications'
 import { messagesApi } from '@/lib/api/messages'
 import { useAuthStore } from '@/lib/store/authStore'
+import { StripeConnectModal } from '@/components/stripe/StripeConnectModal'
 import toast from 'react-hot-toast'
 
 interface Project {
@@ -35,6 +36,7 @@ interface BidSubmissionModalProps {
 export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess }: BidSubmissionModalProps) {
   const { user } = useAuthStore()
   const [isLoading, setIsLoading] = useState(false)
+  const [showStripeModal, setShowStripeModal] = useState(false)
   const [formData, setFormData] = useState({
     coverLetter: '',
     proposedBudget: '',
@@ -42,6 +44,13 @@ export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess
     initialMessage: ''
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Check Stripe Connect status when modal opens
+  useEffect(() => {
+    if (isOpen && user && !user.stripePayoutsEnabled) {
+      setShowStripeModal(true)
+    }
+  }, [isOpen, user])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -131,6 +140,20 @@ export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess
   }
 
   if (!isOpen) return null
+
+  // Show Stripe Connect modal if needed
+  if (showStripeModal) {
+    return (
+      <StripeConnectModal
+        isOpen={showStripeModal}
+        onClose={() => {
+          setShowStripeModal(false)
+          onClose()
+        }}
+        context="project"
+      />
+    )
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
