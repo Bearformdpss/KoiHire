@@ -126,11 +126,6 @@ export function CheckoutModal({
                     ${totalAmount.toFixed(2)}
                   </span>
                 </div>
-                {sellerCommission !== undefined && (
-                  <div className="pt-2 text-xs text-gray-500">
-                    Freelancer receives ${(baseAmount - sellerCommission).toFixed(2)} after 12.5% commission
-                  </div>
-                )}
               </div>
             ) : (
               <div className="flex justify-between items-center pt-2 border-t border-gray-200">
