@@ -15,6 +15,10 @@ interface CheckoutModalProps {
   totalAmount: number
   serviceName: string
   onSuccess: () => void
+  // Optional fee breakdown for projects
+  baseAmount?: number
+  buyerFee?: number
+  sellerCommission?: number
 }
 
 export function CheckoutModal({
@@ -24,7 +28,10 @@ export function CheckoutModal({
   projectId,
   totalAmount,
   serviceName,
-  onSuccess
+  onSuccess,
+  baseAmount,
+  buyerFee,
+  sellerCommission
 }: CheckoutModalProps) {
   const stripe = useStripe()
   const elements = useElements()
@@ -101,12 +108,38 @@ export function CheckoutModal({
               <span className="text-sm text-gray-600">Service</span>
               <span className="text-sm font-medium text-gray-900">{serviceName}</span>
             </div>
-            <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-              <span className="text-base font-semibold text-gray-900">Total Amount</span>
-              <span className="text-2xl font-bold text-green-600">
-                ${totalAmount.toFixed(2)}
-              </span>
-            </div>
+
+            {/* Show fee breakdown if available (for projects) */}
+            {baseAmount && buyerFee !== undefined ? (
+              <div className="space-y-2 mt-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Project Amount</span>
+                  <span className="font-medium text-gray-900">${baseAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Buyer Service Fee (2.5%)</span>
+                  <span className="font-medium text-gray-900">${buyerFee.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                  <span className="text-base font-semibold text-gray-900">Total Amount</span>
+                  <span className="text-2xl font-bold text-green-600">
+                    ${totalAmount.toFixed(2)}
+                  </span>
+                </div>
+                {sellerCommission !== undefined && (
+                  <div className="pt-2 text-xs text-gray-500">
+                    Freelancer receives ${(baseAmount - sellerCommission).toFixed(2)} after 12.5% commission
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                <span className="text-base font-semibold text-gray-900">Total Amount</span>
+                <span className="text-2xl font-bold text-green-600">
+                  ${totalAmount.toFixed(2)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Escrow Notice */}

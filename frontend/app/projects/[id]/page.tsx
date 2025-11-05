@@ -41,6 +41,10 @@ interface Project {
   minBudget: number
   maxBudget: number
   agreedAmount?: number
+  buyerFee?: number
+  sellerCommission?: number
+  totalCharged?: number
+  paymentStatus?: string
   timeline: string
   status: string
   createdAt: string
@@ -440,7 +444,7 @@ export default function ProjectDetailPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900">Action Required: Fund Project Escrow</h3>
                   <p className="text-sm text-gray-700 mt-1">
-                    Secure <strong>${project.agreedAmount || project.maxBudget}</strong> in escrow to enable the freelancer to begin work. Funds are held safely until you approve the completed project.
+                    Secure <strong>${(project.totalCharged || project.agreedAmount || project.maxBudget).toFixed(2)}</strong> in escrow to enable the freelancer to begin work. Funds are held safely until you approve the completed project.
                   </p>
                 </div>
               </div>
@@ -457,7 +461,7 @@ export default function ProjectDetailPage() {
                 ) : (
                   <>
                     <DollarSign className="w-4 h-4 mr-2" />
-                    Fund Escrow (${project.agreedAmount || project.maxBudget})
+                    Fund Escrow (${ (project.totalCharged || project.agreedAmount || project.maxBudget).toFixed(2)})
                   </>
                 )}
               </Button>
@@ -1177,9 +1181,12 @@ export default function ProjectDetailPage() {
             isOpen={showCheckout}
             onClose={() => setShowCheckout(false)}
             projectId={projectId}
-            totalAmount={project.agreedAmount || project.maxBudget}
+            totalAmount={project.totalCharged || project.agreedAmount || project.maxBudget}
             serviceName={`Project: ${project.title}`}
             onSuccess={handlePaymentSuccess}
+            baseAmount={project.agreedAmount}
+            buyerFee={project.buyerFee}
+            sellerCommission={project.sellerCommission}
           />
         )}
       </div>

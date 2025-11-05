@@ -18,6 +18,10 @@ interface CheckoutWrapperProps {
   totalAmount: number
   serviceName: string
   onSuccess: () => void
+  // Optional fee breakdown for projects
+  baseAmount?: number
+  buyerFee?: number
+  sellerCommission?: number
 }
 
 export function CheckoutWrapper({
@@ -27,7 +31,10 @@ export function CheckoutWrapper({
   projectId,
   totalAmount,
   serviceName,
-  onSuccess
+  onSuccess,
+  baseAmount,
+  buyerFee,
+  sellerCommission
 }: CheckoutWrapperProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -127,6 +134,9 @@ export function CheckoutWrapper({
         totalAmount={totalAmount}
         serviceName={serviceName}
         onSuccess={onSuccess}
+        baseAmount={baseAmount}
+        buyerFee={buyerFee}
+        sellerCommission={sellerCommission}
       />
     </Elements>
   )
