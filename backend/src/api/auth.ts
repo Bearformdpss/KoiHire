@@ -48,7 +48,18 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
       firstName: true,
       lastName: true,
       role: true,
-      createdAt: true
+      createdAt: true,
+      avatar: true,
+      isVerified: true,
+      isAvailable: true,
+      rating: true,
+      totalEarnings: true,
+      totalSpent: true,
+      stripeConnectAccountId: true,
+      stripeOnboardingComplete: true,
+      stripePayoutsEnabled: true,
+      stripeDetailsSubmitted: true,
+      stripeChargesEnabled: true
     }
   });
 
@@ -103,7 +114,12 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
       isAvailable: user.isAvailable,
       rating: user.rating,
       totalEarnings: user.totalEarnings,
-      totalSpent: user.totalSpent
+      totalSpent: user.totalSpent,
+      stripeConnectAccountId: user.stripeConnectAccountId,
+      stripeOnboardingComplete: user.stripeOnboardingComplete,
+      stripePayoutsEnabled: user.stripePayoutsEnabled,
+      stripeDetailsSubmitted: user.stripeDetailsSubmitted,
+      stripeChargesEnabled: user.stripeChargesEnabled
     },
     accessToken,
     refreshToken
