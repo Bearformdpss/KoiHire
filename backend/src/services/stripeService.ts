@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
+import { transferToFreelancer } from './stripeConnectService';
 
 const prisma = new PrismaClient();
 
@@ -263,6 +264,29 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
   ]);
 
   console.log(`✅ Escrow payment released successfully`);
+
+  // NEW: Transfer funds to freelancer's Stripe Connect account (instant payout)
+  try {
+    console.log(`💳 Initiating instant transfer to freelancer...`);
+    const transferResult = await transferToFreelancer(
+      escrow.project.freelancerId!,
+      freelancerAmount, // Net earnings after commission
+      sellerCommission, // Platform fee
+      `Payout for project: ${escrow.project.title}`,
+      { projectId }
+    );
+
+    if (transferResult.transfer) {
+      console.log(`✅ Instant transfer completed: ${transferResult.transfer.id} for $${freelancerAmount}`);
+    } else {
+      console.log(`⚠️  ${transferResult.message}`);
+    }
+  } catch (error: any) {
+    console.error(`❌ Failed to transfer to freelancer:`, error.message);
+    // Payment already captured and recorded in database
+    // Payout failure is logged in Payout table by transferToFreelancer
+    // Admin can retry failed payouts from dashboard
+  }
 
   return escrow;
 };
@@ -534,6 +558,29 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
     })
   ]);
 
+  // NEW: Transfer funds to freelancer's Stripe Connect account (instant payout)
+  try {
+    console.log(`💳 Initiating instant transfer to freelancer...`);
+    const transferResult = await transferToFreelancer(
+      order.freelancerId,
+      freelancerAmount, // Net earnings after commission
+      order.sellerCommission, // Platform fee
+      `Payout for service: ${order.service.title}`,
+      { serviceOrderId: orderId }
+    );
+
+    if (transferResult.transfer) {
+      console.log(`✅ Instant transfer completed: ${transferResult.transfer.id} for $${freelancerAmount}`);
+    } else {
+      console.log(`⚠️  ${transferResult.message}`);
+    }
+  } catch (error: any) {
+    console.error(`❌ Failed to transfer to freelancer:`, error.message);
+    // Payment already captured and recorded in database
+    // Payout failure is logged in Payout table by transferToFreelancer
+    // Admin can retry failed payouts from dashboard
+  }
+
   return order;
 };
 
@@ -653,6 +700,28 @@ export const handleStripeWebhook = async (event: Stripe.Event) => {
     case 'payment_intent.canceled':
       const canceledPayment = event.data.object as Stripe.PaymentIntent;
       console.log(`🔄 Payment canceled: ${canceledPayment.id}`);
+      break;
+
+    case 'account.updated':
+      // Stripe Connect account status updated
+      const account = event.data.object as Stripe.Account;
+      const userId = account.metadata?.userId;
+
+      if (userId) {
+        console.log(`👤 Updating Connect account status for user ${userId}`);
+
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            stripePayoutsEnabled: account.payouts_enabled || false,
+            stripeChargesEnabled: account.charges_enabled || false,
+            stripeDetailsSubmitted: account.details_submitted || false,
+            stripeOnboardingComplete: (account.details_submitted && account.payouts_enabled) || false
+          }
+        });
+
+        console.log(`✅ User ${userId} Connect status updated`);
+      }
       break;
 
     default:

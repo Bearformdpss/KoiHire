@@ -32,6 +32,13 @@ model User {
   updatedAt     DateTime @updatedAt
   lastActiveAt  DateTime @default(now())
 
+  // Stripe Connect fields for freelancer payouts
+  stripeConnectAccountId   String? @unique // Stripe Connect account ID (acct_xxx)
+  stripeOnboardingComplete Boolean @default(false) // Has completed Stripe onboarding
+  stripePayoutsEnabled     Boolean @default(false) // Can receive payouts
+  stripeDetailsSubmitted   Boolean @default(false) // Has submitted verification docs
+  stripeChargesEnabled     Boolean @default(false) // Account can accept charges
+
   // Refresh tokens
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
@@ -70,6 +77,9 @@ model User {
 
   // File uploads
   uploadedFiles ProjectFile[] @relation("UploadedFiles")
+
+  // Payouts
+  payouts Payout[]
 
   @@map("users")
 }
@@ -159,9 +169,9 @@ model Project {
   updatedAt    DateTime      @updatedAt
 
   // Fee structure fields (matching ServiceOrder model)
-  buyerFee         Float   @default(0) // 2.5% fee paid by buyer
-  sellerCommission Float   @default(0) // 12.5% commission taken from seller
-  totalCharged     Float?  // Total charged to buyer (agreedAmount + buyerFee)
+  buyerFee         Float  @default(0) // 2.5% fee paid by buyer
+  sellerCommission Float  @default(0) // 12.5% commission taken from seller
+  totalCharged     Float? // Total charged to buyer (agreedAmount + buyerFee)
 
   // Payment status tracking
   paymentStatus PaymentStatus @default(PENDING)
@@ -190,6 +200,7 @@ model Project {
   updates       ProjectUpdate[]
   notifications Notification[]
   files         ProjectFile[]
+  payouts       Payout[]
 
   @@map("projects")
 }
@@ -610,13 +621,13 @@ model ServiceOrder {
   clientId     String
   freelancerId String
 
-  orderNumber  String  @unique
+  orderNumber String @unique
 
   // Fee structure fields
-  packagePrice     Float   @default(0) // Original package price (base amount)
-  buyerFee         Float   @default(0) // 2.5% fee paid by buyer
-  sellerCommission Float   @default(0) // 12.5% commission taken from seller
-  totalAmount      Float   // Total charged to buyer (packagePrice + buyerFee)
+  packagePrice     Float @default(0) // Original package price (base amount)
+  buyerFee         Float @default(0) // 2.5% fee paid by buyer
+  sellerCommission Float @default(0) // 12.5% commission taken from seller
+  totalAmount      Float // Total charged to buyer (packagePrice + buyerFee)
 
   requirements String?
 
@@ -641,6 +652,7 @@ model ServiceOrder {
   deliverables OrderDeliverable[]
   reviews      ServiceReview[]
   transactions Transaction[]
+  payouts      Payout[]
 
   @@map("service_orders")
 }
@@ -726,4 +738,33 @@ enum DeliverableStatus {
   SUBMITTED
   APPROVED
   REVISION_REQUESTED
+}
+
+// Payout model for tracking Stripe Connect transfers
+model Payout {
+  id               String       @id @default(cuid())
+  userId           String // Freelancer receiving payout
+  projectId        String? // If from project
+  serviceOrderId   String? // If from service order
+  amount           Float // Net amount (after platform commission)
+  platformFee      Float // Our commission (12.5%)
+  stripeTransferId String?      @unique // Stripe transfer ID (tr_xxx)
+  status           PayoutStatus @default(PENDING)
+  failureReason    String? // If payout failed
+  createdAt        DateTime     @default(now())
+  completedAt      DateTime?
+
+  user         User          @relation(fields: [userId], references: [id])
+  project      Project?      @relation(fields: [projectId], references: [id])
+  serviceOrder ServiceOrder? @relation(fields: [serviceOrderId], references: [id])
+
+  @@map("payouts")
+}
+
+enum PayoutStatus {
+  PENDING // Waiting to be processed
+  PROCESSING // Transfer initiated to Stripe
+  COMPLETED // Successfully paid out
+  FAILED // Transfer failed
+  CANCELLED // Cancelled before processing
 }

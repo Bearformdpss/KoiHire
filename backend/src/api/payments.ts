@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authMiddleware, requireRole } from '../middleware/auth';
 import {
   createProjectEscrowPayment,
   confirmProjectEscrowPayment,
@@ -14,6 +14,13 @@ import {
   handleStripeWebhook,
   stripe
 } from '../services/stripeService';
+import {
+  createConnectAccount,
+  createAccountLink,
+  checkAccountStatus,
+  getPendingPayouts,
+  processAccumulatedPayouts
+} from '../services/stripeConnectService';
 
 const router = express.Router();
 const webhookRouter = express.Router(); // Separate router for webhook (no auth)
@@ -518,6 +525,94 @@ router.post('/service-order/:orderId/refund', asyncHandler(async (req: AuthReque
   } catch (error) {
     console.error('Error refunding service order:', error);
     throw new AppError('Failed to refund order', 500);
+  }
+}));
+
+// ==================== STRIPE CONNECT ROUTES ====================
+
+// Create or get Stripe Connect account for freelancer
+router.post('/connect/create-account', authMiddleware, requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
+  const user = req.user!;
+
+  // Check if already has Connect account
+  if (user.stripeConnectAccountId) {
+    const status = await checkAccountStatus(user.stripeConnectAccountId);
+
+    if (status.requiresAction) {
+      // Generate new onboarding link
+      const onboardingUrl = await createAccountLink(user.stripeConnectAccountId);
+
+      return res.json({
+        success: true,
+        accountId: user.stripeConnectAccountId,
+        onboardingUrl,
+        status,
+        message: 'Please complete your Stripe Connect onboarding'
+      });
+    }
+
+    return res.json({
+      success: true,
+      accountId: user.stripeConnectAccountId,
+      status,
+      message: 'Connect account already set up'
+    });
+  }
+
+  // Create new Connect account
+  const result = await createConnectAccount(user.id, user.email);
+
+  res.json({
+    success: true,
+    ...result
+  });
+}));
+
+// Get Connect account status
+router.get('/connect/status', authMiddleware, requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
+  const user = req.user!;
+
+  if (!user.stripeConnectAccountId) {
+    return res.json({
+      success: true,
+      connected: false,
+      message: 'No Connect account set up yet'
+    });
+  }
+
+  const status = await checkAccountStatus(user.stripeConnectAccountId);
+
+  res.json({
+    success: true,
+    connected: true,
+    accountId: user.stripeConnectAccountId,
+    ...status
+  });
+}));
+
+// Get pending payouts for freelancer
+router.get('/connect/pending-payouts', authMiddleware, requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
+  const pendingPayouts = await getPendingPayouts(req.user!.id);
+
+  res.json({
+    success: true,
+    ...pendingPayouts
+  });
+}));
+
+// Process accumulated pending payouts (manual trigger or automatic when threshold reached)
+router.post('/connect/process-pending-payouts', authMiddleware, requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
+  try {
+    const result = await processAccumulatedPayouts(req.user!.id);
+
+    res.json({
+      success: true,
+      message: 'Accumulated payouts processed successfully',
+      transfer: result.transfer,
+      payoutsCount: result.payouts.length
+    });
+  } catch (error: any) {
+    throw new AppError(error.message, 400);
   }
 }));
 

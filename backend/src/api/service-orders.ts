@@ -228,7 +228,10 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
           id: true,
           email: true,
           firstName: true,
-          lastName: true
+          lastName: true,
+          stripeConnectAccountId: true,
+          stripeOnboardingComplete: true,
+          stripePayoutsEnabled: true
         }
       },
       packages: {
@@ -243,6 +246,14 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
 
   if (!service.isActive) {
     throw new AppError('Service is not available', 400);
+  }
+
+  // Check if freelancer has Stripe Connect set up and verified
+  if (!service.freelancer.stripeConnectAccountId || !service.freelancer.stripeOnboardingComplete || !service.freelancer.stripePayoutsEnabled) {
+    throw new AppError(
+      `This service is temporarily unavailable. ${service.freelancer.firstName} ${service.freelancer.lastName} has not completed payment setup yet.`,
+      400
+    );
   }
 
   const servicePackage = service.packages[0];

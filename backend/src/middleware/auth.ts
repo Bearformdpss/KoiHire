@@ -10,6 +10,11 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     role: string;
+    stripeConnectAccountId?: string | null;
+    stripeOnboardingComplete?: boolean;
+    stripePayoutsEnabled?: boolean;
+    stripeDetailsSubmitted?: boolean;
+    stripeChargesEnabled?: boolean;
   };
 }
 
@@ -33,7 +38,16 @@ export const authMiddleware = async (
     
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, role: true }
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        stripeConnectAccountId: true,
+        stripeOnboardingComplete: true,
+        stripePayoutsEnabled: true,
+        stripeDetailsSubmitted: true,
+        stripeChargesEnabled: true
+      }
     });
 
     if (!user) {

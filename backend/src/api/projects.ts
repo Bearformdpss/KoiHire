@@ -413,6 +413,25 @@ router.post('/:projectId/accept/:applicationId', authMiddleware, asyncHandler(as
     throw new AppError('Application not found', 404);
   }
 
+  // Check if freelancer has Stripe Connect set up and verified
+  const freelancer = await prisma.user.findUnique({
+    where: { id: application.freelancerId },
+    select: {
+      stripeConnectAccountId: true,
+      stripeOnboardingComplete: true,
+      stripePayoutsEnabled: true,
+      firstName: true,
+      lastName: true
+    }
+  });
+
+  if (!freelancer?.stripeConnectAccountId || !freelancer.stripeOnboardingComplete || !freelancer.stripePayoutsEnabled) {
+    throw new AppError(
+      `Cannot accept application. ${freelancer?.firstName} ${freelancer?.lastName} has not completed Stripe Connect onboarding. They need to set up their payment account before accepting work.`,
+      400
+    );
+  }
+
   // Get all other applications for rejection notifications
   const allApplications = await prisma.application.findMany({
     where: { projectId },
