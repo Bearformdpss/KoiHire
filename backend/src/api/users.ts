@@ -28,6 +28,11 @@ router.get('/profile', asyncHandler(async (req: AuthRequest, res) => {
       isVerified: true,
       isAvailable: true,
       createdAt: true,
+      stripeConnectAccountId: true,
+      stripeOnboardingComplete: true,
+      stripePayoutsEnabled: true,
+      stripeDetailsSubmitted: true,
+      stripeChargesEnabled: true,
       skills: {
         include: {
           skill: {

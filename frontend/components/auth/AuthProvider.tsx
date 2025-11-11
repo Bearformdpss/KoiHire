@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store/authStore';
+import { authApi } from '@/lib/auth';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface AuthContextType {
@@ -16,25 +17,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      // Initialize auth store from localStorage
+      // Initialize auth store from localStorage (for immediate render)
       initialize();
-      
-      // If user is authenticated but tokens might be expired, try to refresh
-      const storedAuth = localStorage.getItem('refreshToken');
-      if (storedAuth && !isAuthenticated) {
+
+      // If user is authenticated, fetch fresh data from server
+      const storedToken = localStorage.getItem('accessToken');
+      const storedUser = localStorage.getItem('user');
+
+      if (storedToken && storedUser) {
         try {
-          await useAuthStore.getState().refreshTokens();
+          // Fetch fresh user data from server to get latest Stripe Connect status
+          const { user: freshUser } = await authApi.getProfile();
+
+          // Update store with fresh data (overwrites localStorage)
+          useAuthStore.getState().updateUser(freshUser);
+
+          console.log('✅ User data refreshed from server');
         } catch (error) {
-          // Refresh failed, tokens will be cleared by the refreshTokens method
-          console.log('Token refresh failed during initialization');
+          console.log('⚠️ Failed to fetch fresh user data, using cached data');
+
+          // If fetch fails, try token refresh as fallback
+          const storedRefreshToken = localStorage.getItem('refreshToken');
+          if (storedRefreshToken) {
+            try {
+              await useAuthStore.getState().refreshTokens();
+            } catch (refreshError) {
+              console.log('Token refresh also failed during initialization');
+            }
+          }
         }
       }
-      
+
       setIsInitialized(true);
     };
 
     initializeAuth();
-  }, [initialize, isAuthenticated]);
+  }, []);
 
   // Show loading spinner while initializing
   if (!isInitialized) {
