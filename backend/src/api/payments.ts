@@ -630,11 +630,30 @@ webhookRouter.post('/webhook', asyncHandler(async (req, res) => {
   }
 
   let event: any;
+  let verificationError: any;
 
+  // Try to verify with the primary webhook secret first
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    console.log('✅ Webhook verified with primary secret');
   } catch (err: any) {
-    console.error('❌ Webhook signature verification failed:', err.message);
+    verificationError = err;
+
+    // If primary fails and we have a Connect webhook secret, try that
+    if (process.env.STRIPE_CONNECT_WEBHOOK_SECRET) {
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_CONNECT_WEBHOOK_SECRET);
+        console.log('✅ Webhook verified with Connect webhook secret');
+        verificationError = null; // Clear the error since we succeeded
+      } catch (connectErr: any) {
+        console.error('❌ Webhook signature verification failed with both secrets');
+      }
+    }
+  }
+
+  // If verification failed with all available secrets, reject the webhook
+  if (verificationError && !event) {
+    console.error('❌ Webhook signature verification failed:', verificationError.message);
     throw new AppError('Invalid webhook signature', 400);
   }
 
