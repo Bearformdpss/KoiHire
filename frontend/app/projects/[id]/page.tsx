@@ -451,23 +451,40 @@ export default function ProjectDetailPage() {
           </Button>
 
           {/* Escrow Funding Alert - Compact horizontal banner */}
-          {isProjectOwner && project.status === 'IN_PROGRESS' && escrowStatus !== 'FUNDED' && (
-            <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-4 mb-6 flex items-center justify-between">
+          {isProjectOwner && (project.status === 'IN_PROGRESS' || project.status === 'PENDING_REVIEW') && escrowStatus !== 'FUNDED' && (
+            <div className={`border-l-4 rounded-lg p-4 mb-6 flex items-center justify-between ${
+              project.status === 'PENDING_REVIEW'
+                ? 'bg-orange-50 border-orange-500'
+                : 'bg-green-50 border-green-500'
+            }`}>
               <div className="flex items-center gap-4 flex-1">
                 <div className="flex-shrink-0">
-                  <DollarSign className="w-6 h-6 text-green-600" />
+                  <DollarSign className={`w-6 h-6 ${
+                    project.status === 'PENDING_REVIEW' ? 'text-orange-600' : 'text-green-600'
+                  }`} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Action Required: Fund Project Escrow</h3>
+                  <h3 className="font-semibold text-gray-900">
+                    {project.status === 'PENDING_REVIEW'
+                      ? 'Payment Required to Approve Work'
+                      : 'Action Required: Fund Project Escrow'}
+                  </h3>
                   <p className="text-sm text-gray-700 mt-1">
-                    Secure <strong>${(project.totalCharged || project.agreedAmount || project.maxBudget).toFixed(2)}</strong> in escrow to enable the freelancer to begin work. Funds are held safely until you approve the completed project.
+                    {project.status === 'PENDING_REVIEW'
+                      ? <>Payment of <strong>${(project.totalCharged || project.agreedAmount || project.maxBudget).toFixed(2)}</strong> must be secured before you can approve the completed work. Funds are held safely in escrow until you release them.</>
+                      : <>Secure <strong>${(project.totalCharged || project.agreedAmount || project.maxBudget).toFixed(2)}</strong> in escrow to enable the freelancer to begin work. Funds are held safely until you approve the completed project.</>
+                    }
                   </p>
                 </div>
               </div>
               <Button
                 onClick={() => setShowCheckout(true)}
                 disabled={checkingEscrow}
-                className="bg-green-600 hover:bg-green-700 text-white ml-4 flex-shrink-0"
+                className={`text-white ml-4 flex-shrink-0 ${
+                  project.status === 'PENDING_REVIEW'
+                    ? 'bg-orange-600 hover:bg-orange-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
               >
                 {checkingEscrow ? (
                   <>

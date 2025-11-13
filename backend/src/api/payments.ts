@@ -60,8 +60,8 @@ router.post('/project/create-payment-intent', asyncHandler(async (req: AuthReque
     throw new AppError('Only the project owner can fund escrow', 403);
   }
 
-  if (project.status !== 'IN_PROGRESS') {
-    throw new AppError('Project must be in progress to fund escrow', 400);
+  if (project.status !== 'IN_PROGRESS' && project.status !== 'PENDING_REVIEW') {
+    throw new AppError('Project must be in progress or pending review to fund escrow', 400);
   }
 
   if (!project.freelancerId) {
