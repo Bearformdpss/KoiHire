@@ -183,15 +183,34 @@ export default function ProjectDetailPage() {
     }
   }
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     toast.success('Project funded successfully! Escrow is now active.')
     setShowCheckout(false)
 
-    // Wait 1.5 seconds for webhook to process
-    setTimeout(() => {
-      checkEscrowStatus()
-      fetchProject()
-    }, 1500)
+    // Wait for webhook to process and refresh data
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    try {
+      // Refresh both escrow status and project data
+      await checkEscrowStatus()
+      const response = await projectsApi.getProject(projectId)
+
+      if (response.success && response.data) {
+        const updatedProject = response.data.project
+        setProject(updatedProject)
+
+        // If project is pending review, automatically show review modal after payment
+        if (updatedProject.status === 'PENDING_REVIEW') {
+          toast.success('You can now approve the work!')
+          // Small delay for better UX
+          setTimeout(() => {
+            setShowReviewModal(true)
+          }, 500)
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing project after payment:', error)
+    }
   }
 
   const handleApplyToProject = () => {
