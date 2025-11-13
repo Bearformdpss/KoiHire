@@ -24,10 +24,25 @@ export const createProjectEscrowPayment = async (
   clientId: string,
   description?: string
 ) => {
-  // Get project with freelancer's Connect account
+  // Get project with freelancer's Connect account and fee structure
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: {
+      freelancer: {
+        select: {
+          id: true,
+          stripeConnectAccountId: true,
+          stripePayoutsEnabled: true
+        }
+      }
+    },
+    // Include fee fields needed for platform fee calculation
+    select: {
+      id: true,
+      freelancerId: true,
+      agreedAmount: true,
+      buyerFee: true,
+      sellerCommission: true,
       freelancer: {
         select: {
           id: true,
@@ -414,10 +429,16 @@ export const createServiceOrderPayment = async (
   clientId: string,
   description?: string
 ) => {
-  // Get service order with freelancer's Connect account
+  // Get service order with freelancer's Connect account and fee structure
   const order = await prisma.serviceOrder.findUnique({
     where: { id: orderId },
-    include: {
+    select: {
+      id: true,
+      freelancerId: true,
+      packagePrice: true,
+      buyerFee: true,
+      sellerCommission: true,
+      totalAmount: true,
       freelancer: {
         select: {
           id: true,
