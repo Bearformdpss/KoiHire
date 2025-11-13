@@ -30,6 +30,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import BidSubmissionModal from '@/components/projects/BidSubmissionModal'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
 import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
+import { PaymentRequiredModal } from '@/components/projects/PaymentRequiredModal'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 
@@ -105,6 +106,9 @@ export default function ProjectDetailPage() {
   const [showCheckout, setShowCheckout] = useState(false)
   const [escrowStatus, setEscrowStatus] = useState<string | null>(null)
   const [checkingEscrow, setCheckingEscrow] = useState(false)
+
+  // Payment Required Modal state
+  const [showPaymentRequiredModal, setShowPaymentRequiredModal] = useState(false)
 
   const projectId = params.id as string
 
@@ -222,9 +226,21 @@ export default function ProjectDetailPage() {
   // Review Actions handlers
   const handleApproveProject = async () => {
     if (!project?.freelancer) return
-    
+
+    // Check if escrow is funded before allowing approval
+    if (escrowStatus !== 'FUNDED') {
+      setShowPaymentRequiredModal(true)
+      return
+    }
+
     // Show review modal first instead of directly approving
     setShowReviewModal(true)
+  }
+
+  // Handle proceeding to payment from the payment required modal
+  const handleProceedToPayment = () => {
+    setShowPaymentRequiredModal(false)
+    setShowCheckout(true)
   }
 
   // Handle actual project approval after review flow
@@ -1119,6 +1135,19 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Payment Required Modal - Show before review if escrow not funded */}
+        {showPaymentRequiredModal && project && (
+          <PaymentRequiredModal
+            isOpen={showPaymentRequiredModal}
+            onClose={() => setShowPaymentRequiredModal(false)}
+            onProceedToPayment={handleProceedToPayment}
+            totalCharged={project.totalCharged || project.agreedAmount || project.maxBudget}
+            agreedAmount={project.agreedAmount || project.maxBudget}
+            buyerFee={project.buyerFee || 0}
+            projectTitle={project.title}
+          />
         )}
 
         {/* Review Modal - Show after client clicks approve */}
