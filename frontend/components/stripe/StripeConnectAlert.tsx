@@ -69,11 +69,16 @@ export function StripeConnectAlert({
           <button
             onClick={handleSetupPayments}
             disabled={isLoading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-koi-orange hover:bg-koi-orange/90 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-koi-orange hover:bg-koi-orange/90 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-3"
           >
             <CreditCard className="w-4 h-4" />
             {isLoading ? 'Loading...' : 'Set Up Payments Now'}
           </button>
+
+          {/* Help text for users who already started setup */}
+          <p className="text-sm text-gray-500 italic">
+            If you have signed up with Stripe and you're still seeing this banner, please check your Stripe account to ensure all requirements have been submitted.
+          </p>
         </div>
       </div>
     </div>
