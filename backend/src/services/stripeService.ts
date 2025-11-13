@@ -1,6 +1,5 @@
 import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
-import { transferToFreelancer } from './stripeConnectService';
 
 const prisma = new PrismaClient();
 
@@ -17,6 +16,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 /**
  * Create payment intent for project escrow
  * Funds are held in escrow with manual capture until work is approved
+ * Uses Stripe Connect Destination Charges to automatically route payment to freelancer on capture
  */
 export const createProjectEscrowPayment = async (
   projectId: string,
@@ -24,20 +24,80 @@ export const createProjectEscrowPayment = async (
   clientId: string,
   description?: string
 ) => {
+  // Get project with freelancer's Connect account
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      freelancer: {
+        select: {
+          id: true,
+          stripeConnectAccountId: true,
+          stripePayoutsEnabled: true
+        }
+      }
+    }
+  });
+
+  if (!project) {
+    throw new Error('Project not found');
+  }
+
+  if (!project.freelancer) {
+    throw new Error('Project must have an assigned freelancer');
+  }
+
+  // Check if freelancer has Connect account set up
+  if (!project.freelancer.stripeConnectAccountId) {
+    throw new Error('Freelancer must complete Stripe Connect onboarding before escrow can be funded');
+  }
+
+  if (!project.freelancer.stripePayoutsEnabled) {
+    throw new Error('Freelancer payouts not enabled. They may need to complete verification with Stripe.');
+  }
+
+  // Calculate fee breakdown
+  const agreedAmount = project.agreedAmount || amount;
+  const sellerCommission = project.sellerCommission || 0;
+  const buyerFee = project.buyerFee || 0;
+  const totalPlatformFee = sellerCommission + buyerFee;
+
+  console.log('💰 Creating payment intent with destination charges:', {
+    totalAmount: amount,
+    agreedAmount,
+    platformFee: totalPlatformFee,
+    freelancerConnectAccount: project.freelancer.stripeConnectAccountId
+  });
+
   const paymentIntent = await stripe.paymentIntents.create({
     amount: Math.round(amount * 100), // Convert to cents
     currency: 'usd',
     automatic_payment_methods: {
       enabled: true
     },
-    // Manual capture - funds held until work approved
+    // Manual capture - funds held until work approved (ESCROW PROTECTION)
     capture_method: 'manual',
+
+    // Destination Charges: Route payment to freelancer's Connect account on capture
+    transfer_data: {
+      destination: project.freelancer.stripeConnectAccountId,
+    },
+
+    // Platform fee: Automatically deducted and sent to platform account
+    application_fee_amount: Math.round(totalPlatformFee * 100),
+
     metadata: {
       projectId,
       clientId,
+      freelancerId: project.freelancerId!,
       type: 'project_escrow'
     },
     description: description || `Escrow payment for project ${projectId}`
+  });
+
+  console.log('✅ Payment intent created with destination charges:', {
+    paymentIntentId: paymentIntent.id,
+    destination: project.freelancer.stripeConnectAccountId,
+    applicationFee: totalPlatformFee
   });
 
   return paymentIntent;
@@ -265,28 +325,14 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
 
   console.log(`✅ Escrow payment released successfully`);
 
-  // NEW: Transfer funds to freelancer's Stripe Connect account (instant payout)
-  try {
-    console.log(`💳 Initiating instant transfer to freelancer...`);
-    const transferResult = await transferToFreelancer(
-      escrow.project.freelancerId!,
-      freelancerAmount, // Net earnings after commission
-      sellerCommission, // Platform fee
-      `Payout for project: ${escrow.project.title}`,
-      { projectId }
-    );
+  // NOTE: With Stripe Connect Destination Charges, the payment automatically routes
+  // to the freelancer's Connect account when we capture the PaymentIntent above.
+  // The platform fee (application_fee_amount) is automatically deducted and sent to our account.
+  // No manual transfer needed - Stripe handles everything atomically on capture.
 
-    if (transferResult.transfer) {
-      console.log(`✅ Instant transfer completed: ${transferResult.transfer.id} for $${freelancerAmount}`);
-    } else {
-      console.log(`⚠️  ${transferResult.message}`);
-    }
-  } catch (error: any) {
-    console.error(`❌ Failed to transfer to freelancer:`, error.message);
-    // Payment already captured and recorded in database
-    // Payout failure is logged in Payout table by transferToFreelancer
-    // Admin can retry failed payouts from dashboard
-  }
+  console.log(`💰 Payment automatically routed to freelancer via Destination Charges`);
+  console.log(`   Freelancer receives: $${freelancerAmount} (after ${sellerCommission} commission)`);
+  console.log(`   Platform receives: $${totalPlatformFee} (buyer fee + seller commission)`);
 
   return escrow;
 };
@@ -360,6 +406,7 @@ export const refundProjectEscrowPayment = async (projectId: string, reason?: str
 /**
  * Create payment intent for service order
  * Funds are held in escrow until work is approved
+ * Uses Stripe Connect Destination Charges to automatically route payment to freelancer on capture
  */
 export const createServiceOrderPayment = async (
   orderId: string,
@@ -367,20 +414,77 @@ export const createServiceOrderPayment = async (
   clientId: string,
   description?: string
 ) => {
+  // Get service order with freelancer's Connect account
+  const order = await prisma.serviceOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      freelancer: {
+        select: {
+          id: true,
+          stripeConnectAccountId: true,
+          stripePayoutsEnabled: true
+        }
+      }
+    }
+  });
+
+  if (!order) {
+    throw new Error('Service order not found');
+  }
+
+  if (!order.freelancer) {
+    throw new Error('Service order must have an assigned freelancer');
+  }
+
+  // Check if freelancer has Connect account set up
+  if (!order.freelancer.stripeConnectAccountId) {
+    throw new Error('Freelancer must complete Stripe Connect onboarding before payment can be processed');
+  }
+
+  if (!order.freelancer.stripePayoutsEnabled) {
+    throw new Error('Freelancer payouts not enabled. They may need to complete verification with Stripe.');
+  }
+
+  // Calculate fee breakdown
+  const totalPlatformFee = order.buyerFee + order.sellerCommission;
+
+  console.log('💰 Creating service order payment intent with destination charges:', {
+    totalAmount: amount,
+    packagePrice: order.packagePrice,
+    platformFee: totalPlatformFee,
+    freelancerConnectAccount: order.freelancer.stripeConnectAccountId
+  });
+
   const paymentIntent = await stripe.paymentIntents.create({
     amount: Math.round(amount * 100), // Convert to cents
     currency: 'usd',
     automatic_payment_methods: {
       enabled: true
     },
-    // Manual capture - funds held until work approved
+    // Manual capture - funds held until work approved (ESCROW PROTECTION)
     capture_method: 'manual',
+
+    // Destination Charges: Route payment to freelancer's Connect account on capture
+    transfer_data: {
+      destination: order.freelancer.stripeConnectAccountId,
+    },
+
+    // Platform fee: Automatically deducted and sent to platform account
+    application_fee_amount: Math.round(totalPlatformFee * 100),
+
     metadata: {
       orderId,
       clientId,
+      freelancerId: order.freelancerId,
       type: 'service_order'
     },
     description: description || `Payment for service order ${orderId}`
+  });
+
+  console.log('✅ Service order payment intent created with destination charges:', {
+    paymentIntentId: paymentIntent.id,
+    destination: order.freelancer.stripeConnectAccountId,
+    applicationFee: totalPlatformFee
   });
 
   return paymentIntent;
@@ -558,28 +662,14 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
     })
   ]);
 
-  // NEW: Transfer funds to freelancer's Stripe Connect account (instant payout)
-  try {
-    console.log(`💳 Initiating instant transfer to freelancer...`);
-    const transferResult = await transferToFreelancer(
-      order.freelancerId,
-      freelancerAmount, // Net earnings after commission
-      order.sellerCommission, // Platform fee
-      `Payout for service: ${order.service.title}`,
-      { serviceOrderId: orderId }
-    );
+  // NOTE: With Stripe Connect Destination Charges, the payment automatically routes
+  // to the freelancer's Connect account when we capture the PaymentIntent above.
+  // The platform fee (application_fee_amount) is automatically deducted and sent to our account.
+  // No manual transfer needed - Stripe handles everything atomically on capture.
 
-    if (transferResult.transfer) {
-      console.log(`✅ Instant transfer completed: ${transferResult.transfer.id} for $${freelancerAmount}`);
-    } else {
-      console.log(`⚠️  ${transferResult.message}`);
-    }
-  } catch (error: any) {
-    console.error(`❌ Failed to transfer to freelancer:`, error.message);
-    // Payment already captured and recorded in database
-    // Payout failure is logged in Payout table by transferToFreelancer
-    // Admin can retry failed payouts from dashboard
-  }
+  console.log(`💰 Payment automatically routed to freelancer via Destination Charges`);
+  console.log(`   Freelancer receives: $${freelancerAmount} (after ${order.sellerCommission} commission)`);
+  console.log(`   Platform receives: $${totalPlatformFee} (buyer fee + seller commission)`);
 
   return order;
 };
