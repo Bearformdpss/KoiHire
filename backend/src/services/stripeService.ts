@@ -62,32 +62,8 @@ export const createProjectEscrowPayment = async (
 
   // Calculate fee breakdown
   const agreedAmount = project.agreedAmount || amount;
-  let sellerCommission = project.sellerCommission || 0;
-  let buyerFee = project.buyerFee || 0;
-
-  // DEFENSIVE: If fees weren't calculated on project, calculate them now to ensure platform gets revenue
-  if (sellerCommission === 0 && buyerFee === 0 && agreedAmount > 0) {
-    console.warn('⚠️  Project fees not set, calculating now based on agreed amount');
-    buyerFee = agreedAmount * 0.025;           // 2.5% buyer service fee
-    sellerCommission = agreedAmount * 0.125;   // 12.5% seller commission
-
-    // Update project with calculated fees for future reference
-    await prisma.project.update({
-      where: { id: projectId },
-      data: {
-        buyerFee,
-        sellerCommission,
-        totalCharged: agreedAmount + buyerFee
-      }
-    });
-
-    console.log('✅ Fees calculated and saved:', {
-      buyerFee,
-      sellerCommission,
-      totalCharged: agreedAmount + buyerFee
-    });
-  }
-
+  const sellerCommission = project.sellerCommission || 0;
+  const buyerFee = project.buyerFee || 0;
   const totalPlatformFee = sellerCommission + buyerFee;
 
   console.log('💰 Creating payment intent with destination charges:', {
@@ -481,33 +457,7 @@ export const createServiceOrderPayment = async (
   }
 
   // Calculate fee breakdown
-  let buyerFee = order.buyerFee;
-  let sellerCommission = order.sellerCommission;
-
-  // DEFENSIVE: If fees weren't calculated on order, calculate them now to ensure platform gets revenue
-  if (sellerCommission === 0 && buyerFee === 0 && order.packagePrice > 0) {
-    console.warn('⚠️  Service order fees not set, calculating now based on package price');
-    buyerFee = order.packagePrice * 0.025;           // 2.5% buyer service fee
-    sellerCommission = order.packagePrice * 0.125;   // 12.5% seller commission
-
-    // Update order with calculated fees for future reference
-    await prisma.serviceOrder.update({
-      where: { id: orderId },
-      data: {
-        buyerFee,
-        sellerCommission,
-        totalAmount: order.packagePrice + buyerFee
-      }
-    });
-
-    console.log('✅ Service order fees calculated and saved:', {
-      buyerFee,
-      sellerCommission,
-      totalAmount: order.packagePrice + buyerFee
-    });
-  }
-
-  const totalPlatformFee = buyerFee + sellerCommission;
+  const totalPlatformFee = order.buyerFee + order.sellerCommission;
 
   console.log('💰 Creating service order payment intent with destination charges:', {
     totalAmount: amount,
