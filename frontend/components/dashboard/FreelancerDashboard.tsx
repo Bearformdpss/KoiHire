@@ -17,6 +17,8 @@ import { ProfileCard } from './freelancer/ProfileCard'
 import { LevelProgressCard } from './freelancer/LevelProgressCard'
 import { AvailabilityToggle } from './freelancer/AvailabilityToggle'
 import { StripeConnectAlert } from '@/components/stripe/StripeConnectAlert'
+import { HeroSection } from '@/components/freelancer/HeroSection'
+import { OpportunitiesSection } from '@/components/freelancer/OpportunitiesSection'
 
 interface MyProject {
   id: string
@@ -131,27 +133,20 @@ export function FreelancerDashboard() {
             <span>Menu</span>
           </button>
 
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back, {user?.firstName}!
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Manage your projects and discover new opportunities.
-            </p>
-          </div>
-
           {/* Stripe Connect Alert */}
           <StripeConnectAlert
             stripeConnectAccountId={user?.stripeConnectAccountId}
             stripePayoutsEnabled={user?.stripePayoutsEnabled}
           />
 
+          {/* Hero Section */}
+          <HeroSection firstName={user?.firstName} />
+
           {/* Active Projects Section */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8 shadow-sm">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Active Projects</h2>
+                <h2 className="text-2xl font-bold text-[#1E293B]">Active Projects</h2>
                 <p className="text-sm text-gray-600 mt-1">Track and manage your ongoing work</p>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
@@ -160,13 +155,13 @@ export function FreelancerDashboard() {
                   <input
                     type="text"
                     placeholder="Search projects..."
-                    className="w-full sm:w-auto pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-koi-orange focus:border-koi-orange"
+                    className="w-full sm:w-auto pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FF6B35]/20 focus:border-[#FF6B35] transition-colors"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
                 <select
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-koi-orange focus:border-koi-orange"
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FF6B35]/20 focus:border-[#FF6B35] transition-colors"
                   value={projectFilter}
                   onChange={(e) => setProjectFilter(e.target.value)}
                 >
@@ -189,33 +184,34 @@ export function FreelancerDashboard() {
                 filteredProjects.map((project) => (
                   <div
                     key={project.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-koi-orange hover:shadow-sm transition-all cursor-pointer"
+                    className="border border-gray-200 rounded-lg p-6 hover:border-[#FF6B35] hover:shadow-lg transition-all duration-200 cursor-pointer bg-white"
                     onClick={() => router.push(`/projects/${project.id}`)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-3 mb-2">
-                          <h3 className="font-semibold text-gray-900 hover:text-koi-orange transition-colors">
+                          <h3 className="text-lg font-semibold text-[#1E293B] hover:text-[#FF6B35] transition-colors">
                             {project.title}
                           </h3>
-                          <span className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-medium ${
-                            project.status === 'IN_PROGRESS' ? 'bg-green-100 text-green-800' :
-                            project.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
-                            project.status === 'PAUSED' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
+                          <span className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium border ${
+                            project.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                            project.status === 'COMPLETED' ? 'bg-green-100 text-green-700 border-green-200' :
+                            project.status === 'PAUSED' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                            project.status === 'PENDING_REVIEW' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                            'bg-gray-100 text-gray-700 border-gray-200'
                           }`}>
                             {project.status.replace('_', ' ')}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 mb-3 line-clamp-2">{project.description}</p>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-700">
                           <span>
                             Client: <span className="font-medium text-gray-900">{project.client.firstName} {project.client.lastName}</span>
                           </span>
-                          <span className="text-green-600 font-semibold">
+                          <span className="text-[#FF6B35] font-semibold">
                             ${project.minBudget.toLocaleString()} - ${project.maxBudget.toLocaleString()}
                           </span>
-                          <span className="text-gray-500">
+                          <span className="text-gray-500 text-xs">
                             Updated {new Date(project.updatedAt).toLocaleDateString()}
                           </span>
                         </div>
@@ -258,6 +254,9 @@ export function FreelancerDashboard() {
               )}
             </div>
           </div>
+
+          {/* Opportunities Section */}
+          <OpportunitiesSection />
         </div>
       </div>
     </div>
