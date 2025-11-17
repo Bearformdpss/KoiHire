@@ -27,16 +27,6 @@ export const createProjectEscrowPayment = async (
   // Get project with freelancer's Connect account and fee structure
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    include: {
-      freelancer: {
-        select: {
-          id: true,
-          stripeConnectAccountId: true,
-          stripePayoutsEnabled: true
-        }
-      }
-    },
-    // Include fee fields needed for platform fee calculation
     select: {
       id: true,
       freelancerId: true,
