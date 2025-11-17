@@ -19,11 +19,22 @@ export function HeroSection({ firstName }: HeroSectionProps) {
   }
 
   return (
-    <div className="bg-gradient-to-r from-[#FF6B35] to-[#FF8F6B] rounded-xl p-8 md:p-12 mb-8">
-      <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
+    <div
+      className="rounded-2xl p-6 md:p-8 mb-8 shadow-lg"
+      style={{
+        background: 'linear-gradient(to bottom right, #E76F51, #F4A261)'
+      }}
+    >
+      <h1
+        className="text-3xl md:text-4xl font-bold mb-3"
+        style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
+      >
         Ready to grow your freelance business{firstName ? `, ${firstName}` : ''}?
       </h1>
-      <p className="text-lg text-white/90 mb-8">
+      <p
+        className="mb-6 text-lg font-medium"
+        style={{ color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
+      >
         Create services or find projects that match your skills
       </p>
 
