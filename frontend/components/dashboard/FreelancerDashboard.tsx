@@ -142,6 +142,9 @@ export function FreelancerDashboard() {
           {/* Hero Section */}
           <HeroSection firstName={user?.firstName} />
 
+          {/* Opportunities Section */}
+          <OpportunitiesSection />
+
           {/* Active Projects Section */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8 shadow-sm">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -254,9 +257,6 @@ export function FreelancerDashboard() {
               )}
             </div>
           </div>
-
-          {/* Opportunities Section */}
-          <OpportunitiesSection />
         </div>
       </div>
     </div>
