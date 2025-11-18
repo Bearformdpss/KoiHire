@@ -7,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
 import { Button } from '@/components/ui/button'
-import { LogOut, User, Settings, Bell, Wallet, Star, MessageCircle, Briefcase, Search, Menu, X, ShoppingBag, ChevronDown, Package } from 'lucide-react'
+import { LogOut, User, Settings, Bell, Star, MessageCircle, Briefcase, Search, Menu, X, ShoppingBag, ChevronDown, Package } from 'lucide-react'
 import { NotificationButton } from '@/components/notifications/NotificationButton'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import toast from 'react-hot-toast'
@@ -15,13 +15,13 @@ import toast from 'react-hot-toast'
 // Navigation configuration function
 const getNavigationItems = (role: 'FREELANCER' | 'CLIENT', unreadCount: number) => {
   const baseItems = [
-    // Dashboard only for Freelancers
-    ...(role === 'FREELANCER' ? [{
+    // Dashboard for both Freelancers and Clients
+    {
       label: 'Dashboard',
       href: '/dashboard',
       type: 'link' as const,
       icon: Briefcase
-    }] : []),
+    },
     {
       label: 'Work',
       type: 'dropdown' as const,
@@ -41,12 +41,6 @@ const getNavigationItems = (role: 'FREELANCER' | 'CLIENT', unreadCount: number) 
       type: 'link' as const,
       icon: MessageCircle,
       badge: unreadCount > 0 ? unreadCount : undefined
-    },
-    {
-      label: 'Wallet',
-      href: '/wallet',
-      type: 'link' as const,
-      icon: Wallet
     }
   ]
 
