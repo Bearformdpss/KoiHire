@@ -505,30 +505,6 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
                   <span className="ml-2 font-medium">{formData.timeline}</span>
                 </div>
               </div>
-
-              {/* Premium Selection Summary */}
-              <div className="pt-4 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-gray-500 text-sm">Promotion:</span>
-                    <span className="ml-2 font-medium">
-                      {premiumOptions.find(opt => opt.tier === formData.premiumTier)?.title}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    {formData.premiumTier !== 'NONE' ? (
-                      <div>
-                        <span className="text-xl font-bold text-gray-900">
-                          ${premiumOptions.find(opt => opt.tier === formData.premiumTier)?.price}
-                        </span>
-                        <span className="text-sm text-gray-500 ml-1">one-time</span>
-                      </div>
-                    ) : (
-                      <span className="text-lg font-semibold text-green-600">Free</span>
-                    )}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
