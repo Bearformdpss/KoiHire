@@ -80,8 +80,10 @@ export function ProjectOpportunityCard({ project }: ProjectOpportunityCardProps)
         </h4>
 
         {/* Project Description */}
-        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-          {project.description}
+        <p className="text-sm text-gray-600 mb-2">
+          {project.description.length > 75
+            ? `${project.description.substring(0, 75)}...`
+            : project.description}
         </p>
 
         {/* Category Badge */}
