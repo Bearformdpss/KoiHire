@@ -47,7 +47,6 @@ export interface RecommendationsResponse {
   success: boolean
   data: {
     projects: RecommendedProject[]
-    matchedSkills: string[]
     totalMatches: number
   }
 }
@@ -58,6 +57,7 @@ export const recommendationsApi = {
    * @param limit - Number of projects to return (default: 6)
    */
   async getRecommendedProjects(limit: number = 6): Promise<RecommendationsResponse> {
-    return apiClient.get(`/recommendations/projects?limit=${limit}`)
+    const response = await apiClient.get(`/recommendations/projects?limit=${limit}`)
+    return response.data
   }
 }
