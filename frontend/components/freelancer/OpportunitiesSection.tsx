@@ -10,7 +10,6 @@ import toast from 'react-hot-toast'
 export function OpportunitiesSection() {
   const router = useRouter()
   const [projects, setProjects] = useState<RecommendedProject[]>([])
-  const [matchedSkills, setMatchedSkills] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -22,14 +21,13 @@ export function OpportunitiesSection() {
     try {
       setLoading(true)
       setError(false)
-      const response = await recommendationsApi.getRecommendedProjects(6)
+      const response = await recommendationsApi.getRecommendedProjects(10)
 
       if (response.success && response.data) {
         setProjects(response.data.projects)
-        setMatchedSkills(response.data.matchedSkills)
       }
     } catch (err: any) {
-      console.error('Error fetching recommendations:', err)
+      console.error('Error fetching new projects:', err)
       setError(true)
       // Don't show error toast, just fail silently and show empty state
     } finally {
@@ -58,9 +56,9 @@ export function OpportunitiesSection() {
       <div className="bg-white rounded-lg p-8 mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-[#1E293B]">Recommended Projects for You</h2>
+            <h2 className="text-2xl font-bold text-[#1E293B]">New Projects</h2>
             <p className="text-gray-600 text-sm mt-1">
-              No recommendations yet. Browse all projects to find opportunities.
+              No new projects available. Check back soon for new opportunities.
             </p>
           </div>
           <button
@@ -83,8 +81,13 @@ export function OpportunitiesSection() {
   // Success state with projects
   return (
     <div className="bg-gray-50 rounded-lg p-6 md:p-8 mb-8">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-2xl font-bold text-[#1E293B]">Recommended Projects for You</h2>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-[#1E293B]">New Projects</h2>
+          <p className="text-gray-600 text-sm mt-1">
+            Recently posted opportunities for you to explore
+          </p>
+        </div>
         <button
           onClick={handleBrowseAll}
           className="text-[#FF6B35] hover:text-[#E55A2A] font-medium text-sm flex items-center gap-1 transition-colors"
@@ -93,12 +96,6 @@ export function OpportunitiesSection() {
           <span>→</span>
         </button>
       </div>
-
-      {matchedSkills.length > 0 && (
-        <p className="text-gray-600 text-sm mb-6">
-          Based on your experience: <span className="font-medium">{matchedSkills.join(', ')}</span>
-        </p>
-      )}
 
       {/* Desktop: Grid layout */}
       <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
