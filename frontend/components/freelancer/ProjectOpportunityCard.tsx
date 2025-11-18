@@ -46,20 +46,12 @@ export function ProjectOpportunityCard({ project }: ProjectOpportunityCardProps)
   }
 
   const clientFullName = `${project.client.firstName} ${project.client.lastName}`
-  const categoryColor = 'bg-gradient-to-br from-[#FF6B35] to-[#FF8F6B]'
 
   return (
     <div
       onClick={handleClick}
       className="bg-white border border-gray-200 rounded-lg shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105 cursor-pointer overflow-hidden"
     >
-      {/* Cover Image / Placeholder */}
-      <div className={`h-40 ${categoryColor} flex items-center justify-center`}>
-        <div className="text-white text-center px-4">
-          <h3 className="font-bold text-lg">{project.category.name}</h3>
-        </div>
-      </div>
-
       {/* Card Content */}
       <div className="p-4">
         {/* Client Info */}
@@ -83,9 +75,21 @@ export function ProjectOpportunityCard({ project }: ProjectOpportunityCardProps)
         </div>
 
         {/* Project Title */}
-        <h4 className="text-base font-semibold text-[#1E293B] mb-3 line-clamp-2 min-h-[3rem]">
+        <h4 className="text-base font-semibold text-[#1E293B] mb-2">
           {project.title}
         </h4>
+
+        {/* Project Description */}
+        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+          {project.description}
+        </p>
+
+        {/* Category Badge */}
+        <div className="mb-3">
+          <span className="inline-block px-2 py-1 bg-[#FF6B35]/10 text-[#FF6B35] text-xs font-medium rounded">
+            {project.category.name}
+          </span>
+        </div>
 
         {/* Metadata */}
         <div className="space-y-1">
