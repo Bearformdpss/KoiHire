@@ -94,39 +94,12 @@ router.post('/', validate(reviewSchema), asyncHandler(async (req: AuthRequest, r
   // Update reviewee's average rating
   await updateUserRating(revieweeId);
 
-  // Auto-approve project if it was in PENDING_REVIEW status
-  if (project && project.status === 'PENDING_REVIEW') {
-    await prisma.project.update({
-      where: { id: projectId },
-      data: { 
-        status: 'COMPLETED',
-        completedAt: new Date()
-      }
-    });
-
-    // Send notification to freelancer when client reviews and approves their work
-    try {
-      const reviewerIsClient = req.user!.id === project.clientId;
-      const revieweeIsFreelancer = revieweeId === project.freelancerId;
-      
-      if (reviewerIsClient && revieweeIsFreelancer && project.freelancerId) {
-        await notificationService.sendWorkApprovedNotification(
-          project.freelancerId,
-          projectId,
-          project.title
-        );
-      }
-    } catch (error) {
-      console.error('Error sending work approval notification:', error);
-      // Don't fail the request if notification fails
-    }
-  }
+  // Note: Project remains in PENDING_REVIEW status until client explicitly approves
+  // This ensures payment is only released when client clicks "Complete Project"
 
   res.status(201).json({
     success: true,
-    message: project && project.status === 'PENDING_REVIEW' 
-      ? 'Review created successfully and project approved!' 
-      : 'Review created successfully',
+    message: 'Review created successfully',
     review
   });
 }));

@@ -284,8 +284,8 @@ export default function ProjectDetailPage() {
 
   // Handle review submission
   const handleReviewSuccess = () => {
-    toast.success('Review submitted successfully!')
-    handleFinalApproval() // Approve project after review
+    toast.success('Review submitted successfully! Click "Complete Project" to finalize and release payment.')
+    // Don't auto-approve - let client explicitly click "Complete Project" button
   }
 
   // Handle skipping review
@@ -1214,10 +1214,10 @@ export default function ProjectDetailPage() {
                   onCancel={() => setShowReviewModal(false)}
                 />
 
-                {/* Skip Review Option */}
+                {/* Complete Project Option */}
                 <div className="mt-6 pt-4 border-t border-gray-200 text-center">
                   <p className="text-sm text-gray-600 mb-3">
-                    Don't want to leave a review right now?
+                    Ready to finalize and release payment?
                   </p>
                   <Button
                     variant="outline"
@@ -1231,7 +1231,7 @@ export default function ProjectDetailPage() {
                         Completing Project...
                       </>
                     ) : (
-                      'Skip Review & Complete Project'
+                      'Complete Project'
                     )}
                   </Button>
                 </div>
