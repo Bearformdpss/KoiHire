@@ -591,6 +591,22 @@ export const confirmServiceOrderPayment = async (orderId: string, paymentIntentI
     amount: transaction.amount
   });
 
+  // Create timeline event for payment received (after Stripe confirmation)
+  await createServiceEvent({
+    serviceOrderId: orderId,
+    eventType: SERVICE_EVENT_TYPES.PAYMENT_RECEIVED,
+    actorId: null, // System-generated event
+    actorName: 'System',
+    metadata: {
+      amount: order.totalAmount,
+      packagePrice: order.packagePrice,
+      buyerFee: order.buyerFee,
+      stripePaymentId: paymentIntentId,
+      paidBy: order.clientId,
+      paidByName: `${order.client.firstName} ${order.client.lastName}`
+    }
+  });
+
   return updatedOrder;
 };
 
@@ -603,7 +619,14 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
     where: { id: orderId },
     include: {
       service: true,
-      transactions: true
+      transactions: true,
+      freelancer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true
+        }
+      }
     }
   });
 
@@ -710,6 +733,21 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
   console.log(`💰 Payment automatically routed to freelancer via Destination Charges`);
   console.log(`   Freelancer receives: $${freelancerAmount} (after ${order.sellerCommission} commission)`);
   console.log(`   Platform receives: $${totalPlatformFee} (buyer fee + seller commission)`);
+
+  // Create timeline event for payment release (after all Stripe operations complete)
+  await createServiceEvent({
+    serviceOrderId: orderId,
+    eventType: SERVICE_EVENT_TYPES.PAYMENT_RELEASED,
+    actorId: null, // System-generated event
+    actorName: 'System',
+    metadata: {
+      amount: freelancerAmount,
+      platformFee: totalPlatformFee,
+      stripePaymentId: depositTransaction.stripeId,
+      releasedTo: order.freelancerId,
+      releasedToName: `${order.freelancer.firstName} ${order.freelancer.lastName}`
+    }
+  });
 
   return order;
 };

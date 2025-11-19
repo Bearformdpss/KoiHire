@@ -7,6 +7,7 @@ import { notificationService } from '../services/notificationService';
 import { emailService } from '../services/emailService';
 import { releaseServiceOrderPayment } from '../services/stripeService';
 import { calculateServiceOrderPricing } from '../utils/pricing';
+import { createServiceEvent, SERVICE_EVENT_TYPES } from '../services/eventService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -381,7 +382,8 @@ router.post('/:orderId/accept', authMiddleware, requireRole(['FREELANCER']), asy
     where: { id: orderId },
     include: {
       service: { select: { title: true } },
-      client: { select: { id: true, firstName: true, lastName: true } }
+      client: { select: { id: true, firstName: true, lastName: true } },
+      freelancer: { select: { id: true, firstName: true, lastName: true } }
     }
   });
 
@@ -400,6 +402,19 @@ router.post('/:orderId/accept', authMiddleware, requireRole(['FREELANCER']), asy
   const updatedOrder = await prisma.serviceOrder.update({
     where: { id: orderId },
     data: { status: 'ACCEPTED' }
+  });
+
+  // Create timeline event for order confirmation
+  await createServiceEvent({
+    serviceOrderId: orderId,
+    eventType: SERVICE_EVENT_TYPES.ORDER_CONFIRMED,
+    actorId: req.user!.id,
+    actorName: `${order.freelancer.firstName} ${order.freelancer.lastName}`,
+    metadata: {
+      serviceTitle: order.service.title,
+      totalAmount: order.totalAmount,
+      packagePrice: order.packagePrice
+    }
   });
 
   // Send notification to client
@@ -518,6 +533,20 @@ router.post('/:orderId/deliver', authMiddleware, requireRole(['FREELANCER']), as
     }
   });
 
+  // Create timeline event for delivery
+  await createServiceEvent({
+    serviceOrderId: orderId,
+    eventType: SERVICE_EVENT_TYPES.DELIVERY_MADE,
+    actorId: req.user!.id,
+    actorName: `${order.freelancer.firstName} ${order.freelancer.lastName}`,
+    metadata: {
+      deliverableId: deliverable.id,
+      deliveryTitle: title,
+      deliveryDescription: description,
+      filesCount: files?.length || 0
+    }
+  });
+
   // Send notification to client
   try {
     await notificationService.sendServiceOrderNotification(
@@ -608,6 +637,19 @@ router.post('/:orderId/approve', authMiddleware, requireRole(['CLIENT']), asyncH
     }
   });
 
+  // Create timeline event for order completion (before payment release)
+  await createServiceEvent({
+    serviceOrderId: orderId,
+    eventType: SERVICE_EVENT_TYPES.ORDER_COMPLETED,
+    actorId: req.user!.id,
+    actorName: `${order.client.firstName} ${order.client.lastName}`,
+    metadata: {
+      serviceTitle: order.service.title,
+      totalAmount: order.totalAmount,
+      packagePrice: order.packagePrice
+    }
+  });
+
   // Release payment to freelancer
   try {
     console.log(`🔄 Releasing payment for order ${orderId}...`);
@@ -668,7 +710,8 @@ router.post('/:orderId/revision', authMiddleware, requireRole(['CLIENT']), async
     include: {
       package: true,
       service: { select: { title: true } },
-      freelancer: { select: { id: true, firstName: true, lastName: true } }
+      freelancer: { select: { id: true, firstName: true, lastName: true } },
+      client: { select: { id: true, firstName: true, lastName: true } }
     }
   });
 
@@ -703,6 +746,19 @@ router.post('/:orderId/revision', authMiddleware, requireRole(['CLIENT']), async
     data: {
       status: 'REVISION_REQUESTED',
       revisionNote: revisionNote.trim()
+    }
+  });
+
+  // Create timeline event for revision request
+  await createServiceEvent({
+    serviceOrderId: orderId,
+    eventType: SERVICE_EVENT_TYPES.REVISION_REQUESTED,
+    actorId: req.user!.id,
+    actorName: `${order.client.firstName} ${order.client.lastName}`,
+    metadata: {
+      revisionNote: revisionNote.trim(),
+      revisionNumber: updatedOrder.revisionsUsed,
+      revisionsRemaining: order.package.revisions - updatedOrder.revisionsUsed
     }
   });
 
