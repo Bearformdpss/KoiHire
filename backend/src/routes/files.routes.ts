@@ -8,6 +8,7 @@ import {
   getProjectFileDownloadUrl,
   deleteProjectFileFromS3
 } from '../utils/s3ProjectFiles'
+import { createProjectEvent, PROJECT_EVENT_TYPES } from '../services/eventService'
 
 const prisma = new PrismaClient()
 
@@ -109,6 +110,31 @@ router.post('/:projectId/files', authMiddleware, upload.array('files', 10), asyn
         })
       )
     )
+
+    // Get uploader info for event
+    const uploader = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true }
+    })
+
+    // Create timeline event for file upload
+    if (uploader) {
+      await createProjectEvent({
+        projectId,
+        eventType: PROJECT_EVENT_TYPES.FILE_UPLOADED,
+        actorId: userId,
+        actorName: `${uploader.firstName} ${uploader.lastName}`,
+        metadata: {
+          files: uploadedFiles.map(f => ({
+            id: f.id,
+            fileName: f.originalName,
+            fileSize: f.fileSize,
+            mimeType: f.mimeType,
+            filePath: f.filePath
+          }))
+        }
+      })
+    }
 
     res.json({
       success: true,

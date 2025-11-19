@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
+import { createProjectEvent, createServiceEvent, PROJECT_EVENT_TYPES, SERVICE_EVENT_TYPES } from './eventService';
 
 const prisma = new PrismaClient();
 
@@ -185,6 +186,19 @@ export const confirmProjectEscrowPayment = async (projectId: string, paymentInte
     amount: transaction.amount
   });
 
+  // Create timeline event for escrow funding (after all operations complete)
+  await createProjectEvent({
+    projectId,
+    eventType: PROJECT_EVENT_TYPES.ESCROW_FUNDED,
+    actorId: project.clientId,
+    actorName: `${project.client.firstName} ${project.client.lastName}`,
+    metadata: {
+      amount: escrow.amount,
+      stripePaymentId: paymentIntentId,
+      totalCharged: project.totalCharged || escrow.amount
+    }
+  });
+
   return escrow;
 };
 
@@ -327,6 +341,21 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
       }
     })
   ]);
+
+  // Create timeline event for payment release (after all Stripe operations complete)
+  await createProjectEvent({
+    projectId,
+    eventType: PROJECT_EVENT_TYPES.PAYMENT_RELEASED,
+    actorId: null, // System-generated event
+    actorName: 'System',
+    metadata: {
+      amount: freelancerAmount,
+      platformFee: totalPlatformFee,
+      stripePaymentId: depositTransaction.stripeId,
+      releasedTo: escrow.project.freelancerId,
+      releasedToName: `${escrow.project.freelancer.firstName} ${escrow.project.freelancer.lastName}`
+    }
+  });
 
   console.log(`✅ Escrow payment released successfully`);
 

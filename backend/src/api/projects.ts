@@ -6,6 +6,7 @@ import { validate, projectSchema } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
 import { calculateProjectPricing } from '../utils/pricing';
 import { releaseProjectEscrowPayment } from '../services/stripeService';
+import { createProjectEvent, PROJECT_EVENT_TYPES } from '../services/eventService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -390,6 +391,13 @@ router.post('/:projectId/accept/:applicationId', authMiddleware, asyncHandler(as
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: {
+      client: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true
+        }
+      },
       applications: {
         where: { id: applicationId }
       }
@@ -487,6 +495,22 @@ router.post('/:projectId/accept/:applicationId', authMiddleware, asyncHandler(as
       data: { status: 'REJECTED' }
     })
   ]);
+
+  // Create timeline event for freelancer being hired
+  await createProjectEvent({
+    projectId,
+    eventType: PROJECT_EVENT_TYPES.FREELANCER_HIRED,
+    actorId: req.user!.id,
+    actorName: `${project.client.firstName} ${project.client.lastName}`,
+    metadata: {
+      freelancerId: application.freelancerId,
+      freelancerName: `${acceptedApplication.freelancer.firstName} ${acceptedApplication.freelancer.lastName}`,
+      agreedAmount: pricing.agreedAmount,
+      totalCharged: pricing.totalCharged,
+      buyerFee: pricing.buyerFee,
+      sellerCommission: pricing.sellerCommission
+    }
+  });
 
   // Send notifications
   try {
@@ -610,11 +634,31 @@ router.post('/:projectId/cancel', authMiddleware, asyncHandler(async (req: AuthR
 
   await prisma.project.update({
     where: { id: projectId },
-    data: { 
+    data: {
       status: 'CANCELLED',
       cancelReason: reason || null
     }
   });
+
+  // Get client info for event
+  const client = await prisma.user.findUnique({
+    where: { id: req.user!.id },
+    select: { firstName: true, lastName: true }
+  });
+
+  // Create timeline event for project cancellation
+  if (client) {
+    await createProjectEvent({
+      projectId,
+      eventType: PROJECT_EVENT_TYPES.PROJECT_CANCELLED,
+      actorId: req.user!.id,
+      actorName: `${client.firstName} ${client.lastName}`,
+      metadata: {
+        reason: reason || 'No reason provided',
+        cancelledAt: new Date()
+      }
+    });
+  }
 
   res.json({
     success: true,
@@ -764,8 +808,22 @@ router.put('/:projectId/submit-for-review', authMiddleware, asyncHandler(async (
   // Update project status to PENDING_REVIEW
   await prisma.project.update({
     where: { id: projectId },
-    data: { 
+    data: {
       status: 'PENDING_REVIEW'
+    }
+  });
+
+  // Create timeline event - check if this is initial submission or revision
+  const { hasProjectSubmissions } = await import('../services/eventService');
+  const isRevision = await hasProjectSubmissions(projectId);
+
+  await createProjectEvent({
+    projectId,
+    eventType: isRevision ? PROJECT_EVENT_TYPES.REVISION_SUBMITTED : PROJECT_EVENT_TYPES.WORK_SUBMITTED,
+    actorId: req.user!.id,
+    actorName: `${project.freelancer.firstName} ${project.freelancer.lastName}`,
+    metadata: {
+      submittedAt: new Date()
     }
   });
 
@@ -838,6 +896,25 @@ router.post('/:projectId/approve', authMiddleware, asyncHandler(async (req: Auth
       completedAt: new Date()
     }
   });
+
+  // Get client info for event
+  const client = await prisma.user.findUnique({
+    where: { id: req.user!.id },
+    select: { firstName: true, lastName: true }
+  });
+
+  // Create timeline event for project approval (BEFORE payment release for chronological accuracy)
+  if (client) {
+    await createProjectEvent({
+      projectId,
+      eventType: PROJECT_EVENT_TYPES.PROJECT_APPROVED,
+      actorId: req.user!.id,
+      actorName: `${client.firstName} ${client.lastName}`,
+      metadata: {
+        approvedAt: new Date()
+      }
+    });
+  }
 
   // Send notification to freelancer about approval
   try {
@@ -918,15 +995,35 @@ router.post('/:projectId/request-changes', authMiddleware, asyncHandler(async (r
     throw new AppError('Project must be pending review to request changes', 400);
   }
 
-  // Update project status back to IN_PROGRESS 
+  // Update project status back to IN_PROGRESS
   // Note: changeRequestMessage field temporarily disabled due to Prisma client sync issues
   await prisma.project.update({
     where: { id: projectId },
-    data: { 
+    data: {
       status: 'IN_PROGRESS'
       // changeRequestMessage: message.trim() // TODO: Re-enable when Prisma client is regenerated
     }
   });
+
+  // Get client info for event
+  const client = await prisma.user.findUnique({
+    where: { id: req.user!.id },
+    select: { firstName: true, lastName: true }
+  });
+
+  // Create timeline event for changes requested
+  if (client) {
+    await createProjectEvent({
+      projectId,
+      eventType: PROJECT_EVENT_TYPES.CHANGES_REQUESTED,
+      actorId: req.user!.id,
+      actorName: `${client.firstName} ${client.lastName}`,
+      metadata: {
+        message: message.trim(),
+        requestedAt: new Date()
+      }
+    });
+  }
 
   // Send notification to freelancer about change request
   try {
