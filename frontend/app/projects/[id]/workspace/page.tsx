@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { projectsApi } from '@/lib/api/projects'
 import { ProjectFiles } from '@/components/files/ProjectFiles'
+import ProjectTimeline from '@/components/ProjectTimeline'
 import toast from 'react-hot-toast'
 
 interface Project {
@@ -262,6 +263,9 @@ export default function ProjectWorkspacePage() {
                         <p className="text-gray-700 leading-relaxed">{project.requirements}</p>
                       </div>
                     )}
+
+                    {/* Project Timeline */}
+                    <ProjectTimeline projectId={projectId} />
                   </div>
 
                   {/* Sidebar */}
