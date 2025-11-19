@@ -31,6 +31,7 @@ import BidSubmissionModal from '@/components/projects/BidSubmissionModal'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
 import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
 import { PaymentRequiredModal } from '@/components/projects/PaymentRequiredModal'
+import ProjectTimeline from '@/components/ProjectTimeline'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 
@@ -747,9 +748,14 @@ export default function ProjectDetailPage() {
                 </div>
               )}
 
-              {/* Project Timeline */}
+              {/* Event Timeline - Show for assigned freelancer and client */}
+              {(isProjectOwner || (project.freelancerId && project.freelancerId === user?.id)) && (
+                <ProjectTimeline projectId={project.id} />
+              )}
+
+              {/* Project Info */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Project Timeline</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Project Info</h2>
                 <div className="space-y-3">
                   <div className="flex items-center">
                     <Calendar className="w-5 h-5 text-gray-400 mr-3" />

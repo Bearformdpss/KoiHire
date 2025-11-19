@@ -7,7 +7,7 @@ import { notificationService } from '../services/notificationService';
 import { emailService } from '../services/emailService';
 import { releaseServiceOrderPayment } from '../services/stripeService';
 import { calculateServiceOrderPricing } from '../utils/pricing';
-import { createServiceEvent, SERVICE_EVENT_TYPES } from '../services/eventService';
+import { createServiceEvent, SERVICE_EVENT_TYPES, getServiceEvents } from '../services/eventService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -921,6 +921,34 @@ router.post('/:orderId/review', authMiddleware, requireRole(['CLIENT']), validat
     success: true,
     message: 'Review submitted successfully',
     data: { review }
+  });
+}));
+
+// Get service order timeline events
+router.get('/:orderId/events', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const { orderId } = req.params;
+  const userId = req.user!.id;
+
+  // Verify order exists and user has access
+  const order = await prisma.serviceOrder.findUnique({
+    where: { id: orderId }
+  });
+
+  if (!order) {
+    throw new AppError('Order not found', 404);
+  }
+
+  // Check if user is client or freelancer on this order
+  if (order.clientId !== userId && order.freelancerId !== userId) {
+    throw new AppError('Not authorized to view this order', 403);
+  }
+
+  // Fetch all events for this order
+  const events = await getServiceEvents(orderId);
+
+  res.json({
+    success: true,
+    data: { events }
   });
 }));
 

@@ -6,7 +6,7 @@ import { validate, projectSchema } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
 import { calculateProjectPricing } from '../utils/pricing';
 import { releaseProjectEscrowPayment } from '../services/stripeService';
-import { createProjectEvent, PROJECT_EVENT_TYPES } from '../services/eventService';
+import { createProjectEvent, PROJECT_EVENT_TYPES, getProjectEvents } from '../services/eventService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -1043,6 +1043,45 @@ router.post('/:projectId/request-changes', authMiddleware, asyncHandler(async (r
   res.json({
     success: true,
     message: 'Change request sent to freelancer. Project status updated to in progress.'
+  });
+}));
+
+// Get project timeline events
+router.get('/:projectId/events', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const { projectId } = req.params;
+  const userId = req.user!.id;
+
+  // Verify project exists and user has access
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      applications: {
+        where: {
+          freelancerId: userId,
+          status: 'ACCEPTED'
+        }
+      }
+    }
+  });
+
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+
+  // Check if user is client or assigned freelancer
+  const isClient = project.clientId === userId;
+  const isFreelancer = project.freelancerId === userId || project.applications.length > 0;
+
+  if (!isClient && !isFreelancer) {
+    throw new AppError('You do not have access to this project', 403);
+  }
+
+  // Fetch all events for this project
+  const events = await getProjectEvents(projectId);
+
+  res.json({
+    success: true,
+    data: { events }
   });
 }));
 
