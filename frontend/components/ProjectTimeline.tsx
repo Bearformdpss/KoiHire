@@ -151,7 +151,6 @@ export default function ProjectTimeline({ projectId }: ProjectTimelineProps) {
         return (
           <div className="text-sm text-gray-600 mt-1">
             <p>${metadata.amount} released to <span className="font-medium">{metadata.releasedToName}</span></p>
-            <p className="text-xs text-gray-500">Platform fee: ${metadata.platformFee}</p>
           </div>
         )
 
