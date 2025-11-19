@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Clock, User, DollarSign, FileText, CheckCircle, XCircle, Upload, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
+import { api } from '@/lib/api'
 
 interface ProjectEvent {
   id: string
@@ -78,19 +79,11 @@ export default function ProjectTimeline({ projectId }: ProjectTimelineProps) {
   const fetchEvents = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/projects/${projectId}/events`, {
-        credentials: 'include'
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch timeline events')
-      }
-
-      const data = await response.json()
-      setEvents(data.data.events)
+      const response = await api.get(`/projects/${projectId}/events`)
+      setEvents(response.data.data.events)
     } catch (err: any) {
       console.error('Error fetching timeline:', err)
-      setError(err.message)
+      setError(err.response?.data?.message || err.message || 'Failed to fetch timeline events')
     } finally {
       setLoading(false)
     }
