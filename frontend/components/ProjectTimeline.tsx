@@ -150,7 +150,7 @@ export default function ProjectTimeline({ projectId }: ProjectTimelineProps) {
       case 'PAYMENT_RELEASED':
         return (
           <div className="text-sm text-gray-600 mt-1">
-            <p>${metadata.amount} released to <span className="font-medium">{metadata.releasedToName}</span></p>
+            <p>Payment released to <span className="font-medium">{metadata.releasedToName}</span></p>
           </div>
         )
 
