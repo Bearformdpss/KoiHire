@@ -506,8 +506,8 @@ router.post('/:orderId/deliver', authMiddleware, requireRole(['FREELANCER']), as
     throw new AppError('Not authorized to deliver for this order', 403);
   }
 
-  if (order.status !== 'IN_PROGRESS') {
-    throw new AppError('Order must be in progress to submit delivery', 400);
+  if (order.status !== 'IN_PROGRESS' && order.status !== 'REVISION_REQUESTED') {
+    throw new AppError('Order must be in progress or revision requested to submit delivery', 400);
   }
 
   // Create deliverable

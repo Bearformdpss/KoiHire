@@ -464,6 +464,21 @@ export default function FreelancerOrdersPage() {
                             <p className="text-sm text-gray-700">{order.requirements}</p>
                           </div>
                         )}
+
+                        {order.status === 'REVISION_REQUESTED' && order.deliverables?.[0]?.revisionNote && (
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="font-medium text-orange-900 text-sm mb-1">Revision Requested</p>
+                                <p className="text-sm text-orange-800">{order.deliverables[0].revisionNote}</p>
+                                <p className="text-xs text-orange-700 mt-2">
+                                  Revisions used: {order.revisionsUsed} of {order.package?.revisions}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-2 ml-4">
@@ -509,7 +524,7 @@ export default function FreelancerOrdersPage() {
                           </Button>
                         )}
 
-                        {order.status === 'IN_PROGRESS' && (
+                        {(order.status === 'IN_PROGRESS' || order.status === 'REVISION_REQUESTED') && (
                           <Button
                             variant="default"
                             size="sm"
@@ -517,7 +532,7 @@ export default function FreelancerOrdersPage() {
                             className="bg-blue-600 hover:bg-blue-700"
                           >
                             <Upload className="w-4 h-4 mr-2" />
-                            Submit Work
+                            {order.status === 'REVISION_REQUESTED' ? 'Submit Revision' : 'Submit Work'}
                           </Button>
                         )}
                       </div>
