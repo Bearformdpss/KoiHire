@@ -520,6 +520,33 @@ router.post('/:orderId/deliver', authMiddleware, requireRole(['FREELANCER']), as
     }
   });
 
+  // Create ServiceOrderFile records for each deliverable file
+  if (files && files.length > 0) {
+    try {
+      await Promise.all(
+        files.map((fileUrl: string) => {
+          // Extract filename from S3 URL
+          const fileName = fileUrl.split('/').pop() || 'file';
+
+          return prisma.serviceOrderFile.create({
+            data: {
+              orderId,
+              fileName,
+              originalName: fileName,
+              fileSize: 0, // Size not available from deliverable
+              mimeType: 'application/octet-stream', // Type not available from deliverable
+              filePath: fileUrl,
+              uploadedById: req.user!.id
+            }
+          });
+        })
+      );
+    } catch (error) {
+      console.error('Error creating ServiceOrderFile records for deliverable:', error);
+      // Don't fail the whole delivery if this fails
+    }
+  }
+
   // Update order status
   const updatedOrder = await prisma.serviceOrder.update({
     where: { id: orderId },
