@@ -29,6 +29,7 @@ import serviceRoutes from './api/services';
 import serviceOrderRoutes from './api/service-orders';
 import escrowRoutes from './api/escrow';
 import fileRoutes from './routes/files.routes';
+import serviceOrderFileRoutes from './routes/service-order-files.routes';
 import adminRoutes from './api/admin';
 import recommendationsRoutes from './api/recommendations';
 // import projectUpdateRoutes from './routes/projectUpdates';
@@ -145,6 +146,8 @@ app.use('/api/service-orders', authMiddleware, serviceOrderRoutes);
 app.use('/api/escrow', authMiddleware, escrowRoutes);
 app.use('/api/projects', fileRoutes); // For /:projectId/files routes (upload/list)
 app.use('/api/files', fileRoutes); // For /download/:fileId and /:fileId routes (download/delete)
+app.use('/api/service-orders', serviceOrderFileRoutes); // For /:orderId/files routes (upload/list)
+app.use('/api/service-order-files', serviceOrderFileRoutes); // For /download/:fileId and /:fileId routes (download/delete)
 app.use('/api/admin', authMiddleware, adminRoutes); // Admin routes (requires auth + ADMIN role)
 app.use('/api/recommendations', authMiddleware, recommendationsRoutes); // Recommendations for freelancers
 // app.use('/api', authMiddleware, projectUpdateRoutes);

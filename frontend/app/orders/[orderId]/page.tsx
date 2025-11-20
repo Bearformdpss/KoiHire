@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { serviceOrdersApi, ServiceOrder } from '@/lib/api/service-orders'
 import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
+import { ServiceOrderFiles } from '@/components/files/ServiceOrderFiles'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -365,6 +366,9 @@ export default function OrderDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Order Files */}
+            <ServiceOrderFiles orderId={orderId} canUpload={true} />
 
             {/* Actions */}
             {order.status === 'PENDING' && (

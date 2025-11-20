@@ -76,7 +76,8 @@ model User {
   freelancerServiceReviews ServiceReview[] @relation("FreelancerServiceReviews")
 
   // File uploads
-  uploadedFiles ProjectFile[] @relation("UploadedFiles")
+  uploadedFiles            ProjectFile[]        @relation("UploadedFiles")
+  uploadedServiceOrderFiles ServiceOrderFile[] @relation("UploadedServiceOrderFiles")
 
   // Payouts
   payouts Payout[]
@@ -645,16 +646,17 @@ model ServiceOrder {
   updatedAt DateTime @updatedAt
 
   // Relations
-  service      Service            @relation(fields: [serviceId], references: [id])
-  package      ServicePackage     @relation(fields: [packageId], references: [id])
-  client       User               @relation("ClientServiceOrders", fields: [clientId], references: [id])
-  freelancer   User               @relation("FreelancerServiceOrders", fields: [freelancerId], references: [id])
+  service      Service              @relation(fields: [serviceId], references: [id])
+  package      ServicePackage       @relation(fields: [packageId], references: [id])
+  client       User                 @relation("ClientServiceOrders", fields: [clientId], references: [id])
+  freelancer   User                 @relation("FreelancerServiceOrders", fields: [freelancerId], references: [id])
   conversation Conversation?
   deliverables OrderDeliverable[]
   reviews      ServiceReview[]
   transactions Transaction[]
   payouts      Payout[]
   events       ServiceEvent[]
+  files        ServiceOrderFile[]
 
   @@map("service_orders")
 }
@@ -800,4 +802,22 @@ model ServiceEvent {
 
   @@index([serviceOrderId, createdAt])
   @@map("service_events")
+}
+
+model ServiceOrderFile {
+  id           String   @id @default(cuid())
+  orderId      String
+  fileName     String // Stored filename on S3
+  originalName String // Original filename from user
+  fileSize     Int // File size in bytes
+  mimeType     String // MIME type (image/png, application/pdf, etc.)
+  filePath     String // S3 URL where file is stored
+  uploadedById String // User who uploaded the file
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  order      ServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  uploadedBy User         @relation("UploadedServiceOrderFiles", fields: [uploadedById], references: [id])
+
+  @@map("service_order_files")
 }
