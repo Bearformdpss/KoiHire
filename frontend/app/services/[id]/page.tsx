@@ -224,14 +224,17 @@ export default function ServiceDetailPage() {
 
           {/* Seller Info Inline */}
           <div className="flex items-center gap-4 text-gray-700">
-            <div className="flex items-center gap-2">
+            <button
+              onClick={() => service.freelancer?.username && router.push(`/profile/${service.freelancer.username}`)}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+            >
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
                 {service.freelancer?.firstName?.[0]}{service.freelancer?.lastName?.[0]}
               </div>
               <span className="font-medium">
                 {service.freelancer?.firstName} {service.freelancer?.lastName}
               </span>
-            </div>
+            </button>
 
             {service.rating && (
               <div className="flex items-center gap-1">
