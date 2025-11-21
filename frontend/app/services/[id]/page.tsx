@@ -17,7 +17,6 @@ import toast from 'react-hot-toast'
 import { ImageCarousel } from '@/components/services/ImageCarousel'
 import { PackageSelector } from '@/components/services/PackageSelector'
 import { SellerInfoCard } from '@/components/services/SellerInfoCard'
-import { ReviewHighlights } from '@/components/services/ReviewHighlights'
 import { FAQAccordion } from '@/components/services/FAQAccordion'
 import { RelatedServices } from '@/components/services/RelatedServices'
 import { Lightbox } from '@/components/services/Lightbox'
@@ -240,7 +239,7 @@ export default function ServiceDetailPage() {
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                 <span className="font-semibold">{service.rating.toFixed(1)}</span>
-                <span className="text-gray-600">({service._count?.reviews || 0})</span>
+                <span className="text-gray-600">({freelancerReviews.length} {freelancerReviews.length === 1 ? 'review' : 'reviews'})</span>
               </div>
             )}
 
@@ -297,16 +296,6 @@ export default function ServiceDetailPage() {
                 totalOrders: service._count?.serviceOrders || 0
               }}
               reviewCount={freelancerReviews.length}
-            />
-
-            {/* Reviews - From Freelancer Profile */}
-            <ReviewHighlights
-              overallRating={service.freelancer?.rating || 0}
-              totalReviews={freelancerReviews.length}
-              reviews={freelancerReviews}
-              onViewAll={() => {
-                console.log('View all reviews')
-              }}
             />
 
             {/* FAQ */}
