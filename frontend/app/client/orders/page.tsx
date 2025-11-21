@@ -174,14 +174,27 @@ export default function ClientOrdersPage() {
     setShowReviewModal(true)
   }
 
-  const handleFinalApproval = async () => {
+  const handleFinalApproval = async (reviewData?: any) => {
     if (!selectedOrderForReview) return
 
     setPendingApproval(true)
     try {
+      // Step 1: Approve the order first (status changes to COMPLETED)
       const response = await serviceOrdersApi.approveDelivery(selectedOrderForReview.id)
       if (response.status === 200 || response.data) {
-        toast.success('Order approved successfully!')
+        // Step 2: Submit review if provided (now that order is COMPLETED)
+        if (reviewData) {
+          try {
+            await serviceOrdersApi.submitReview(selectedOrderForReview.id, reviewData)
+            toast.success('Order approved and review submitted successfully!')
+          } catch (reviewError) {
+            console.error('Failed to submit review:', reviewError)
+            toast.success('Order approved! (Review submission failed)')
+          }
+        } else {
+          toast.success('Order approved successfully!')
+        }
+
         setShowReviewModal(false)
         setSelectedOrderForReview(null)
         fetchOrders()
@@ -196,8 +209,8 @@ export default function ClientOrdersPage() {
     }
   }
 
-  const handleReviewSuccess = () => {
-    handleFinalApproval()
+  const handleReviewSuccess = (reviewData: any) => {
+    handleFinalApproval(reviewData)
   }
 
   const handleSkipReview = () => {

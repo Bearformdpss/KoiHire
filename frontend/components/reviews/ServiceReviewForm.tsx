@@ -10,7 +10,7 @@ interface ServiceReviewFormProps {
   orderId: string
   freelancerId: string
   freelancerName: string
-  onSuccess?: () => void
+  onSuccess?: (reviewData: ReviewData) => void
   onCancel?: () => void
 }
 
@@ -62,21 +62,8 @@ export function ServiceReviewForm({
     }
 
     setSubmitting(true)
-    try {
-      const response = await serviceOrdersApi.submitReview(orderId, reviewData)
-
-      if (response.data?.success || response.status === 200) {
-        toast.success('Review submitted successfully!')
-        onSuccess?.()
-      } else {
-        toast.error('Failed to submit review')
-      }
-    } catch (error: any) {
-      console.error('Failed to submit review:', error)
-      toast.error(error.response?.data?.message || 'Failed to submit review')
-    } finally {
-      setSubmitting(false)
-    }
+    // Pass review data to parent handler (which will approve THEN submit review)
+    onSuccess?.(reviewData)
   }
 
   const renderStarRating = (
