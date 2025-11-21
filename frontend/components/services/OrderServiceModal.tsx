@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +32,11 @@ export function OrderServiceModal({
   const [error, setError] = useState<string | null>(null)
 
   const MAX_REQUIREMENTS_LENGTH = 2000
+
+  // Sync internal state when selected package tier changes
+  useEffect(() => {
+    setCurrentTier(selectedPackageTier)
+  }, [selectedPackageTier])
 
   // Get available packages sorted by tier
   const availablePackages = service.packages?.sort((a, b) => {
