@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { ClientOnly } from '@/components/auth/RoleProtection'
 import { serviceOrdersApi, ServiceOrder } from '@/lib/api/service-orders'
+import { ServiceReviewForm } from '@/components/reviews/ServiceReviewForm'
 import toast from 'react-hot-toast'
 
 export default function ClientOrdersPage() {
@@ -26,6 +27,11 @@ export default function ClientOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+
+  // Review modal state
+  const [showReviewModal, setShowReviewModal] = useState(false)
+  const [selectedOrderForReview, setSelectedOrderForReview] = useState<ServiceOrder | null>(null)
+  const [pendingApproval, setPendingApproval] = useState(false)
 
   // Stats
   const [stats, setStats] = useState({
@@ -160,11 +166,24 @@ export default function ClientOrdersPage() {
     }
   }
 
-  const handleApproveOrder = async (orderId: string) => {
+  const handleApproveOrder = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId)
+    if (!order) return
+
+    setSelectedOrderForReview(order)
+    setShowReviewModal(true)
+  }
+
+  const handleFinalApproval = async () => {
+    if (!selectedOrderForReview) return
+
+    setPendingApproval(true)
     try {
-      const response = await serviceOrdersApi.approveDelivery(orderId)
+      const response = await serviceOrdersApi.approveDelivery(selectedOrderForReview.id)
       if (response.status === 200 || response.data) {
-        toast.success('Delivery approved successfully!')
+        toast.success('Order approved successfully!')
+        setShowReviewModal(false)
+        setSelectedOrderForReview(null)
         fetchOrders()
       } else {
         toast.error('Failed to approve delivery')
@@ -172,7 +191,17 @@ export default function ClientOrdersPage() {
     } catch (error: any) {
       console.error('Failed to approve order:', error)
       toast.error(error.response?.data?.message || 'Failed to approve delivery')
+    } finally {
+      setPendingApproval(false)
     }
+  }
+
+  const handleReviewSuccess = () => {
+    handleFinalApproval()
+  }
+
+  const handleSkipReview = () => {
+    handleFinalApproval()
   }
 
   const handleRequestRevision = async (orderId: string) => {
@@ -660,6 +689,69 @@ export default function ClientOrdersPage() {
           )}
         </div>
       </div>
+
+      {/* Review Modal */}
+      {showReviewModal && selectedOrderForReview && selectedOrderForReview.freelancer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Approve Order</h2>
+                <button
+                  onClick={() => {
+                    setShowReviewModal(false)
+                    setSelectedOrderForReview(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                  disabled={pendingApproval}
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-900">
+                  <strong>Service:</strong> {selectedOrderForReview.service?.title}
+                </p>
+                <p className="text-sm text-blue-900 mt-1">
+                  <strong>Freelancer:</strong> {selectedOrderForReview.freelancer.firstName} {selectedOrderForReview.freelancer.lastName}
+                </p>
+              </div>
+
+              <ServiceReviewForm
+                orderId={selectedOrderForReview.id}
+                freelancerId={selectedOrderForReview.freelancerId}
+                freelancerName={`${selectedOrderForReview.freelancer.firstName} ${selectedOrderForReview.freelancer.lastName}`}
+                onSuccess={handleReviewSuccess}
+                onCancel={() => {
+                  setShowReviewModal(false)
+                  setSelectedOrderForReview(null)
+                }}
+              />
+
+              {/* Skip Review Option */}
+              <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+                <p className="text-sm text-gray-600 mb-3">Don't want to leave a review?</p>
+                <Button
+                  variant="outline"
+                  onClick={handleSkipReview}
+                  disabled={pendingApproval}
+                  className="w-full sm:w-auto"
+                >
+                  {pendingApproval ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Completing Order...
+                    </>
+                  ) : (
+                    'Complete Order Without Review'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </ClientOnly>
   )
 }
