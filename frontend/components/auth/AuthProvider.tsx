@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store/authStore';
 import { authApi } from '@/lib/auth';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useSessionMonitor } from '@/hooks/useSessionMonitor';
+import { InactivityWarning } from './InactivityWarning';
 
 interface AuthContextType {
   isInitialized: boolean;
@@ -14,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({ isInitialized: false });
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const { initialize, isAuthenticated, user } = useAuthStore();
+  const { showWarning, timeRemaining, handleStayLoggedIn, handleLogout } = useSessionMonitor();
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -69,6 +72,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{ isInitialized }}>
       {children}
+      <InactivityWarning
+        isOpen={showWarning}
+        timeRemaining={timeRemaining}
+        onStayLoggedIn={handleStayLoggedIn}
+        onLogout={handleLogout}
+      />
     </AuthContext.Provider>
   );
 }

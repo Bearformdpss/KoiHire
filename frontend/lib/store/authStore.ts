@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, authApi, getStoredAuth, storeAuth, clearAuth } from '@/lib/auth';
+import { sessionManager } from '@/lib/sessionManager';
 
 interface AuthState {
   user: User | null;
@@ -104,11 +105,16 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await authApi.refreshToken(refreshToken);
           const { accessToken, refreshToken: newRefreshToken } = response;
-          
+
           // Update localStorage
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', newRefreshToken);
-          
+
+          // Notify session manager of token refresh
+          if (sessionManager.isActive()) {
+            sessionManager.notifyTokenRefresh();
+          }
+
           // Update store
           set((state) => ({
             ...state,
