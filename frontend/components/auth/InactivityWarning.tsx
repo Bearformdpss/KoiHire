@@ -59,11 +59,11 @@ export function InactivityWarning({
         <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
           {/* Icon and Title */}
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-yellow-600" />
+            <div className="flex-shrink-0 w-12 h-12 bg-koi-orange/10 rounded-full flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-koi-orange" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-koi-navy">
                 Session Timeout Warning
               </h2>
             </div>
@@ -76,9 +76,9 @@ export function InactivityWarning({
             </p>
 
             {/* Countdown Timer */}
-            <div className="flex items-center justify-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg py-4 px-6">
-              <Clock className="w-5 h-5 text-yellow-600" />
-              <span className="text-2xl font-mono font-bold text-yellow-700">
+            <div className="flex items-center justify-center gap-2 bg-koi-orange/5 border-2 border-koi-orange/20 rounded-lg py-4 px-6">
+              <Clock className="w-5 h-5 text-koi-orange" />
+              <span className="text-2xl font-mono font-bold text-koi-orange">
                 {minutes}:{remainingSeconds.toString().padStart(2, '0')}
               </span>
             </div>
@@ -92,7 +92,7 @@ export function InactivityWarning({
           <div className="flex gap-3">
             <Button
               onClick={onStayLoggedIn}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              className="flex-1 bg-koi-orange hover:bg-koi-orange/90 text-white font-medium"
             >
               Stay Logged In
             </Button>
