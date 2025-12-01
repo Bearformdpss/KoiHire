@@ -11,6 +11,7 @@ import {
 import { serviceOrdersApi, ServiceOrder } from '@/lib/api/service-orders'
 import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
 import { ServiceOrderFiles } from '@/components/files/ServiceOrderFiles'
+import { useAuthStore } from '@/lib/store/authStore'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -18,6 +19,7 @@ export default function OrderDetailPage() {
   const router = useRouter()
   const params = useParams()
   const orderId = params.orderId as string
+  const { user } = useAuthStore()
 
   const [order, setOrder] = useState<ServiceOrder | null>(null)
   const [loading, setLoading] = useState(true)
@@ -149,7 +151,7 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Payment Pending Notice */}
-        {order.paymentStatus === 'PENDING' && (
+        {order.paymentStatus === 'PENDING' && user?.id === order.clientId && (
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="flex items-start gap-3 mb-4">
               <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
