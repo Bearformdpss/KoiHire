@@ -46,7 +46,7 @@ export default function ActionsPage() {
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/actions`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
           'Content-Type': 'application/json'
         },
         credentials: 'include'

@@ -18,6 +18,7 @@ import { TopFreelancersSection } from './TopFreelancersSection'
 import { RecentServicesSection } from './RecentServicesSection'
 import { CategoryBrowseSection } from './CategoryBrowseSection'
 import { HomepageCategoryCards } from './HomepageCategoryCards'
+import { ActionBanner } from './ActionBanner'
 
 interface Project {
   id: string
@@ -70,6 +71,9 @@ export function ClientDashboardNew() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Action Banner */}
+        <ActionBanner />
+
         {/* Hero Section with Search */}
         <HeroSection />
 

@@ -19,12 +19,12 @@ export function ActionBanner() {
       console.log('[ActionBanner] Environment check:', {
         apiUrl: process.env.NEXT_PUBLIC_API_URL,
         socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL,
-        hasToken: !!localStorage.getItem('token')
+        hasToken: !!localStorage.getItem('accessToken')
       });
 
       const response = await fetch(apiUrl, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
           'Content-Type': 'application/json'
         },
         credentials: 'include'
