@@ -49,10 +49,15 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const userId = req.user!.id;
   const userRole = req.user!.role;
 
+  console.log('[Actions API] Request received');
+  console.log('[Actions API] User ID:', userId);
+  console.log('[Actions API] User Role:', userRole);
+
   const actions: ActionItem[] = [];
 
   if (userRole === 'CLIENT') {
     // CLIENT ACTIONS
+    console.log('[Actions API] Processing CLIENT actions');
 
     // 1. Projects with new applications (OPEN status)
     const projectsWithApplications = await prisma.project.findMany({
@@ -156,6 +161,7 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
     }
 
     // 4. Service orders needing payment (paymentStatus !== PAID, regardless of status)
+    console.log('[Actions API] Checking for orders needing payment...');
     const ordersNeedingPayment = await prisma.serviceOrder.findMany({
       where: {
         clientId: userId,
@@ -168,6 +174,8 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
         package: { select: { tier: true } }
       }
     });
+    console.log('[Actions API] Orders needing payment found:', ordersNeedingPayment.length);
+    console.log('[Actions API] Orders:', JSON.stringify(ordersNeedingPayment, null, 2));
 
     for (const order of ordersNeedingPayment) {
       const isUrgent = isPaymentUrgent(order.createdAt);
@@ -440,6 +448,9 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
     }
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
+
+  console.log('[Actions API] Total actions found:', actions.length);
+  console.log('[Actions API] Returning response:', { totalCount: actions.length, actionsCount: actions.length });
 
   res.json({
     totalCount: actions.length,

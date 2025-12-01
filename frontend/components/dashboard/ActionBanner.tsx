@@ -14,7 +14,11 @@ export function ActionBanner() {
 
   const fetchActionCount = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/actions`, {
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/actions`;
+      console.log('[ActionBanner] Fetching from URL:', apiUrl);
+      console.log('[ActionBanner] Token exists:', !!localStorage.getItem('token'));
+
+      const response = await fetch(apiUrl, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -22,17 +26,25 @@ export function ActionBanner() {
         credentials: 'include'
       });
 
+      console.log('[ActionBanner] Response status:', response.status);
+      console.log('[ActionBanner] Response ok:', response.ok);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('[ActionBanner] Actions data:', data);
+        console.log('[ActionBanner] Total count:', data.totalCount);
         setActionCount(data.totalCount);
       } else {
+        const errorText = await response.text();
+        console.error('[ActionBanner] Response not ok. Status:', response.status, 'Error:', errorText);
         setActionCount(0);
       }
     } catch (error) {
-      console.error('Error fetching action count:', error);
+      console.error('[ActionBanner] Error fetching action count:', error);
       setActionCount(0);
     } finally {
       setLoading(false);
+      console.log('[ActionBanner] Final actionCount:', actionCount);
     }
   };
 
