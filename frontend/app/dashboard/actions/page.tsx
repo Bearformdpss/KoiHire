@@ -168,19 +168,25 @@ interface PrioritySectionProps {
 
 function PrioritySection({ title, actions, priorityColor }: PrioritySectionProps) {
   const bgColor = priorityColor === 'red' ? 'bg-red-50' : priorityColor === 'orange' ? 'bg-orange-50' : 'bg-blue-50';
-  const borderColor = priorityColor === 'red' ? 'border-red-200' : priorityColor === 'orange' ? 'border-orange-200' : 'border-blue-200';
-  const textColor = priorityColor === 'red' ? 'text-red-800' : priorityColor === 'orange' ? 'text-orange-800' : 'text-blue-800';
-  const indicator = priorityColor === 'red' ? '🔴' : priorityColor === 'orange' ? '🟠' : '🔵';
+  const borderColor = priorityColor === 'red' ? 'border-red-300' : priorityColor === 'orange' ? 'border-orange-300' : 'border-blue-300';
+  const textColor = priorityColor === 'red' ? 'text-red-700' : priorityColor === 'orange' ? 'text-orange-700' : 'text-blue-700';
+  const badgeColor = priorityColor === 'red' ? 'bg-red-100 text-red-700' : priorityColor === 'orange' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700';
+  const accentColor = priorityColor === 'red' ? 'border-l-red-500' : priorityColor === 'orange' ? 'border-l-orange-500' : 'border-l-blue-500';
 
   return (
-    <div>
-      <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${textColor}`}>
-        <span>{indicator}</span>
-        {title}
-      </h2>
-      <div className="space-y-3">
+    <div className="mb-8">
+      <div className="flex items-center gap-3 mb-5">
+        <div className={`w-3 h-3 rounded-full ${priorityColor === 'red' ? 'bg-red-500' : priorityColor === 'orange' ? 'bg-orange-500' : 'bg-blue-500'}`}></div>
+        <h2 className={`text-xl font-bold ${textColor}`}>
+          {title}
+        </h2>
+        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${badgeColor}`}>
+          {actions.length}
+        </span>
+      </div>
+      <div className="space-y-4">
         {actions.map((action) => (
-          <ActionCard key={action.id} action={action} bgColor={bgColor} borderColor={borderColor} textColor={textColor} />
+          <ActionCard key={action.id} action={action} bgColor={bgColor} borderColor={borderColor} textColor={textColor} accentColor={accentColor} />
         ))}
       </div>
     </div>
@@ -192,9 +198,10 @@ interface ActionCardProps {
   bgColor: string;
   borderColor: string;
   textColor: string;
+  accentColor: string;
 }
 
-function ActionCard({ action, bgColor, borderColor, textColor }: ActionCardProps) {
+function ActionCard({ action, bgColor, borderColor, textColor, accentColor }: ActionCardProps) {
   const router = useRouter();
 
   const handleClick = () => {
@@ -203,39 +210,47 @@ function ActionCard({ action, bgColor, borderColor, textColor }: ActionCardProps
 
   return (
     <div
-      className={`${bgColor} border ${borderColor} rounded-lg p-5 hover:shadow-md transition-shadow cursor-pointer`}
+      className={`${bgColor} bg-white border-l-4 ${accentColor} border ${borderColor} rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer group`}
       onClick={handleClick}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <h3 className={`font-semibold text-lg mb-1 ${textColor}`}>
+      <div className="flex items-start justify-between gap-6">
+        <div className="flex-1 min-w-0">
+          <h3 className={`font-bold text-xl mb-2 ${textColor} group-hover:underline transition-all`}>
             {action.title}
           </h3>
-          <p className="text-gray-700 mb-2">{action.message}</p>
+          <p className="text-gray-700 text-base mb-4 leading-relaxed">{action.message}</p>
 
           {/* Metadata */}
-          <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+          <div className="flex flex-wrap gap-3">
             {action.metadata.orderNumber && (
-              <span>Order #{action.metadata.orderNumber}</span>
+              <span className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg">
+                <span className="mr-1.5">📋</span> Order #{action.metadata.orderNumber}
+              </span>
             )}
             {action.metadata.clientName && (
-              <span>Client: {action.metadata.clientName}</span>
+              <span className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg">
+                <span className="mr-1.5">👤</span> {action.metadata.clientName}
+              </span>
             )}
             {action.metadata.freelancerName && (
-              <span>Freelancer: {action.metadata.freelancerName}</span>
+              <span className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg">
+                <span className="mr-1.5">💼</span> {action.metadata.freelancerName}
+              </span>
             )}
             {action.metadata.dueDate && (
-              <span>Due: {new Date(action.metadata.dueDate).toLocaleDateString()}</span>
+              <span className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg">
+                <span className="mr-1.5">📅</span> Due {new Date(action.metadata.dueDate).toLocaleDateString()}
+              </span>
             )}
           </div>
         </div>
 
         <button
           onClick={handleClick}
-          className={`ml-4 ${textColor} hover:underline font-medium flex items-center gap-1 flex-shrink-0`}
+          className={`flex-shrink-0 ${textColor} hover:bg-opacity-10 hover:bg-current font-semibold px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 group-hover:scale-105`}
         >
           View Details
-          <span>→</span>
+          <span className="transform group-hover:translate-x-1 transition-transform">→</span>
         </button>
       </div>
     </div>
