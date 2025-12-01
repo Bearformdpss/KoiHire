@@ -257,7 +257,7 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
         priority: 'HIGH',
         title: `${order.service.title} - ${order.package.tier}`,
         message: `New order from ${clientName}`,
-        link: `/freelancer/orders`,
+        link: `/orders/${order.id}`,
         metadata: {
           orderId: order.id,
           orderNumber: order.orderNumber,
@@ -290,7 +290,7 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
         priority: 'NORMAL',
         title: `${order.service.title} - ${order.package.tier}`,
         message: `Start work for ${clientName}`,
-        link: `/freelancer/orders`,
+        link: `/orders/${order.id}`,
         metadata: {
           orderId: order.id,
           orderNumber: order.orderNumber,
@@ -335,7 +335,7 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
         priority,
         title: `${order.service.title} - ${order.package.tier}`,
         message,
-        link: `/freelancer/orders`,
+        link: `/orders/${order.id}`,
         metadata: {
           orderId: order.id,
           orderNumber: order.orderNumber,
@@ -375,7 +375,7 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
         priority: 'HIGH',
         title: `${order.service.title} - ${order.package.tier}`,
         message: `Revision requested by ${clientName}`,
-        link: `/freelancer/orders`,
+        link: `/orders/${order.id}`,
         metadata: {
           orderId: order.id,
           orderNumber: order.orderNumber,
