@@ -16,7 +16,11 @@ export function ActionBanner() {
     try {
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/actions`;
       console.log('[ActionBanner] Fetching from URL:', apiUrl);
-      console.log('[ActionBanner] Token exists:', !!localStorage.getItem('token'));
+      console.log('[ActionBanner] Environment check:', {
+        apiUrl: process.env.NEXT_PUBLIC_API_URL,
+        socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL,
+        hasToken: !!localStorage.getItem('token')
+      });
 
       const response = await fetch(apiUrl, {
         headers: {
