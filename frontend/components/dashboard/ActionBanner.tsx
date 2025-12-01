@@ -61,8 +61,8 @@ export function ActionBanner() {
     <div className="bg-gradient-koi rounded-lg p-4 mb-6 shadow-md">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <AlertCircle className="h-6 w-6 text-white" />
-          <span className="text-white font-semibold text-lg">
+          <AlertCircle className="h-6 w-6 text-[#1E293B]" />
+          <span className="text-[#1E293B] font-semibold text-lg">
             You have {actionCount} {actionCount === 1 ? 'item' : 'items'} requiring your attention
           </span>
         </div>
