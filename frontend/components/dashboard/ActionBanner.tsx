@@ -14,7 +14,7 @@ export function ActionBanner() {
 
   const fetchActionCount = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/actions`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/actions`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'

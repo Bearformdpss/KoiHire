@@ -155,12 +155,12 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
       });
     }
 
-    // 4. Service orders needing payment (PENDING status, paymentStatus !== PAID)
+    // 4. Service orders needing payment (paymentStatus !== PAID, regardless of status)
     const ordersNeedingPayment = await prisma.serviceOrder.findMany({
       where: {
         clientId: userId,
-        status: 'PENDING',
-        paymentStatus: { not: 'PAID' }
+        paymentStatus: { not: 'PAID' },
+        status: { in: ['PENDING', 'ACCEPTED'] }
       },
       include: {
         service: { select: { title: true } },
