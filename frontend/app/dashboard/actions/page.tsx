@@ -247,7 +247,7 @@ function ActionCard({ action, bgColor, borderColor, textColor, accentColor }: Ac
 
         <button
           onClick={handleClick}
-          className={`flex-shrink-0 ${textColor} hover:bg-opacity-10 hover:bg-current font-semibold px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 group-hover:scale-105`}
+          className={`flex-shrink-0 ${textColor} hover:bg-current hover:text-white font-semibold px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 group-hover:scale-105`}
         >
           View Details
           <span className="transform group-hover:translate-x-1 transition-transform">→</span>
