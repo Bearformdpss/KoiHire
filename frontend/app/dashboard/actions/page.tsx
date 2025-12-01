@@ -208,6 +208,13 @@ function ActionCard({ action, bgColor, borderColor, textColor, accentColor }: Ac
     router.push(action.link);
   };
 
+  // Determine button hover background color based on text color
+  const buttonHoverBg = textColor.includes('red')
+    ? 'hover:bg-red-600'
+    : textColor.includes('orange')
+    ? 'hover:bg-orange-600'
+    : 'hover:bg-blue-600';
+
   return (
     <div
       className={`${bgColor} bg-white border-l-4 ${accentColor} border ${borderColor} rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer group`}
@@ -247,7 +254,7 @@ function ActionCard({ action, bgColor, borderColor, textColor, accentColor }: Ac
 
         <button
           onClick={handleClick}
-          className={`flex-shrink-0 ${textColor} hover:bg-current hover:text-white font-semibold px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 group-hover:scale-105`}
+          className={`flex-shrink-0 ${textColor} ${buttonHoverBg} hover:text-white font-semibold px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 group-hover:scale-105`}
         >
           View Details
           <span className="transform group-hover:translate-x-1 transition-transform">→</span>
