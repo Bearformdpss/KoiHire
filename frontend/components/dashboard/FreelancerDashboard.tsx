@@ -19,6 +19,7 @@ import { AvailabilityToggle } from './freelancer/AvailabilityToggle'
 import { StripeConnectAlert } from '@/components/stripe/StripeConnectAlert'
 import { HeroSection } from '@/components/freelancer/HeroSection'
 import { OpportunitiesSection } from '@/components/freelancer/OpportunitiesSection'
+import { ActionBanner } from './ActionBanner'
 
 interface MyProject {
   id: string
@@ -138,6 +139,9 @@ export function FreelancerDashboard() {
             stripeConnectAccountId={user?.stripeConnectAccountId}
             stripePayoutsEnabled={user?.stripePayoutsEnabled}
           />
+
+          {/* Action Banner */}
+          <ActionBanner />
 
           {/* Hero Section */}
           <HeroSection firstName={user?.firstName} />

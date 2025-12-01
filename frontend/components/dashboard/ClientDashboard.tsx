@@ -36,6 +36,7 @@ import { projectsApi } from '@/lib/api/projects';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import PostProjectForm from '@/components/projects/PostProjectFormNew';
+import { ActionBanner } from './ActionBanner';
 
 interface DashboardStats {
   activeProjects: number;
@@ -357,6 +358,9 @@ export function ClientDashboard() {
         {/* Tab Content */}
         {activeTab === 'overview' ? (
           <>
+            {/* Action Banner */}
+            <ActionBanner />
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <StatsCard

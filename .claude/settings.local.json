@@ -48,7 +48,13 @@
       "Bash(git push:*)",
       "Bash(del check-order.ts)",
       "Bash(cmd //c start-dev.bat)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(git log:*)",
+      "Bash(cat:*)",
+      "Bash(del check-project.js check-all-projects.js check-recent-projects.js check-specific-project.js)",
+      "Bash(git revert:*)",
+      "Bash(git restore:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
