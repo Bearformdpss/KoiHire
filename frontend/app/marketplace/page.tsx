@@ -8,7 +8,6 @@ import { projectsApi } from '@/lib/api/projects'
 import { categoriesApi } from '@/lib/api/categories'
 import BidSubmissionModal from '@/components/projects/BidSubmissionModal'
 import { AdvancedSearch, SearchFilters } from '@/components/search/AdvancedSearch'
-import { SavedSearches } from '@/components/search/SavedSearches'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
@@ -453,13 +452,6 @@ export default function MarketplacePage() {
               </div>
             </div>
           )}
-
-          {/* Saved Searches */}
-          <SavedSearches 
-            currentFilters={searchFilters}
-            onLoadSearch={setSearchFilters}
-            onSearch={() => fetchProjects(true)}
-          />
 
           {/* Advanced Search */}
           <AdvancedSearch
