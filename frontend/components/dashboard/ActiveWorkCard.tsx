@@ -21,19 +21,19 @@ export default function ActiveWorkCard({ item, onNoteUpdate, onNoteDelete }: Act
   const [isSaving, setIsSaving] = useState(false)
 
   const borderColor = item.type === 'PROJECT' ? 'border-blue-500' : 'border-orange-500'
-  const typeColor = item.type === 'PROJECT' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+  const typeColor = item.type === 'PROJECT' ? 'bg-blue-500 text-white' : 'bg-orange-500 text-white'
 
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase()
-    if (statusLower.includes('progress')) return 'bg-blue-100 text-blue-700 border-blue-200'
-    if (statusLower.includes('delivered') || statusLower.includes('review')) return 'bg-purple-100 text-purple-700 border-purple-200'
-    if (statusLower.includes('completed')) return 'bg-green-100 text-green-700 border-green-200'
-    if (statusLower.includes('pending')) return 'bg-yellow-100 text-yellow-700 border-yellow-200'
-    if (statusLower.includes('accepted')) return 'bg-cyan-100 text-cyan-700 border-cyan-200'
-    if (statusLower.includes('revision')) return 'bg-orange-100 text-orange-700 border-orange-200'
-    if (statusLower.includes('paused')) return 'bg-gray-100 text-gray-700 border-gray-200'
-    if (statusLower.includes('disputed')) return 'bg-red-100 text-red-700 border-red-200'
-    return 'bg-gray-100 text-gray-700 border-gray-200'
+    if (statusLower.includes('progress')) return 'bg-blue-500 text-white border-blue-600'
+    if (statusLower.includes('delivered') || statusLower.includes('review')) return 'bg-purple-500 text-white border-purple-600'
+    if (statusLower.includes('completed')) return 'bg-green-500 text-white border-green-600'
+    if (statusLower.includes('pending')) return 'bg-yellow-500 text-white border-yellow-600'
+    if (statusLower.includes('accepted')) return 'bg-cyan-500 text-white border-cyan-600'
+    if (statusLower.includes('revision')) return 'bg-orange-500 text-white border-orange-600'
+    if (statusLower.includes('paused')) return 'bg-gray-500 text-white border-gray-600'
+    if (statusLower.includes('disputed')) return 'bg-red-500 text-white border-red-600'
+    return 'bg-gray-500 text-white border-gray-600'
   }
 
   const formatDeliveryDate = (deadline: string | null) => {
@@ -198,7 +198,7 @@ export default function ActiveWorkCard({ item, onNoteUpdate, onNoteDelete }: Act
         {/* View Details Button */}
         <Button
           onClick={() => router.push(item.detailsUrl)}
-          className="w-full mt-3 bg-navy hover:bg-navy/90 text-white"
+          className="w-full mt-3 bg-[#1E293B] hover:bg-[#0F172A] text-white font-semibold shadow-md"
         >
           View Details
         </Button>
