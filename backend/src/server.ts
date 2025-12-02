@@ -33,6 +33,8 @@ import serviceOrderFileRoutes from './routes/service-order-files.routes';
 import adminRoutes from './api/admin';
 import recommendationsRoutes from './api/recommendations';
 import actionsRoutes from './api/actions';
+import freelancerWorkRoutes from './api/freelancer-work';
+import workNotesRoutes from './api/work-notes';
 // import projectUpdateRoutes from './routes/projectUpdates';
 
 // Load environment variables
@@ -152,6 +154,8 @@ app.use('/api/service-order-files', serviceOrderFileRoutes); // For /download/:f
 app.use('/api/admin', authMiddleware, adminRoutes); // Admin routes (requires auth + ADMIN role)
 app.use('/api/recommendations', authMiddleware, recommendationsRoutes); // Recommendations for freelancers
 app.use('/api/actions', actionsRoutes); // Actions requiring attention (already has authMiddleware in routes)
+app.use('/api/freelancer', authMiddleware, freelancerWorkRoutes); // Active work section
+app.use('/api/work-notes', authMiddleware, workNotesRoutes); // Work item notes
 // app.use('/api', authMiddleware, projectUpdateRoutes);
 
 // Setup Socket.IO

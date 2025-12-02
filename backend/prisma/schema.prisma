@@ -76,11 +76,14 @@ model User {
   freelancerServiceReviews ServiceReview[] @relation("FreelancerServiceReviews")
 
   // File uploads
-  uploadedFiles            ProjectFile[]        @relation("UploadedFiles")
+  uploadedFiles             ProjectFile[]      @relation("UploadedFiles")
   uploadedServiceOrderFiles ServiceOrderFile[] @relation("UploadedServiceOrderFiles")
 
   // Payouts
   payouts Payout[]
+
+  // Work item notes
+  workItemNotes WorkItemNote[]
 
   @@map("users")
 }
@@ -203,6 +206,7 @@ model Project {
   files         ProjectFile[]
   payouts       Payout[]
   events        ProjectEvent[]
+  note          WorkItemNote?
 
   @@map("projects")
 }
@@ -646,10 +650,10 @@ model ServiceOrder {
   updatedAt DateTime @updatedAt
 
   // Relations
-  service      Service              @relation(fields: [serviceId], references: [id])
-  package      ServicePackage       @relation(fields: [packageId], references: [id])
-  client       User                 @relation("ClientServiceOrders", fields: [clientId], references: [id])
-  freelancer   User                 @relation("FreelancerServiceOrders", fields: [freelancerId], references: [id])
+  service      Service            @relation(fields: [serviceId], references: [id])
+  package      ServicePackage     @relation(fields: [packageId], references: [id])
+  client       User               @relation("ClientServiceOrders", fields: [clientId], references: [id])
+  freelancer   User               @relation("FreelancerServiceOrders", fields: [freelancerId], references: [id])
   conversation Conversation?
   deliverables OrderDeliverable[]
   reviews      ServiceReview[]
@@ -657,6 +661,7 @@ model ServiceOrder {
   payouts      Payout[]
   events       ServiceEvent[]
   files        ServiceOrderFile[]
+  note         WorkItemNote?
 
   @@map("service_orders")
 }
@@ -777,10 +782,10 @@ enum PayoutStatus {
 model ProjectEvent {
   id        String   @id @default(cuid())
   projectId String
-  eventType String   // FREELANCER_HIRED, ESCROW_FUNDED, FILE_UPLOADED, etc.
-  actorId   String?  // User who triggered event (null for SYSTEM events)
-  actorName String   // Display name for timeline
-  metadata  Json?    // Event-specific data (amounts, file info, etc.)
+  eventType String // FREELANCER_HIRED, ESCROW_FUNDED, FILE_UPLOADED, etc.
+  actorId   String? // User who triggered event (null for SYSTEM events)
+  actorName String // Display name for timeline
+  metadata  Json? // Event-specific data (amounts, file info, etc.)
   createdAt DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -792,16 +797,35 @@ model ProjectEvent {
 model ServiceEvent {
   id             String   @id @default(cuid())
   serviceOrderId String
-  eventType      String   // ORDER_CONFIRMED, PAYMENT_RECEIVED, DELIVERY_MADE, etc.
-  actorId        String?  // User who triggered event (null for SYSTEM events)
-  actorName      String   // Display name for timeline
-  metadata       Json?    // Event-specific data
+  eventType      String // ORDER_CONFIRMED, PAYMENT_RECEIVED, DELIVERY_MADE, etc.
+  actorId        String? // User who triggered event (null for SYSTEM events)
+  actorName      String // Display name for timeline
+  metadata       Json? // Event-specific data
   createdAt      DateTime @default(now())
 
   serviceOrder ServiceOrder @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
 
   @@index([serviceOrderId, createdAt])
   @@map("service_events")
+}
+
+model WorkItemNote {
+  id             String   @id @default(cuid())
+  userId         String
+  projectId      String?  @unique
+  serviceOrderId String?  @unique
+  note           String   @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  serviceOrder ServiceOrder? @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@unique([userId, serviceOrderId])
+  @@index([userId])
+  @@map("work_item_notes")
 }
 
 model ServiceOrderFile {

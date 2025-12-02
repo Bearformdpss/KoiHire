@@ -1,17 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
-  Briefcase,
-  Search,
-  Loader2,
   X,
   Menu
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store/authStore'
-import { projectsApi } from '@/lib/api/projects'
-import { useRouter } from 'next/navigation'
 import { FreelancerSidebar } from './freelancer/FreelancerSidebar'
 import { ProfileCard } from './freelancer/ProfileCard'
 import { LevelProgressCard } from './freelancer/LevelProgressCard'
@@ -20,75 +14,11 @@ import { StripeConnectAlert } from '@/components/stripe/StripeConnectAlert'
 import { HeroSection } from '@/components/freelancer/HeroSection'
 import { OpportunitiesSection } from '@/components/freelancer/OpportunitiesSection'
 import { ActionBanner } from './ActionBanner'
-
-interface MyProject {
-  id: string
-  title: string
-  description: string
-  status: string
-  minBudget: number
-  maxBudget: number
-  timeline: string
-  updatedAt: string
-  createdAt: string
-  client: {
-    id: string
-    username: string
-    firstName: string
-    lastName: string
-    avatar?: string
-    rating?: number
-  }
-  category: {
-    id: string
-    name: string
-    slug: string
-  }
-}
+import ActiveWorkSection from './ActiveWorkSection'
 
 export function FreelancerDashboard() {
   const { user } = useAuthStore()
-  const router = useRouter()
-  const [projectFilter, setProjectFilter] = useState('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [myProjects, setMyProjects] = useState<MyProject[]>([])
-  const [loadingMyProjects, setLoadingMyProjects] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  useEffect(() => {
-    fetchMyProjects()
-  }, [])
-
-  const fetchMyProjects = async () => {
-    try {
-      setLoadingMyProjects(true)
-      const response = await projectsApi.getMyProjects({
-        limit: 20,
-        sortBy: 'updatedAt',
-        order: 'desc'
-      })
-
-      if (response.success && response.data) {
-        const projects = response.data.data?.projects || response.data.projects || []
-        setMyProjects(projects)
-      }
-    } catch (error) {
-      console.error('Failed to fetch my projects:', error)
-    } finally {
-      setLoadingMyProjects(false)
-    }
-  }
-
-  const filteredProjects = myProjects.filter((project) => {
-    const matchesSearch = searchQuery === '' ||
-      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.client.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesFilter = projectFilter === 'all' ||
-      project.status.toLowerCase().replace('_', ' ') === projectFilter.toLowerCase().replace('_', ' ')
-
-    return matchesSearch && matchesFilter
-  })
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -149,118 +79,8 @@ export function FreelancerDashboard() {
           {/* Opportunities Section */}
           <OpportunitiesSection />
 
-          {/* Active Projects Section */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-[#1E293B]">Active Projects</h2>
-                <p className="text-sm text-gray-600 mt-1">Track and manage your ongoing work</p>
-              </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                <div className="relative flex-1 sm:flex-initial">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <input
-                    type="text"
-                    placeholder="Search projects..."
-                    className="w-full sm:w-auto pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FF6B35]/20 focus:border-[#FF6B35] transition-colors"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <select
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FF6B35]/20 focus:border-[#FF6B35] transition-colors"
-                  value={projectFilter}
-                  onChange={(e) => setProjectFilter(e.target.value)}
-                >
-                  <option value="all">All Status</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="paused">Paused</option>
-                  <option value="disputed">Disputed</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {loadingMyProjects ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin mr-2 text-koi-orange" />
-                  <span className="text-gray-600">Loading your projects...</span>
-                </div>
-              ) : filteredProjects.length > 0 ? (
-                filteredProjects.map((project) => (
-                  <div
-                    key={project.id}
-                    className="border border-gray-200 rounded-lg p-6 hover:border-[#FF6B35] hover:shadow-lg transition-all duration-200 cursor-pointer bg-white"
-                    onClick={() => router.push(`/projects/${project.id}`)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-[#1E293B] hover:text-[#FF6B35] transition-colors">
-                            {project.title}
-                          </h3>
-                          <span className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium border ${
-                            project.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                            project.status === 'COMPLETED' ? 'bg-green-100 text-green-700 border-green-200' :
-                            project.status === 'PAUSED' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                            project.status === 'PENDING_REVIEW' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                            'bg-gray-100 text-gray-700 border-gray-200'
-                          }`}>
-                            {project.status.replace('_', ' ')}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{project.description}</p>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-700">
-                          <span>
-                            Client: <span className="font-medium text-gray-900">{project.client.firstName} {project.client.lastName}</span>
-                          </span>
-                          <span className="text-[#FF6B35] font-semibold">
-                            ${project.minBudget.toLocaleString()} - ${project.maxBudget.toLocaleString()}
-                          </span>
-                          <span className="text-gray-500 text-xs">
-                            Updated {new Date(project.updatedAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex-shrink-0 ml-4">
-                        {project.status === 'IN_PROGRESS' && (
-                          <Button
-                            size="sm"
-                            className="bg-koi-orange hover:bg-koi-orange/90 text-white"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              router.push(`/projects/${project.id}/workspace`)
-                            }}
-                          >
-                            <Briefcase className="w-4 h-4 mr-1" />
-                            Workspace
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <Briefcase className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                  <p className="text-gray-500 mb-2">No projects found</p>
-                  <p className="text-sm text-gray-400 mb-4">
-                    {searchQuery || projectFilter !== 'all'
-                      ? 'Try adjusting your search or filter criteria'
-                      : 'Start applying to projects to see them here'
-                    }
-                  </p>
-                  <Button
-                    onClick={() => router.push('/projects')}
-                    className="bg-koi-orange hover:bg-koi-orange/90 text-white"
-                  >
-                    Browse Projects
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Active Work Section (Projects & Services) */}
+          <ActiveWorkSection userId={user?.id || ''} />
         </div>
       </div>
     </div>
