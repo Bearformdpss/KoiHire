@@ -66,7 +66,7 @@ export function HomepageCategoryCards() {
             >
               <div className="text-center">
                 <div className="mb-3 flex justify-center">
-                  <div className={`p-3 rounded-2xl ${category.iconColor} text-white`}>
+                  <div className={`p-3 rounded-2xl ${category.iconColor} text-white transition-colors duration-300 hover:bg-white hover:text-koi-navy`}>
                     <IconComponent size={28} strokeWidth={2} />
                   </div>
                 </div>
