@@ -111,7 +111,7 @@ export default function ActiveWorkCard({ item, onNoteUpdate, onNoteDelete }: Act
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">
+        <h3 className="text-lg font-semibold text-[#1E293B] mb-2 line-clamp-2 min-h-[3.5rem]">
           {item.title}
         </h3>
 
