@@ -62,11 +62,11 @@ export function HomepageCategoryCards() {
             <button
               key={category.id}
               onClick={() => router.push(`/services?category=${category.id}`)}
-              className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-gray-300 transform hover:-translate-y-1"
+              className="group bg-white rounded-xl p-6 border border-gray-200 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-gray-300 transform hover:-translate-y-1"
             >
               <div className="text-center">
                 <div className="mb-3 flex justify-center">
-                  <div className={`p-3 rounded-2xl ${category.iconColor} text-white transition-colors duration-300 hover:bg-white hover:text-koi-navy`}>
+                  <div className={`p-3 rounded-2xl ${category.iconColor} text-white transition-colors duration-300 group-hover:bg-white group-hover:text-koi-navy`}>
                     <IconComponent size={28} strokeWidth={2} />
                   </div>
                 </div>
