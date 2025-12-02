@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticateToken } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 
@@ -12,7 +12,7 @@ const router = Router();
  * Query params:
  * - type: 'all' | 'projects' | 'services'
  */
-router.get('/active-work', authenticateToken, async (req: Request, res: Response) => {
+router.get('/active-work', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { type = 'all' } = req.query;

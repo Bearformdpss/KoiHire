@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticateToken } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 
@@ -10,7 +10,7 @@ const router = Router();
  * GET /api/work-notes/:itemType/:itemId
  * Get note for a specific work item
  */
-router.get('/:itemType/:itemId', authenticateToken, async (req: Request, res: Response) => {
+router.get('/:itemType/:itemId', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { itemType, itemId } = req.params;
@@ -51,7 +51,7 @@ router.get('/:itemType/:itemId', authenticateToken, async (req: Request, res: Re
  * POST /api/work-notes/:itemType/:itemId
  * Create or update note for a work item
  */
-router.post('/:itemType/:itemId', authenticateToken, async (req: Request, res: Response) => {
+router.post('/:itemType/:itemId', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { itemType, itemId } = req.params;
@@ -131,7 +131,7 @@ router.post('/:itemType/:itemId', authenticateToken, async (req: Request, res: R
  * DELETE /api/work-notes/:itemType/:itemId
  * Delete note for a work item
  */
-router.delete('/:itemType/:itemId', authenticateToken, async (req: Request, res: Response) => {
+router.delete('/:itemType/:itemId', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { itemType, itemId } = req.params;
