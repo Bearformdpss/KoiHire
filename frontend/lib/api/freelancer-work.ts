@@ -1,4 +1,6 @@
-import { apiClient } from './client';
+import axios from 'axios';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export interface WorkItem {
   id: string;
@@ -52,7 +54,12 @@ export const freelancerWorkApi = {
    * Get all active work (projects and services)
    */
   getActiveWork: async (type: 'all' | 'projects' | 'services' = 'all'): Promise<ActiveWorkResponse> => {
-    const response = await apiClient.get(`/freelancer/active-work?type=${type}`);
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_URL}/freelancer/active-work?type=${type}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     return response.data;
   },
 
@@ -60,7 +67,12 @@ export const freelancerWorkApi = {
    * Get note for a work item
    */
   getNote: async (itemType: 'project' | 'service', itemId: string): Promise<WorkNoteResponse> => {
-    const response = await apiClient.get(`/work-notes/${itemType}/${itemId}`);
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_URL}/work-notes/${itemType}/${itemId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     return response.data;
   },
 
@@ -68,7 +80,12 @@ export const freelancerWorkApi = {
    * Create or update note for a work item
    */
   saveNote: async (itemType: 'project' | 'service', itemId: string, note: string): Promise<WorkNoteResponse> => {
-    const response = await apiClient.post(`/work-notes/${itemType}/${itemId}`, { note });
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${API_URL}/work-notes/${itemType}/${itemId}`, { note }, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     return response.data;
   },
 
@@ -76,7 +93,12 @@ export const freelancerWorkApi = {
    * Delete note for a work item
    */
   deleteNote: async (itemType: 'project' | 'service', itemId: string): Promise<{ success: boolean; message: string }> => {
-    const response = await apiClient.delete(`/work-notes/${itemType}/${itemId}`);
+    const token = localStorage.getItem('token');
+    const response = await axios.delete(`${API_URL}/work-notes/${itemType}/${itemId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     return response.data;
   }
 };
