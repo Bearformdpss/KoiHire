@@ -206,33 +206,30 @@ export default function Header() {
                     <div className="text-white text-sm">
                       Welcome, {user?.firstName}!
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-white hover:text-gray-200"
+                    <button
+                      className="inline-flex items-center justify-center h-9 rounded-md px-3 text-white hover:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       onClick={() => router.push(`/profile/${user?.username}`)}
                       title="View Profile"
+                      type="button"
                     >
                       <User className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-white hover:text-gray-200"
+                    </button>
+                    <button
+                      className="inline-flex items-center justify-center h-9 rounded-md px-3 text-white hover:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       onClick={() => router.push('/settings')}
                       title="Settings"
+                      type="button"
                     >
                       <Settings className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-white hover:text-gray-200"
+                    </button>
+                    <button
+                      className="inline-flex items-center justify-center h-9 rounded-md px-3 text-white hover:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       onClick={handleLogout}
                       title="Logout"
+                      type="button"
                     >
                       <LogOut className="h-4 w-4" />
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </>

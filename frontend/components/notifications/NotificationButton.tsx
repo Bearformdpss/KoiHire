@@ -59,11 +59,11 @@ export function NotificationButton() {
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="sm"
+      <button
+        className="relative inline-flex items-center justify-center h-9 rounded-md px-3 text-white hover:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         onClick={handleOpen}
-        className="relative text-white hover:text-gray-200"
+        title="Notifications"
+        type="button"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -71,7 +71,7 @@ export function NotificationButton() {
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
-      </Button>
+      </button>
 
       <NotificationCenter
         isOpen={isOpen}
