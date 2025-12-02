@@ -12,7 +12,7 @@ const router = Router();
  */
 router.get('/:itemType/:itemId', async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     const { itemType, itemId } = req.params;
 
     if (!userId) {
@@ -53,7 +53,7 @@ router.get('/:itemType/:itemId', async (req: AuthRequest, res: Response) => {
  */
 router.post('/:itemType/:itemId', async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     const { itemType, itemId } = req.params;
     const { note } = req.body;
 
@@ -133,7 +133,7 @@ router.post('/:itemType/:itemId', async (req: AuthRequest, res: Response) => {
  */
 router.delete('/:itemType/:itemId', async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     const { itemType, itemId } = req.params;
 
     if (!userId) {

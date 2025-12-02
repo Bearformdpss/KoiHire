@@ -14,7 +14,7 @@ const router = Router();
  */
 router.get('/active-work', async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     const { type = 'all' } = req.query;
 
     if (!userId) {
