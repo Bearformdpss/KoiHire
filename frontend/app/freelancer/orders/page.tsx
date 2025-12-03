@@ -4,13 +4,11 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import {
-  Search, Eye, MessageCircle, Clock, CheckCircle, AlertCircle,
+  Eye, MessageCircle, Clock, CheckCircle, AlertCircle,
   XCircle, Loader2, Calendar, DollarSign, User, Package,
-  Upload, FileText, Play, Pause
+  Upload, FileText, Play
 } from 'lucide-react'
 import { FreelancerOnly } from '@/components/auth/RoleProtection'
 import { serviceOrdersApi, ServiceOrder } from '@/lib/api/service-orders'
@@ -25,9 +23,7 @@ export default function FreelancerOrdersPage() {
   const [orders, setOrders] = useState<ServiceOrder[]>([])
   const [filteredService, setFilteredService] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('ALL')
-  const [sortBy, setSortBy] = useState('createdAt')
+  const [activeTab, setActiveTab] = useState<'ALL' | 'IN_PROGRESS' | 'COMPLETED'>('ALL')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [submitWorkModal, setSubmitWorkModal] = useState<{ isOpen: boolean; orderId: string | null; orderTitle: string }>({
@@ -39,10 +35,9 @@ export default function FreelancerOrdersPage() {
   // Stats
   const [stats, setStats] = useState({
     totalOrders: 0,
-    activeOrders: 0,
+    inProgressOrders: 0,
     completedOrders: 0,
-    totalEarned: 0,
-    pendingOrders: 0
+    totalEarned: 0
   })
 
   // Handle serviceId from URL
@@ -54,7 +49,19 @@ export default function FreelancerOrdersPage() {
 
   useEffect(() => {
     fetchOrders()
-  }, [searchTerm, statusFilter, sortBy, currentPage, filteredService])
+  }, [activeTab, currentPage, filteredService])
+
+  const getStatusesForTab = (tab: string): string | undefined => {
+    switch (tab) {
+      case 'IN_PROGRESS':
+        return 'PENDING,ACCEPTED,IN_PROGRESS,DELIVERED,REVISION_REQUESTED'
+      case 'COMPLETED':
+        return 'COMPLETED'
+      case 'ALL':
+      default:
+        return undefined
+    }
+  }
 
   const fetchOrders = async () => {
     try {
@@ -62,9 +69,8 @@ export default function FreelancerOrdersPage() {
       const response = await serviceOrdersApi.getFreelancerOrders({
         page: currentPage,
         limit: 10,
-        status: statusFilter === 'ALL' ? undefined : statusFilter,
-        search: searchTerm || undefined,
-        sortBy,
+        status: getStatusesForTab(activeTab),
+        sortBy: 'createdAt',
         order: 'desc'
       })
 
@@ -84,17 +90,15 @@ export default function FreelancerOrdersPage() {
 
         // Calculate stats
         const allOrders = fetchedOrders
-        const activeStatuses = ['ACCEPTED', 'IN_PROGRESS', 'DELIVERED']
-        const activeOrders = allOrders.filter((o: ServiceOrder) => activeStatuses.includes(o.status))
+        const inProgressStatuses = ['PENDING', 'ACCEPTED', 'IN_PROGRESS', 'DELIVERED', 'REVISION_REQUESTED']
+        const inProgressOrders = allOrders.filter((o: ServiceOrder) => inProgressStatuses.includes(o.status))
         const completedOrders = allOrders.filter((o: ServiceOrder) => o.status === 'COMPLETED')
-        const pendingOrders = allOrders.filter((o: ServiceOrder) => o.status === 'PENDING')
-        const totalEarned = completedOrders.reduce((sum: number, o: ServiceOrder) => sum + o.totalAmount, 0)
+        const totalEarned = completedOrders.reduce((sum: number, o: ServiceOrder) => sum + (o.packagePrice || o.totalAmount), 0)
 
         setStats({
           totalOrders: allOrders.length,
-          activeOrders: activeOrders.length,
+          inProgressOrders: inProgressOrders.length,
           completedOrders: completedOrders.length,
-          pendingOrders: pendingOrders.length,
           totalEarned
         })
       }
@@ -280,7 +284,7 @@ export default function FreelancerOrdersPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center">
@@ -299,25 +303,11 @@ export default function FreelancerOrdersPage() {
               <CardContent className="p-4">
                 <div className="flex items-center">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Pending</p>
-                    <p className="text-2xl font-bold text-yellow-600">{stats.pendingOrders}</p>
-                  </div>
-                  <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <Clock className="w-4 h-4 text-yellow-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Active</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.activeOrders}</p>
+                    <p className="text-sm font-medium text-gray-600">In Progress</p>
+                    <p className="text-2xl font-bold text-orange-600">{stats.inProgressOrders}</p>
                   </div>
                   <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                    <Play className="w-4 h-4 text-orange-600" />
+                    <Clock className="w-4 h-4 text-orange-600" />
                   </div>
                 </div>
               </CardContent>
@@ -352,47 +342,55 @@ export default function FreelancerOrdersPage() {
             </Card>
           </div>
 
-          {/* Filters */}
-          <Card className="mb-6">
-            <CardContent className="p-4">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      placeholder="Search orders..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
+          {/* Filter Tabs */}
+          <div className="mb-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="flex">
+              <button
+                onClick={() => {
+                  setActiveTab('ALL')
+                  setCurrentPage(1)
+                }}
+                className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+                  activeTab === 'ALL'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-lg font-semibold">All Orders</div>
+                <div className="text-sm opacity-90 mt-1">({stats.totalOrders})</div>
+              </button>
 
-                <Select
-                  value={statusFilter}
-                  onValueChange={setStatusFilter}
-                >
-                  <option value="ALL">All Orders</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="ACCEPTED">Accepted</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="DELIVERED">Delivered</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </Select>
+              <button
+                onClick={() => {
+                  setActiveTab('IN_PROGRESS')
+                  setCurrentPage(1)
+                }}
+                className={`flex-1 px-6 py-4 text-center font-medium transition-colors border-x border-gray-200 ${
+                  activeTab === 'IN_PROGRESS'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-lg font-semibold">In Progress</div>
+                <div className="text-sm opacity-90 mt-1">({stats.inProgressOrders})</div>
+              </button>
 
-                <Select
-                  value={sortBy}
-                  onValueChange={setSortBy}
-                >
-                  <option value="createdAt">Newest First</option>
-                  <option value="dueDate">Due Date</option>
-                  <option value="totalAmount">Price</option>
-                  <option value="status">Status</option>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+              <button
+                onClick={() => {
+                  setActiveTab('COMPLETED')
+                  setCurrentPage(1)
+                }}
+                className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+                  activeTab === 'COMPLETED'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-lg font-semibold">Completed</div>
+                <div className="text-sm opacity-90 mt-1">({stats.completedOrders})</div>
+              </button>
+            </div>
+          </div>
 
           {/* Orders List */}
           {orders.length === 0 ? (
@@ -537,35 +535,6 @@ export default function FreelancerOrdersPage() {
                         )}
                       </div>
                     </div>
-
-                    {/* Progress Indicator */}
-                    {order.status !== 'PENDING' && order.status !== 'CANCELLED' && (
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                          <span>Progress</span>
-                          <span>
-                            {order.status === 'ACCEPTED' && '25%'}
-                            {order.status === 'IN_PROGRESS' && '50%'}
-                            {order.status === 'DELIVERED' && '75%'}
-                            {order.status === 'COMPLETED' && '100%'}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-300 ${
-                              order.status === 'COMPLETED' ? 'bg-green-600' : 'bg-blue-600'
-                            }`}
-                            style={{
-                              width:
-                                order.status === 'ACCEPTED' ? '25%' :
-                                order.status === 'IN_PROGRESS' ? '50%' :
-                                order.status === 'DELIVERED' ? '75%' :
-                                order.status === 'COMPLETED' ? '100%' : '0%'
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
 
                     {/* Deliverables */}
                     {order.deliverables && order.deliverables.length > 0 && (

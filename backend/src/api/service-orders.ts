@@ -42,9 +42,14 @@ router.get('/', authMiddleware, requireRole(['CLIENT', 'FREELANCER']), asyncHand
     where.freelancerId = req.user!.id;
   }
 
-  // Filter by status if provided
+  // Filter by status if provided (supports single or comma-separated values)
   if (status && status !== 'ALL') {
-    where.status = status as string;
+    const statuses = (status as string).split(',').map(s => s.trim());
+    if (statuses.length === 1) {
+      where.status = statuses[0];
+    } else {
+      where.status = { in: statuses };
+    }
   }
 
   // Search functionality
