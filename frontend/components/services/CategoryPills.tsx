@@ -41,7 +41,6 @@ export function CategoryPills({
 }: CategoryPillsProps) {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -113,90 +112,84 @@ export function CategoryPills({
         </div>
       )}
 
-      {/* Horizontal Scrollable Pills */}
-      <div
-        ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
-        style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          WebkitOverflowScrolling: 'touch'
-        }}
-      >
-        {/* All Categories Pill */}
+      {/* Horizontal Category Links with Dividers */}
+      <div className="flex items-center gap-1 flex-wrap">
+        {/* All Categories Link */}
         <button
           onClick={clearSelection}
           className={cn(
-            "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap",
+            "px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
             !selectedCategoryId
-              ? "bg-blue-600 text-white shadow-md"
-              : "bg-white text-gray-700 border border-gray-300 hover:border-blue-400 hover:bg-blue-50"
+              ? "text-blue-600"
+              : "text-gray-700 hover:text-blue-600"
           )}
         >
           All Categories
         </button>
 
-        {/* Category Pills */}
-        {categories.map((category) => {
+        {/* Divider */}
+        <span className="text-gray-300">|</span>
+
+        {/* Category Links */}
+        {categories.map((category, index) => {
           const isActive = selectedCategoryId === category.id
           const hasSubcategories = category.subcategories && category.subcategories.length > 0
           const isDropdownOpen = openDropdownId === category.id
 
           return (
-            <div key={category.id} className="relative flex-shrink-0">
-              <button
-                onClick={() => handleCategoryClick(category.id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap",
-                  isActive
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "bg-white text-gray-700 border border-gray-300 hover:border-blue-400 hover:bg-blue-50"
-                )}
-              >
-                {category.icon && <span className="text-base">{category.icon}</span>}
-                <span>{category.name}</span>
-                {hasSubcategories && (
-                  <ChevronDown
-                    className={cn(
-                      "w-4 h-4 transition-transform",
-                      isDropdownOpen && "rotate-180"
-                    )}
-                  />
-                )}
-              </button>
+            <React.Fragment key={category.id}>
+              <div className="relative">
+                <button
+                  onClick={() => handleCategoryClick(category.id)}
+                  className={cn(
+                    "flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
+                    isActive
+                      ? "text-blue-600"
+                      : "text-gray-700 hover:text-blue-600"
+                  )}
+                >
+                  <span>{category.name}</span>
+                  {hasSubcategories && (
+                    <ChevronDown
+                      className={cn(
+                        "w-3.5 h-3.5 transition-transform",
+                        isDropdownOpen && "rotate-180"
+                      )}
+                    />
+                  )}
+                </button>
 
-              {/* Subcategory Dropdown */}
-              {hasSubcategories && isDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
-                  <div className="p-2">
-                    {category.subcategories!.map((subcategory) => (
-                      <button
-                        key={subcategory.id}
-                        onClick={() => handleSubcategoryClick(category.id, subcategory.id)}
-                        className={cn(
-                          "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
-                          selectedSubcategoryId === subcategory.id
-                            ? "bg-blue-50 text-blue-700 font-medium"
-                            : "text-gray-700 hover:bg-gray-100"
-                        )}
-                      >
-                        {subcategory.name}
-                      </button>
-                    ))}
+                {/* Subcategory Dropdown */}
+                {hasSubcategories && isDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                    <div className="p-2">
+                      {category.subcategories!.map((subcategory) => (
+                        <button
+                          key={subcategory.id}
+                          onClick={() => handleSubcategoryClick(category.id, subcategory.id)}
+                          className={cn(
+                            "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+                            selectedSubcategoryId === subcategory.id
+                              ? "bg-blue-50 text-blue-700 font-medium"
+                              : "text-gray-700 hover:bg-gray-100"
+                          )}
+                        >
+                          {subcategory.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+              </div>
+
+              {/* Divider between categories */}
+              {index < categories.length - 1 && (
+                <span className="text-gray-300">|</span>
               )}
-            </div>
+            </React.Fragment>
           )
         })}
       </div>
-
-      {/* Add CSS to hide scrollbar */}
-      <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   )
 }
