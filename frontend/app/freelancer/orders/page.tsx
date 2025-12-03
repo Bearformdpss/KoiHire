@@ -47,6 +47,12 @@ export default function FreelancerOrdersPage() {
     }
   }, [serviceIdFromURL])
 
+  // Fetch stats only once on mount and when service filter changes
+  useEffect(() => {
+    fetchStats()
+  }, [filteredService])
+
+  // Fetch orders when tab, page, or service filter changes
   useEffect(() => {
     fetchOrders()
   }, [activeTab, currentPage, filteredService])
@@ -60,6 +66,46 @@ export default function FreelancerOrdersPage() {
       case 'ALL':
       default:
         return undefined
+    }
+  }
+
+  const fetchStats = async () => {
+    try {
+      // Fetch ALL orders (no status filter) to calculate global stats
+      const response = await serviceOrdersApi.getFreelancerOrders({
+        page: 1,
+        limit: 1000, // Large enough to get all orders for accurate counts
+        status: undefined, // No filter = ALL orders
+        sortBy: 'createdAt',
+        order: 'desc'
+      })
+
+      const responseData = response.data?.data || response.data
+
+      if (responseData && (responseData.orders || responseData.serviceOrders)) {
+        let allOrders = responseData.orders || responseData.serviceOrders || []
+
+        // Filter by service if serviceId is provided (maintain service-specific stats)
+        if (filteredService) {
+          allOrders = allOrders.filter((order: ServiceOrder) => order.service?.id === filteredService)
+        }
+
+        // Calculate stats from ALL orders
+        const inProgressStatuses = ['PENDING', 'ACCEPTED', 'IN_PROGRESS', 'DELIVERED', 'REVISION_REQUESTED']
+        const inProgressOrders = allOrders.filter((o: ServiceOrder) => inProgressStatuses.includes(o.status))
+        const completedOrders = allOrders.filter((o: ServiceOrder) => o.status === 'COMPLETED')
+        const totalEarned = completedOrders.reduce((sum: number, o: ServiceOrder) => sum + (o.packagePrice || o.totalAmount), 0)
+
+        setStats({
+          totalOrders: allOrders.length,
+          inProgressOrders: inProgressOrders.length,
+          completedOrders: completedOrders.length,
+          totalEarned
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch stats:', error)
+      // Don't show error toast for stats - just log it
     }
   }
 
@@ -87,20 +133,7 @@ export default function FreelancerOrdersPage() {
 
         setOrders(fetchedOrders)
         setTotalPages(responseData.pagination?.pages || 1)
-
-        // Calculate stats
-        const allOrders = fetchedOrders
-        const inProgressStatuses = ['PENDING', 'ACCEPTED', 'IN_PROGRESS', 'DELIVERED', 'REVISION_REQUESTED']
-        const inProgressOrders = allOrders.filter((o: ServiceOrder) => inProgressStatuses.includes(o.status))
-        const completedOrders = allOrders.filter((o: ServiceOrder) => o.status === 'COMPLETED')
-        const totalEarned = completedOrders.reduce((sum: number, o: ServiceOrder) => sum + (o.packagePrice || o.totalAmount), 0)
-
-        setStats({
-          totalOrders: allOrders.length,
-          inProgressOrders: inProgressOrders.length,
-          completedOrders: completedOrders.length,
-          totalEarned
-        })
+        // Stats are now calculated separately in fetchStats()
       }
     } catch (error) {
       console.error('Failed to fetch orders:', error)
@@ -357,7 +390,6 @@ export default function FreelancerOrdersPage() {
                 }`}
               >
                 <div className="text-lg font-semibold">All Orders</div>
-                <div className="text-sm opacity-90 mt-1">({stats.totalOrders})</div>
               </button>
 
               <button
@@ -372,7 +404,6 @@ export default function FreelancerOrdersPage() {
                 }`}
               >
                 <div className="text-lg font-semibold">In Progress</div>
-                <div className="text-sm opacity-90 mt-1">({stats.inProgressOrders})</div>
               </button>
 
               <button
@@ -387,7 +418,6 @@ export default function FreelancerOrdersPage() {
                 }`}
               >
                 <div className="text-lg font-semibold">Completed</div>
-                <div className="text-sm opacity-90 mt-1">({stats.completedOrders})</div>
               </button>
             </div>
           </div>
