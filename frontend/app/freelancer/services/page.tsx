@@ -23,7 +23,6 @@ export default function FreelancerServicesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [activeSearchTerm, setActiveSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
-  const [sortBy, setSortBy] = useState('createdAt')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
@@ -32,13 +31,12 @@ export default function FreelancerServicesPage() {
     totalServices: 0,
     activeServices: 0,
     totalOrders: 0,
-    totalRevenue: 0,
-    averageRating: 0
+    totalRevenue: 0
   })
 
   useEffect(() => {
     fetchServices()
-  }, [activeSearchTerm, statusFilter, sortBy, currentPage])
+  }, [activeSearchTerm, statusFilter, currentPage])
 
   const handleSearch = () => {
     setActiveSearchTerm(searchTerm)
@@ -66,7 +64,7 @@ export default function FreelancerServicesPage() {
         limit: 10,
         status: statusFilter,
         search: activeSearchTerm,
-        sortBy,
+        sortBy: 'createdAt',
         order: 'desc'
       })
 
@@ -88,16 +86,12 @@ export default function FreelancerServicesPage() {
           // Estimate revenue from orders * base price
           return sum + (s._count.serviceOrders * s.basePrice)
         }, 0)
-        const avgRating = allServices.reduce((sum, s, _, arr) => {
-          return sum + (s.rating || 0) / arr.length
-        }, 0)
 
         setStats({
           totalServices: allServices.length,
           activeServices: activeServices.length,
           totalOrders,
-          totalRevenue,
-          averageRating: avgRating
+          totalRevenue
         })
       }
     } catch (error) {
@@ -178,7 +172,7 @@ export default function FreelancerServicesPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center">
@@ -230,22 +224,6 @@ export default function FreelancerServicesPage() {
                   </div>
                   <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                     <DollarSign className="w-4 h-4 text-green-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Avg Rating</p>
-                    <p className="text-2xl font-bold text-yellow-600">
-                      {stats.averageRating ? stats.averageRating.toFixed(1) : '—'}
-                    </p>
-                  </div>
-                  <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <Star className="w-4 h-4 text-yellow-600" />
                   </div>
                 </div>
               </CardContent>
@@ -315,50 +293,6 @@ export default function FreelancerServicesPage() {
                     Inactive Only
                   </button>
                 </div>
-
-                {/* Sort Tabs */}
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => setSortBy('createdAt')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      sortBy === 'createdAt'
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Newest First
-                  </button>
-                  <button
-                    onClick={() => setSortBy('title')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      sortBy === 'title'
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Title A-Z
-                  </button>
-                  <button
-                    onClick={() => setSortBy('rating')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      sortBy === 'rating'
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Highest Rated
-                  </button>
-                  <button
-                    onClick={() => setSortBy('orders')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      sortBy === 'orders'
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Most Orders
-                  </button>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -408,7 +342,7 @@ export default function FreelancerServicesPage() {
                           {service.shortDescription || service.description}
                         </p>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <p className="text-gray-500">Starting Price</p>
                             <p className="font-semibold text-green-600">${service.basePrice}</p>
@@ -422,15 +356,6 @@ export default function FreelancerServicesPage() {
                             >
                               {service._count.serviceOrders}
                             </button>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Rating</p>
-                            <div className="flex items-center gap-1">
-                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                              <span className="font-semibold">
-                                {service.rating ? service.rating.toFixed(1) : '—'}
-                              </span>
-                            </div>
                           </div>
                           <div>
                             <p className="text-gray-500">Views</p>
