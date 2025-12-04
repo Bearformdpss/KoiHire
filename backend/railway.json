@@ -5,7 +5,7 @@
     "buildCommand": "npm install && npx prisma generate && npm run build"
   },
   "deploy": {
-    "startCommand": "npx prisma migrate resolve --applied 20251105005413_add_stripe_connect_and_payouts && npx prisma migrate deploy && npm start",
+    "startCommand": "npx prisma db push --skip-generate --accept-data-loss && npm start",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
