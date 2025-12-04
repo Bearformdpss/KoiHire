@@ -38,6 +38,24 @@ router.get('/', asyncHandler(async (req, res) => {
   });
 }));
 
+// Get subcategories by category ID
+router.get('/:categoryId/subcategories', asyncHandler(async (req, res) => {
+  const { categoryId } = req.params;
+
+  const subcategories = await prisma.subcategory.findMany({
+    where: {
+      categoryId: categoryId,
+      isActive: true
+    },
+    orderBy: { displayOrder: 'asc' }
+  });
+
+  res.json({
+    success: true,
+    subcategories
+  });
+}));
+
 // Get category by slug
 router.get('/:slug', asyncHandler(async (req, res) => {
   const { slug } = req.params;
