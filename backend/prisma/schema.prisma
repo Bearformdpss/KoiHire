@@ -132,7 +132,7 @@ model Subcategory {
   id           String   @id @default(cuid())
   name         String
   slug         String   @unique
-  categoryId   String
+  categoryId   String   @map("categoryid")
   items        String[] @default([])
   displayOrder Int      @map("displayorder")
   isActive     Boolean  @default(true) @map("isactive")
