@@ -120,11 +120,29 @@ model Category {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  skills   Skill[]
-  projects Project[]
-  services Service[]
+  skills        Skill[]
+  projects      Project[]
+  services      Service[]
+  subcategories Subcategory[]
 
   @@map("categories")
+}
+
+model Subcategory {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  categoryId   String
+  items        String[] @default([])
+  displayOrder Int      @map("displayorder")
+  isActive     Boolean  @default(true) @map("isactive")
+  createdAt    DateTime @default(now()) @map("createdat")
+  updatedAt    DateTime @updatedAt @map("updatedat")
+
+  category Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  services Service[]
+
+  @@map("Subcategory")
 }
 
 model Skill {
@@ -558,6 +576,7 @@ model Service {
   description      String
   shortDescription String?
   categoryId       String
+  subcategoryId    String?
 
   // Pricing
   basePrice Float
@@ -593,6 +612,7 @@ model Service {
   // Relations
   freelancer    User             @relation("FreelancerServices", fields: [freelancerId], references: [id], onDelete: Cascade)
   category      Category         @relation(fields: [categoryId], references: [id])
+  subcategory   Subcategory?     @relation(fields: [subcategoryId], references: [id])
   packages      ServicePackage[]
   serviceOrders ServiceOrder[]
   reviews       ServiceReview[]
