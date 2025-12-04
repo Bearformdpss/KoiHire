@@ -57,6 +57,7 @@ export interface CreateServiceData {
   description: string
   shortDescription?: string
   categoryId: string
+  subcategoryId: string
   basePrice: number
   deliveryTime: number
   revisions: number

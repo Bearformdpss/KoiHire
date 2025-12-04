@@ -16,6 +16,12 @@ export const categoriesApi = {
     return response.data
   },
 
+  // Get subcategories by category ID
+  getSubcategories: async (categoryId: string) => {
+    const response = await axios.get(`${API_URL}/categories/${categoryId}/subcategories`)
+    return response.data
+  },
+
   // Get all skills
   getSkills: async (params: {
     categoryId?: string

@@ -71,6 +71,7 @@ export const serviceSchema = Joi.object({
   description: Joi.string().min(50).max(5000).required(),
   shortDescription: Joi.string().min(20).max(300).optional(),
   categoryId: Joi.string().required(),
+  subcategoryId: Joi.string().required(),
   basePrice: Joi.number().positive().required(),
   deliveryTime: Joi.number().integer().min(1).max(365).required(),
   revisions: Joi.number().integer().min(0).max(50).required(),

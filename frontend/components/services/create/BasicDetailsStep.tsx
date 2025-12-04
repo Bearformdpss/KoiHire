@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,11 +14,20 @@ import {
 } from '@/components/ui/select'
 import { X, Plus } from 'lucide-react'
 import { CreateServiceData } from '@/lib/api/services'
+import { categoriesApi } from '@/lib/api/categories'
 
 interface Category {
   id: string
   name: string
   slug: string
+}
+
+interface Subcategory {
+  id: string
+  name: string
+  slug: string
+  items: string[]
+  order: number
 }
 
 interface BasicDetailsStepProps {
@@ -54,6 +63,31 @@ export default function BasicDetailsStep({
 }: BasicDetailsStepProps) {
   const [newTag, setNewTag] = useState('')
   const [suggestedCategories, setSuggestedCategories] = useState<Category[]>([])
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([])
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false)
+
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      if (!formData.categoryId) {
+        setSubcategories([])
+        return
+      }
+
+      setLoadingSubcategories(true)
+      try {
+        const response = await categoriesApi.getSubcategories(formData.categoryId)
+        setSubcategories(response.subcategories || [])
+      } catch (error) {
+        console.error('Failed to fetch subcategories:', error)
+        setSubcategories([])
+      } finally {
+        setLoadingSubcategories(false)
+      }
+    }
+
+    fetchSubcategories()
+  }, [formData.categoryId])
 
   // Get suggested categories based on title
   const getSuggestedCategories = (title: string): Category[] => {
@@ -181,7 +215,8 @@ export default function BasicDetailsStep({
                   type="button"
                   onClick={() => {
                     updateFormData({
-                      categoryId: cat.id
+                      categoryId: cat.id,
+                      subcategoryId: ''
                     })
                     setSuggestedCategories([])
                   }}
@@ -198,7 +233,8 @@ export default function BasicDetailsStep({
           value={formData.categoryId}
           onValueChange={(value) => {
             updateFormData({
-              categoryId: value
+              categoryId: value,
+              subcategoryId: ''
             })
             setSuggestedCategories([])
           }}
@@ -225,6 +261,58 @@ export default function BasicDetailsStep({
           </div>
         )}
       </div>
+
+      {/* Subcategory - shows after category is selected */}
+      {formData.categoryId && (
+        <div>
+          <Label htmlFor="subcategory">Subcategory *</Label>
+          <p className="text-sm text-gray-600 mb-3">
+            Select the subcategory that best fits your service.
+          </p>
+
+          {loadingSubcategories ? (
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-md text-center text-sm text-gray-600">
+              Loading subcategories...
+            </div>
+          ) : subcategories.length > 0 ? (
+            <>
+              <Select
+                value={formData.subcategoryId}
+                onValueChange={(value) => {
+                  updateFormData({
+                    subcategoryId: value
+                  })
+                }}
+              >
+                <SelectTrigger className="w-full text-base">
+                  <SelectValue placeholder="Select a subcategory" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subcategories.map((subcategory) => (
+                    <SelectItem key={subcategory.id} value={subcategory.id}>
+                      {subcategory.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Show selected subcategory info */}
+              {formData.subcategoryId && (
+                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">Selected:</span>{' '}
+                    {subcategories.find(s => s.id === formData.subcategoryId)?.name}
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
+              No subcategories available for this category.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Description */}
       <div>

@@ -50,6 +50,7 @@ export default function CreateServicePage() {
     description: '',
     shortDescription: '',
     categoryId: '',
+    subcategoryId: '',
     basePrice: 0,
     deliveryTime: 7,
     revisions: 3,
@@ -117,6 +118,10 @@ export default function CreateServicePage() {
         }
         if (!formData.categoryId) {
           toast.error('Please select a category')
+          return false
+        }
+        if (!formData.subcategoryId) {
+          toast.error('Please select a subcategory')
           return false
         }
         return true
