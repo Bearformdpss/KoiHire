@@ -120,10 +120,9 @@ model Category {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  skills        Skill[]
-  projects      Project[]
-  services      Service[]
-  subcategories Subcategory[]
+  skills   Skill[]
+  projects Project[]
+  services Service[]
 
   @@map("categories")
 }
@@ -139,7 +138,6 @@ model Subcategory {
   createdAt    DateTime @default(now()) @map("createdat")
   updatedAt    DateTime @updatedAt @map("updatedat")
 
-  category Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   services Service[]
 
   @@map("Subcategory")
