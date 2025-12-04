@@ -42,6 +42,8 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/:categoryId/subcategories', asyncHandler(async (req, res) => {
   const { categoryId } = req.params;
 
+  console.log('[Subcategories API] Received request for categoryId:', categoryId);
+
   const subcategories = await prisma.subcategory.findMany({
     where: {
       categoryId: categoryId,
@@ -49,6 +51,19 @@ router.get('/:categoryId/subcategories', asyncHandler(async (req, res) => {
     },
     orderBy: { displayOrder: 'asc' }
   });
+
+  console.log('[Subcategories API] Found subcategories:', subcategories.length);
+  console.log('[Subcategories API] Query where clause:', { categoryId, isActive: true });
+
+  if (subcategories.length === 0) {
+    console.log('[Subcategories API] No subcategories found. Checking total count in DB...');
+    const totalCount = await prisma.subcategory.count();
+    console.log('[Subcategories API] Total subcategories in database:', totalCount);
+
+    // Check what categoryIds exist in subcategories table
+    const allSubcats = await prisma.subcategory.findMany({ select: { categoryId: true }, take: 5 });
+    console.log('[Subcategories API] Sample categoryIds in database:', allSubcats);
+  }
 
   res.json({
     success: true,

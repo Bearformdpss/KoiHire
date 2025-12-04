@@ -74,12 +74,16 @@ export default function BasicDetailsStep({
         return
       }
 
+      console.log('[Subcategories] Fetching for categoryId:', formData.categoryId)
       setLoadingSubcategories(true)
       try {
         const response = await categoriesApi.getSubcategories(formData.categoryId)
+        console.log('[Subcategories] API Response:', response)
+        console.log('[Subcategories] Subcategories array:', response.subcategories)
+        console.log('[Subcategories] Array length:', response.subcategories?.length || 0)
         setSubcategories(response.subcategories || [])
       } catch (error) {
-        console.error('Failed to fetch subcategories:', error)
+        console.error('[Subcategories] Failed to fetch:', error)
         setSubcategories([])
       } finally {
         setLoadingSubcategories(false)
