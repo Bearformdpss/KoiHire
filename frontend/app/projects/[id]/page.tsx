@@ -37,6 +37,7 @@ import axios from 'axios'
 
 interface Project {
   id: string
+  projectNumber: string
   title: string
   description: string
   requirements?: string
@@ -526,6 +527,14 @@ export default function ProjectDetailPage() {
             <div className="lg:col-span-2">
               {/* Project Header */}
               <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                {/* Project Number */}
+                <div className="mb-4">
+                  <h2 className="text-2xl font-bold text-gray-900">Project #{project.projectNumber}</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Posted {getTimeAgo(project.createdAt)}
+                  </p>
+                </div>
+
                 <div className="flex items-center justify-between mb-4">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     project.status === 'OPEN' ? 'bg-green-100 text-green-800' :
@@ -535,10 +544,6 @@ export default function ProjectDetailPage() {
                     'bg-gray-100 text-gray-800'
                   }`}>
                     {project.status?.replace('_', ' ') || 'Unknown'}
-                  </span>
-                  <span className="text-sm text-gray-500 flex items-center">
-                    <Eye className="w-4 h-4 mr-1" />
-                    Posted {getTimeAgo(project.createdAt)}
                   </span>
                 </div>
 

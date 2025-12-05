@@ -172,21 +172,22 @@ model UserSkill {
 }
 
 model Project {
-  id           String        @id @default(cuid())
-  title        String
-  description  String
-  requirements String?
-  minBudget    Float
-  maxBudget    Float
-  agreedAmount Float? // Final agreed price after accepting application (base amount before fees)
-  timeline     String
-  status       ProjectStatus @default(OPEN)
-  categoryId   String
-  clientId     String
-  freelancerId String?
-  completedAt  DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  projectNumber String        @unique // Human-readable project identifier (e.g., PRJ-1234567890123-456)
+  title         String
+  description   String
+  requirements  String?
+  minBudget     Float
+  maxBudget     Float
+  agreedAmount  Float? // Final agreed price after accepting application (base amount before fees)
+  timeline      String
+  status        ProjectStatus @default(OPEN)
+  categoryId    String
+  clientId      String
+  freelancerId  String?
+  completedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   // Fee structure fields (matching ServiceOrder model)
   buyerFee         Float  @default(0) // 2.5% fee paid by buyer

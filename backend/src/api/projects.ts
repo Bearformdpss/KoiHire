@@ -303,6 +303,11 @@ router.post('/', authMiddleware, requireRole(['CLIENT']), validate(projectSchema
     };
   }
 
+  // Generate unique project number (format: PRJ-{timestamp}-{random3digits})
+  const timestamp = Date.now();
+  const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  const projectNumber = `PRJ-${timestamp}-${randomSuffix}`;
+
   const project = await prisma.project.create({
     data: {
       title,
@@ -313,6 +318,7 @@ router.post('/', authMiddleware, requireRole(['CLIENT']), validate(projectSchema
       timeline,
       categoryId,
       clientId: req.user!.id,
+      projectNumber,
       ...premiumData
     },
     include: {
