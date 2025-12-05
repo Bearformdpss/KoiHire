@@ -250,16 +250,6 @@ export default function BasicDetailsStep({
             ))}
           </SelectContent>
         </Select>
-
-        {/* Show selected category info */}
-        {formData.categoryId && (
-          <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-            <p className="text-sm text-gray-700">
-              <span className="font-medium">Selected:</span>{' '}
-              {categories.find(c => c.id === formData.categoryId)?.name}
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Subcategory - shows after category is selected */}
@@ -295,16 +285,6 @@ export default function BasicDetailsStep({
                   ))}
                 </SelectContent>
               </Select>
-
-              {/* Show selected subcategory info */}
-              {formData.subcategoryId && (
-                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">Selected:</span>{' '}
-                    {subcategories.find(s => s.id === formData.subcategoryId)?.name}
-                  </p>
-                </div>
-              )}
             </>
           ) : (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
