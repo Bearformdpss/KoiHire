@@ -42,10 +42,6 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/:categoryId/subcategories', asyncHandler(async (req, res) => {
   const { categoryId } = req.params;
 
-  console.log('[Subcategories API] Received categoryId:', categoryId);
-  console.log('[Subcategories API] CategoryId length:', categoryId.length);
-  console.log('[Subcategories API] CategoryId bytes:', Buffer.from(categoryId).toString('hex'));
-
   const subcategories = await prisma.subcategory.findMany({
     where: {
       categoryId: categoryId,
@@ -53,28 +49,6 @@ router.get('/:categoryId/subcategories', asyncHandler(async (req, res) => {
     },
     orderBy: { displayOrder: 'asc' }
   });
-
-  console.log('[Subcategories API] Found subcategories:', subcategories.length);
-
-  if (subcategories.length === 0) {
-    console.log('[Subcategories API] No match! Checking what categoryIds exist for Design subcategories...');
-
-    // Get Design & Creative subcategories by name
-    const designSubcats = await prisma.subcategory.findMany({
-      where: { slug: { contains: 'design' } },
-      select: { name: true, categoryId: true },
-      take: 2
-    });
-
-    console.log('[Subcategories API] Design subcategories in DB:');
-    designSubcats.forEach(sub => {
-      console.log(`  - ${sub.name}:`);
-      console.log(`    categoryId: "${sub.categoryId}"`);
-      console.log(`    length: ${sub.categoryId.length}`);
-      console.log(`    bytes: ${Buffer.from(sub.categoryId).toString('hex')}`);
-      console.log(`    matches: ${sub.categoryId === categoryId}`);
-    });
-  }
 
   res.json({
     success: true,
