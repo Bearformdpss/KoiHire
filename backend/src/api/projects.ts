@@ -847,6 +847,33 @@ router.put('/:projectId/submit-work', authMiddleware, asyncHandler(async (req: A
     }
   });
 
+  // Create ProjectFile records for each submitted file so they appear in Project Files section
+  if (files && files.length > 0) {
+    try {
+      await Promise.all(
+        files.map((fileUrl: string) => {
+          // Extract filename from URL (S3 URL format: https://bucket.s3.region.amazonaws.com/path/filename)
+          const fileName = fileUrl.split('/').pop() || 'file';
+
+          return prisma.projectFile.create({
+            data: {
+              projectId,
+              fileName,
+              originalName: fileName,
+              fileSize: 0, // Size not available from deliverable submission
+              mimeType: 'application/octet-stream', // Type not available from URL
+              filePath: fileUrl,
+              uploadedById: req.user!.id
+            }
+          });
+        })
+      );
+    } catch (error) {
+      console.error('Error creating ProjectFile records for submission:', error);
+      // Don't fail the whole submission if this fails
+    }
+  }
+
   // Update project status to PENDING_REVIEW
   await prisma.project.update({
     where: { id: projectId },

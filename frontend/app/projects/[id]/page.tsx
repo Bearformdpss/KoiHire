@@ -752,6 +752,23 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
 
+              {/* Revision Notes Section - Show to freelancer when changes requested */}
+              {isAssignedFreelancer && currentSubmission && currentSubmission.status === 'REVISION_REQUESTED' && currentSubmission.revisionNote && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-6">
+                  <div className="flex items-center mb-4">
+                    <Edit3 className="w-6 h-6 text-orange-600 mr-3" />
+                    <h2 className="text-xl font-semibold text-gray-900">Changes Requested by Client</h2>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-orange-200">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Client's feedback:</p>
+                    <p className="text-gray-900 whitespace-pre-wrap">{currentSubmission.revisionNote}</p>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-4">
+                    Please review the feedback above and make the requested changes. When ready, click "Submit for Review" to resubmit your work.
+                  </p>
+                </div>
+              )}
+
               {/* Client Review Section - Only show when PENDING_REVIEW and user is client */}
               {project.status === 'PENDING_REVIEW' && isProjectOwner && (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-6">
