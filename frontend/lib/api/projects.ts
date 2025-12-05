@@ -289,6 +289,28 @@ export const projectsApi = {
     )
   },
 
+  // Submit work with details (freelancer only) - NEW Enhanced Endpoint
+  submitWork: async (projectId: string, data: { title: string; description?: string; files?: string[] }) => {
+    return apiCall(
+      async () => {
+        const response = await apiClient.put(`/projects/${projectId}/submit-work`, data)
+        return response.data
+      },
+      { retry: false }
+    )
+  },
+
+  // Get current submission for a project
+  getCurrentSubmission: async (projectId: string) => {
+    return apiCall(
+      async () => {
+        const response = await apiClient.get(`/projects/${projectId}/submission/current`)
+        return response.data
+      },
+      { retry: { maxRetries: 2, retryDelay: 500 } }
+    )
+  },
+
   // Approve project (client only)
   approveProject: async (projectId: string) => {
     return apiCall(

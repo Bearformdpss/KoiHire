@@ -210,6 +210,10 @@ model Project {
   budgetUpdateReason   String? // Reason for budget update
   changeRequestMessage String? // Message from client requesting changes
 
+  // Revision tracking fields
+  revisionsRequested  Int @default(0) // Counter for requested revisions
+  maxRevisionsAllowed Int @default(1) // Maximum revisions allowed (default: 1)
+
   category   Category @relation(fields: [categoryId], references: [id])
   client     User     @relation("ClientProjects", fields: [clientId], references: [id])
   freelancer User?    @relation("FreelancerProjects", fields: [freelancerId], references: [id])
@@ -224,6 +228,7 @@ model Project {
   payouts       Payout[]
   events        ProjectEvent[]
   note          WorkItemNote?
+  submissions   ProjectSubmission[] // Work submissions from freelancer
 
   @@map("projects")
 }
@@ -863,4 +868,27 @@ model ServiceOrderFile {
   uploadedBy User         @relation("UploadedServiceOrderFiles", fields: [uploadedById], references: [id])
 
   @@map("service_order_files")
+}
+
+model ProjectSubmission {
+  id               String           @id @default(cuid())
+  projectId        String
+  title            String
+  description      String?
+  files            String[]         @default([]) // Array of file URLs/IDs from ProjectFile
+  submittedAt      DateTime         @default(now())
+  status           SubmissionStatus @default(SUBMITTED)
+  revisionNote     String? // Note from client when requesting revision
+  submissionNumber Int              @default(1) // Track which submission attempt (1, 2, etc.)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, submittedAt])
+  @@map("project_submissions")
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  APPROVED
+  REVISION_REQUESTED
 }

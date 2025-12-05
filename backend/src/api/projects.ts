@@ -772,9 +772,23 @@ router.delete('/:projectId', authMiddleware, asyncHandler(async (req: AuthReques
   });
 }));
 
-// Submit project for review (freelancer only)
-router.put('/:projectId/submit-for-review', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+// Submit project work for review (freelancer only) - Enhanced with ProjectSubmission
+router.put('/:projectId/submit-work', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const { projectId } = req.params;
+  const { title, description, files } = req.body;
+
+  // Validate required fields
+  if (!title || title.trim().length === 0) {
+    throw new AppError('Submission title is required', 400);
+  }
+
+  if (title.length > 200) {
+    throw new AppError('Submission title cannot exceed 200 characters', 400);
+  }
+
+  if (description && description.length > 2000) {
+    throw new AppError('Submission description cannot exceed 2000 characters', 400);
+  }
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -793,6 +807,10 @@ router.put('/:projectId/submit-for-review', authMiddleware, asyncHandler(async (
           firstName: true,
           lastName: true
         }
+      },
+      submissions: {
+        orderBy: { submittedAt: 'desc' },
+        take: 1
       }
     }
   });
@@ -811,6 +829,24 @@ router.put('/:projectId/submit-for-review', authMiddleware, asyncHandler(async (
     throw new AppError('Project must be in progress to submit for review', 400);
   }
 
+  // Calculate submission number (count of all previous submissions + 1)
+  const submissionCount = await prisma.projectSubmission.count({
+    where: { projectId }
+  });
+  const submissionNumber = submissionCount + 1;
+
+  // Create ProjectSubmission record
+  const submission = await prisma.projectSubmission.create({
+    data: {
+      projectId,
+      title: title.trim(),
+      description: description?.trim() || null,
+      files: files || [],
+      submissionNumber,
+      status: 'SUBMITTED'
+    }
+  });
+
   // Update project status to PENDING_REVIEW
   await prisma.project.update({
     where: { id: projectId },
@@ -820,16 +856,19 @@ router.put('/:projectId/submit-for-review', authMiddleware, asyncHandler(async (
   });
 
   // Create timeline event - check if this is initial submission or revision
-  const { hasProjectSubmissions } = await import('../services/eventService');
-  const isRevision = await hasProjectSubmissions(projectId);
+  const isRevision = submissionNumber > 1;
 
   await createProjectEvent({
     projectId,
     eventType: isRevision ? PROJECT_EVENT_TYPES.REVISION_SUBMITTED : PROJECT_EVENT_TYPES.WORK_SUBMITTED,
     actorId: req.user!.id,
-    actorName: `${project.freelancer.firstName} ${project.freelancer.lastName}`,
+    actorName: `${project.freelancer!.firstName} ${project.freelancer!.lastName}`,
     metadata: {
-      submittedAt: new Date()
+      submittedAt: new Date(),
+      submissionId: submission.id,
+      submissionTitle: title.trim(),
+      submissionNumber,
+      filesCount: files?.length || 0
     }
   });
 
@@ -850,7 +889,116 @@ router.put('/:projectId/submit-for-review', authMiddleware, asyncHandler(async (
 
   res.json({
     success: true,
+    message: 'Work submitted for client review successfully',
+    data: {
+      submission,
+      submissionNumber
+    }
+  });
+}));
+
+// LEGACY ENDPOINT - Keep for backward compatibility, redirects to new endpoint logic
+router.put('/:projectId/submit-for-review', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const { projectId } = req.params;
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      freelancer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true
+        }
+      }
+    }
+  });
+
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+
+  if (project.freelancerId !== req.user!.id) {
+    throw new AppError('Not authorized. You must be the assigned freelancer to submit for review.', 403);
+  }
+
+  if (project.status !== 'IN_PROGRESS') {
+    throw new AppError('Project must be in progress to submit for review', 400);
+  }
+
+  // Create a basic submission with default values for legacy calls
+  const submissionCount = await prisma.projectSubmission.count({
+    where: { projectId }
+  });
+
+  const submission = await prisma.projectSubmission.create({
+    data: {
+      projectId,
+      title: `Submission ${submissionCount + 1}`,
+      description: 'Work completed and submitted for review',
+      files: [],
+      submissionNumber: submissionCount + 1,
+      status: 'SUBMITTED'
+    }
+  });
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { status: 'PENDING_REVIEW' }
+  });
+
+  await createProjectEvent({
+    projectId,
+    eventType: submissionCount > 0 ? PROJECT_EVENT_TYPES.REVISION_SUBMITTED : PROJECT_EVENT_TYPES.WORK_SUBMITTED,
+    actorId: req.user!.id,
+    actorName: `${project.freelancer!.firstName} ${project.freelancer!.lastName}`,
+    metadata: { submittedAt: new Date(), submissionId: submission.id }
+  });
+
+  res.json({
+    success: true,
     message: 'Project submitted for client review successfully'
+  });
+}));
+
+// Get current submission for a project
+router.get('/:projectId/submission/current', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const { projectId } = req.params;
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      id: true,
+      clientId: true,
+      freelancerId: true,
+      status: true
+    }
+  });
+
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+
+  // Verify user is client or assigned freelancer
+  if (project.clientId !== req.user!.id && project.freelancerId !== req.user!.id) {
+    throw new AppError('Not authorized to view this project submission', 403);
+  }
+
+  // Get the most recent submission with SUBMITTED status
+  const submission = await prisma.projectSubmission.findFirst({
+    where: {
+      projectId,
+      status: { in: ['SUBMITTED', 'REVISION_REQUESTED', 'APPROVED'] }
+    },
+    orderBy: { submittedAt: 'desc' }
+  });
+
+  res.json({
+    success: true,
+    data: {
+      submission,
+      hasSubmission: !!submission
+    }
   });
 }));
 
@@ -983,6 +1131,11 @@ router.post('/:projectId/request-changes', authMiddleware, asyncHandler(async (r
           lastName: true,
           email: true
         }
+      },
+      submissions: {
+        where: { status: 'SUBMITTED' },
+        orderBy: { submittedAt: 'desc' },
+        take: 1
       }
     }
   });
@@ -1001,13 +1154,32 @@ router.post('/:projectId/request-changes', authMiddleware, asyncHandler(async (r
     throw new AppError('Project must be pending review to request changes', 400);
   }
 
-  // Update project status back to IN_PROGRESS
-  // Note: changeRequestMessage field temporarily disabled due to Prisma client sync issues
+  // Check revision limit
+  if (project.revisionsRequested >= project.maxRevisionsAllowed) {
+    throw new AppError(
+      `Revision limit reached. This project allows ${project.maxRevisionsAllowed} revision${project.maxRevisionsAllowed > 1 ? 's' : ''}. Please approve or cancel the project.`,
+      400
+    );
+  }
+
+  // Update the current submission status to REVISION_REQUESTED
+  if (project.submissions.length > 0) {
+    await prisma.projectSubmission.update({
+      where: { id: project.submissions[0].id },
+      data: {
+        status: 'REVISION_REQUESTED',
+        revisionNote: message.trim()
+      }
+    });
+  }
+
+  // Update project: increment revision counter and set status back to IN_PROGRESS
   await prisma.project.update({
     where: { id: projectId },
     data: {
-      status: 'IN_PROGRESS'
-      // changeRequestMessage: message.trim() // TODO: Re-enable when Prisma client is regenerated
+      status: 'IN_PROGRESS',
+      revisionsRequested: { increment: 1 },
+      changeRequestMessage: message.trim()
     }
   });
 
@@ -1026,7 +1198,10 @@ router.post('/:projectId/request-changes', authMiddleware, asyncHandler(async (r
       actorName: `${client.firstName} ${client.lastName}`,
       metadata: {
         message: message.trim(),
-        requestedAt: new Date()
+        requestedAt: new Date(),
+        revisionsRequested: project.revisionsRequested + 1,
+        maxRevisionsAllowed: project.maxRevisionsAllowed,
+        submissionId: project.submissions[0]?.id
       }
     });
   }
@@ -1046,9 +1221,16 @@ router.post('/:projectId/request-changes', authMiddleware, asyncHandler(async (r
     // Don't fail the request if notification fails
   }
 
+  const revisionsRemaining = project.maxRevisionsAllowed - (project.revisionsRequested + 1);
+
   res.json({
     success: true,
-    message: 'Change request sent to freelancer. Project status updated to in progress.'
+    message: 'Change request sent to freelancer. Project status updated to in progress.',
+    data: {
+      revisionsRequested: project.revisionsRequested + 1,
+      maxRevisionsAllowed: project.maxRevisionsAllowed,
+      revisionsRemaining: Math.max(0, revisionsRemaining)
+    }
   });
 }));
 

@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { AuthRequired } from '@/components/auth/ProtectedRoute'
-import { 
-  ArrowLeft, 
-  Calendar, 
-  DollarSign, 
-  MapPin, 
-  Clock, 
-  Users, 
+import {
+  ArrowLeft,
+  Calendar,
+  DollarSign,
+  MapPin,
+  Clock,
+  Users,
   Eye,
   MessageCircle,
   Loader2,
@@ -22,7 +22,8 @@ import {
   Play,
   X,
   Edit3,
-  AlertTriangle
+  AlertTriangle,
+  FileCheck
 } from 'lucide-react'
 import { projectsApi } from '@/lib/api/projects'
 import { messagesApi } from '@/lib/api/messages'
@@ -31,6 +32,7 @@ import BidSubmissionModal from '@/components/projects/BidSubmissionModal'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
 import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
 import { PaymentRequiredModal } from '@/components/projects/PaymentRequiredModal'
+import { ProjectSubmitWorkModal } from '@/components/projects/ProjectSubmitWorkModal'
 import ProjectTimeline from '@/components/ProjectTimeline'
 import toast from 'react-hot-toast'
 import axios from 'axios'
@@ -112,12 +114,18 @@ export default function ProjectDetailPage() {
   // Payment Required Modal state
   const [showPaymentRequiredModal, setShowPaymentRequiredModal] = useState(false)
 
+  // Submit Work Modal state (freelancer)
+  const [showSubmitWorkModal, setShowSubmitWorkModal] = useState(false)
+  const [currentSubmission, setCurrentSubmission] = useState<any>(null)
+  const [submissionNumber, setSubmissionNumber] = useState(1)
+
   const projectId = params.id as string
 
   useEffect(() => {
     if (projectId) {
       fetchProject()
       checkEscrowStatus()
+      fetchCurrentSubmission()
     }
   }, [projectId])
 
@@ -182,6 +190,35 @@ export default function ProjectDetailPage() {
       setEscrowStatus(null)
     } finally {
       setCheckingEscrow(false)
+    }
+  }
+
+  const fetchCurrentSubmission = async () => {
+    try {
+      const response = await projectsApi.getCurrentSubmission(projectId)
+      if (response.success && response.data.hasSubmission) {
+        setCurrentSubmission(response.data.submission)
+        setSubmissionNumber(response.data.submission.submissionNumber || 1)
+      }
+    } catch (error) {
+      console.error('Failed to fetch current submission:', error)
+      // Don't show error toast - submission might not exist yet
+    }
+  }
+
+  const handleSubmitWork = async (data: { title: string; description: string; files: string[] }) => {
+    try {
+      const response = await projectsApi.submitWork(projectId, data)
+      if (response.success) {
+        toast.success(response.message || 'Work submitted successfully!')
+        setShowSubmitWorkModal(false)
+        // Refresh project and submission data
+        fetchProject()
+        fetchCurrentSubmission()
+      }
+    } catch (error: any) {
+      console.error('Failed to submit work:', error)
+      toast.error(error.message || 'Failed to submit work')
     }
   }
 
@@ -423,10 +460,12 @@ export default function ProjectDetailPage() {
   }
 
   const canApply = user?.role === 'FREELANCER' && project?.status === 'OPEN'
-  const canStartConversation = project?.freelancer && 
+  const canStartConversation = project?.freelancer &&
     (user?.id === project?.client?.id || user?.id === project?.freelancer?.id)
   const isProjectOwner = user?.id === project?.client?.id
   const canManageProject = isProjectOwner && project?.status !== 'IN_PROGRESS'
+  const isAssignedFreelancer = user?.role === 'FREELANCER' && project?.freelancerId === user?.id
+  const canSubmitWork = isAssignedFreelancer && project?.status === 'IN_PROGRESS'
 
   if (loading) {
     return (
@@ -599,7 +638,18 @@ export default function ProjectDetailPage() {
                   >
                     📁 Project Files
                   </Button>
-                  
+
+                  {/* Submit for Review - Only for assigned freelancer when in progress */}
+                  {canSubmitWork && (
+                    <Button
+                      onClick={() => setShowSubmitWorkModal(true)}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <FileCheck className="w-4 h-4 mr-2" />
+                      Submit for Review
+                    </Button>
+                  )}
+
                   {/* View Applications - Only for project owner */}
                   {isProjectOwner && (
                     <Button
@@ -709,10 +759,60 @@ export default function ProjectDetailPage() {
                     <AlertTriangle className="w-6 h-6 text-orange-600 mr-3" />
                     <h2 className="text-xl font-semibold text-gray-900">Project Review Required</h2>
                   </div>
+
+                  {/* Submission Details */}
+                  {currentSubmission && (
+                    <div className="bg-white rounded-lg p-4 mb-4 border border-orange-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-gray-900">Submitted Work</h3>
+                        {currentSubmission.submissionNumber > 1 && (
+                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                            Submission #{currentSubmission.submissionNumber}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Title:</p>
+                          <p className="text-gray-900">{currentSubmission.title}</p>
+                        </div>
+                        {currentSubmission.description && (
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Description:</p>
+                            <p className="text-gray-700 whitespace-pre-wrap">{currentSubmission.description}</p>
+                          </div>
+                        )}
+                        {currentSubmission.files && currentSubmission.files.length > 0 && (
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 mb-2">Files ({currentSubmission.files.length}):</p>
+                            <div className="space-y-1">
+                              {currentSubmission.files.map((fileUrl: string, index: number) => (
+                                <a
+                                  key={index}
+                                  href={fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                >
+                                  📎 {fileUrl.split('/').pop() || `File ${index + 1}`}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs text-gray-500">
+                            Submitted {new Date(currentSubmission.submittedAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <p className="text-gray-700 mb-6">
                     Your freelancer has submitted the project for your review. Please examine the work and decide whether to approve it or request changes.
                   </p>
-                  
+
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button
                       onClick={handleApproveProject}
@@ -731,7 +831,7 @@ export default function ProjectDetailPage() {
                         </>
                       )}
                     </Button>
-                    
+
                     <Button
                       onClick={() => setShowRequestChangesModal(true)}
                       disabled={reviewLoading !== null}
@@ -1251,6 +1351,17 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Submit Work Modal - Freelancer submits work for review */}
+        {project && (
+          <ProjectSubmitWorkModal
+            isOpen={showSubmitWorkModal}
+            onClose={() => setShowSubmitWorkModal(false)}
+            onSubmit={handleSubmitWork}
+            projectTitle={project.title}
+            submissionNumber={submissionNumber}
+          />
         )}
 
         {/* Checkout Modal for Funding Project Escrow */}

@@ -1,0 +1,313 @@
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { X, Upload, FileText, Image as ImageIcon, File, Loader2 } from 'lucide-react'
+import axios from 'axios'
+import toast from 'react-hot-toast'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+
+interface ProjectSubmitWorkModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: (data: { title: string; description: string; files: string[] }) => Promise<void>
+  projectTitle: string
+  submissionNumber: number
+}
+
+export function ProjectSubmitWorkModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  projectTitle,
+  submissionNumber
+}: ProjectSubmitWorkModalProps) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  if (!isOpen) return null
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (selectedFiles.length + files.length > 10) {
+      toast.error('Maximum 10 files allowed')
+      return
+    }
+    setSelectedFiles(prev => [...prev, ...files])
+  }
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+    setUploadedFileUrls(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleUploadFiles = async () => {
+    if (selectedFiles.length === 0) return []
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      selectedFiles.forEach((file) => {
+        formData.append('files', file)
+      })
+
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+
+      // Upload to project files endpoint (same as existing project file uploads)
+      const response = await axios.post(`${API_URL}/upload/deliverables`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      })
+
+      if (response.data?.success && response.data.data?.fileUrls) {
+        const urls = response.data.data.fileUrls
+        setUploadedFileUrls(urls)
+        toast.success(`${selectedFiles.length} file(s) uploaded successfully`)
+        return urls
+      } else {
+        toast.error('Failed to upload files')
+        return []
+      }
+    } catch (error: any) {
+      console.error('File upload error:', error)
+      toast.error(error.response?.data?.message || 'Failed to upload files')
+      return []
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!title.trim()) {
+      toast.error('Please enter a submission title')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      // Upload files first if any
+      let fileUrls = uploadedFileUrls
+      if (selectedFiles.length > 0 && uploadedFileUrls.length === 0) {
+        fileUrls = await handleUploadFiles()
+        if (fileUrls.length === 0 && selectedFiles.length > 0) {
+          // Upload failed
+          setSubmitting(false)
+          return
+        }
+      }
+
+      // Submit the work
+      await onSubmit({
+        title: title.trim(),
+        description: description.trim(),
+        files: fileUrls
+      })
+
+      // Reset form
+      setTitle('')
+      setDescription('')
+      setSelectedFiles([])
+      setUploadedFileUrls([])
+      onClose()
+    } catch (error) {
+      console.error('Submit work error:', error)
+      // Error handling is done in parent component
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) {
+      return <ImageIcon className="w-5 h-5 text-blue-600" />
+    } else if (file.type === 'application/pdf') {
+      return <FileText className="w-5 h-5 text-red-600" />
+    } else {
+      return <File className="w-5 h-5 text-gray-600" />
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Submit Work for Review</h2>
+            <p className="text-sm text-gray-600 mt-1">{projectTitle}</p>
+            {submissionNumber > 1 && (
+              <p className="text-xs text-orange-600 mt-1">
+                This is submission #{submissionNumber} (revision)
+              </p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition"
+            disabled={submitting || uploading}
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Submission Title <span className="text-red-600">*</span>
+            </label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Final deliverable, Logo design complete, Website ready for review"
+              className="w-full"
+              disabled={submitting || uploading}
+              maxLength={200}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {title.length}/200 characters
+            </p>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description (Optional)
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Provide details about your submission, explain what you've completed, list any changes made, or add usage instructions..."
+              rows={5}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              disabled={submitting || uploading}
+              maxLength={2000}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {description.length}/2000 characters
+            </p>
+          </div>
+
+          {/* File Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Files (Optional)
+            </label>
+            <p className="text-xs text-gray-500 mb-3">
+              Upload deliverable files, screenshots, or documentation. Maximum 10 files. Files will also appear in the Project Files section.
+            </p>
+
+            {/* Upload Button */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition">
+              <input
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                id="project-file-upload"
+                accept="image/*,.pdf,.doc,.docx,.zip,.rar"
+                disabled={submitting || uploading || selectedFiles.length >= 10}
+              />
+              <label
+                htmlFor="project-file-upload"
+                className={`cursor-pointer flex flex-col items-center ${
+                  selectedFiles.length >= 10 ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                <Upload className="w-10 h-10 text-gray-400 mb-2" />
+                <span className="text-sm font-medium text-gray-700">
+                  Click to upload files
+                </span>
+                <span className="text-xs text-gray-500 mt-1">
+                  PNG, JPG, PDF, DOC, ZIP up to 10MB each
+                </span>
+              </label>
+            </div>
+
+            {/* Selected Files List */}
+            {selectedFiles.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="text-sm font-medium text-gray-700">
+                  Selected Files ({selectedFiles.length}/10)
+                </p>
+                {selectedFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {getFileIcon(file)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {file.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatFileSize(file.size)}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveFile(index)}
+                      className="text-red-600 hover:text-red-700 p-1"
+                      disabled={submitting || uploading}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Info Message */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Tip:</strong> Make sure your submission meets all requirements specified by the client.
+              Include all necessary files and clear instructions. The client will review and either approve or request changes.
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 flex items-center justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={submitting || uploading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!title.trim() || submitting || uploading}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {submitting || uploading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {uploading ? 'Uploading files...' : 'Submitting...'}
+              </>
+            ) : (
+              'Submit for Review'
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
