@@ -132,7 +132,7 @@ export default function FreelancerServicesPage() {
   }
 
   const getStatusColor = (status: boolean) => {
-    return status ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'
+    return status ? 'bg-green-600 text-white' : 'bg-slate-900 text-white'
   }
 
   const formatDate = (dateString: string) => {
@@ -286,7 +286,7 @@ export default function FreelancerServicesPage() {
                     onClick={() => setStatusFilter('INACTIVE')}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       statusFilter === 'INACTIVE'
-                        ? 'bg-gray-600 text-white'
+                        ? 'bg-slate-900 hover:bg-slate-800 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
