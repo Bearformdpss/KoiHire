@@ -15,6 +15,26 @@ async function fixSubcategoryCategoryIds() {
       old: 'cmh51lp3k0001hfgutwi45q40',  // Old Mobile Development ID
       new: 'cmh511p3k0001hfgutwi45q40',  // Current Mobile Development ID
       name: 'Mobile Development'
+    },
+    {
+      old: 'cmh51lp6h0002hfgujdkwdast',  // Old Design & Creative ID
+      new: 'cmh511p6h0002hfgujdkwdast',  // Current Design & Creative ID
+      name: 'Design & Creative'
+    },
+    {
+      old: 'cmh51lp9d0003hfgunkqkdgsw',  // Old Writing & Translation ID
+      new: 'cmh511p9d0003hfgunkqkdgsw',  // Current Writing & Translation ID
+      name: 'Writing & Translation'
+    },
+    {
+      old: 'cmh51lpc90004hfgu9ehf9gsz',  // Old Marketing & SEO ID
+      new: 'cmh511pc90004hfgu9ehf9gsz',  // Current Marketing & SEO ID
+      name: 'Marketing & SEO'
+    },
+    {
+      old: 'cmh51lpf50005hfguiafak18t',  // Old Data & Analytics ID
+      new: 'cmh511pf50005hfguiafak18t',  // Current Data & Analytics ID
+      name: 'Data & Analytics'
     }
   ];
 
