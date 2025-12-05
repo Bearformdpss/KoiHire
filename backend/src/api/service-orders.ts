@@ -697,7 +697,7 @@ router.post('/:orderId/approve', authMiddleware, requireRole(['CLIENT']), asyncH
     throw new AppError(`Failed to release payment: ${error.message}`, 500);
   }
 
-  // Send notification to freelancer
+  // Send notifications to freelancer (approved + completed)
   try {
     await notificationService.sendServiceOrderNotification(
       order.freelancer.id,
@@ -705,6 +705,14 @@ router.post('/:orderId/approve', authMiddleware, requireRole(['CLIENT']), asyncH
       order.service.title,
       `${order.freelancer.firstName} ${order.freelancer.lastName}`,
       'SERVICE_ORDER_APPROVED'
+    );
+
+    await notificationService.sendServiceOrderNotification(
+      order.freelancer.id,
+      orderId,
+      order.service.title,
+      `${order.freelancer.firstName} ${order.freelancer.lastName}`,
+      'SERVICE_ORDER_COMPLETED'
     );
   } catch (error) {
     console.error('Error sending approval notification:', error);
@@ -937,17 +945,7 @@ router.post('/:orderId/review', authMiddleware, requireRole(['CLIENT']), validat
     data: { rating: avgRating }
   });
 
-  // Send notification to freelancer
-  try {
-    await notificationService.sendServiceReviewNotification(
-      order.freelancerId,
-      order.service.id,
-      order.service.title,
-      rating
-    );
-  } catch (error) {
-    console.error('Error sending review notification:', error);
-  }
+  // Review notification removed - freelancer reviews only, not service reviews
 
   res.json({
     success: true,

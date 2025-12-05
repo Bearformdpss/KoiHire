@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { 
-  Bell, 
-  X, 
-  MessageCircle, 
-  CheckCircle, 
-  AlertTriangle, 
+import {
+  Bell,
+  X,
+  MessageCircle,
+  CheckCircle,
+  AlertTriangle,
   Info,
   Loader2,
   DollarSign,
@@ -25,6 +26,7 @@ interface NotificationCenterProps {
 }
 
 export function NotificationCenter({ isOpen, onClose, onMarkAllAsRead }: NotificationCenterProps) {
+  const router = useRouter()
   const { user } = useAuthStore()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
@@ -296,12 +298,12 @@ export function NotificationCenter({ isOpen, onClose, onMarkAllAsRead }: Notific
                                 size="sm"
                                 className="mt-2 text-blue-600 hover:text-blue-500 p-0 h-auto font-normal"
                                 onClick={() => {
-                                  // In a real app, you would navigate to the action URL
-                                  console.log('Navigate to:', notification.actionUrl)
+                                  router.push(notification.actionUrl!)
                                   markAsRead(notification.id)
+                                  onClose()
                                 }}
                               >
-                                View →
+                                View Details →
                               </Button>
                             )}
                           </div>

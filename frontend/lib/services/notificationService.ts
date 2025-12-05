@@ -121,12 +121,28 @@ class NotificationService {
   }
 
   private getActionUrl(notification: any): string | undefined {
+    const type = notification.type
+
+    // NO ROUTING for these notification types (display only)
+    if (['APPLICATION_REJECTED', 'SERVICE_ORDER_CANCELLED', 'PROJECT_CANCELLED'].includes(type)) {
+      return undefined
+    }
+
+    // Service Order notifications → /orders/${orderId}
+    if (type.startsWith('SERVICE_ORDER_') && notification.data?.orderId) {
+      return `/orders/${notification.data.orderId}`
+    }
+
+    // NEW_APPLICATION → /projects/${projectId}/applications
+    if (type === 'NEW_APPLICATION' && notification.projectId) {
+      return `/projects/${notification.projectId}/applications`
+    }
+
+    // All other project notifications → /projects/${projectId}
     if (notification.projectId) {
       return `/projects/${notification.projectId}`
     }
-    if (notification.applicationId) {
-      return `/applications/${notification.applicationId}`
-    }
+
     return undefined
   }
 }
