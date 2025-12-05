@@ -173,7 +173,7 @@ model UserSkill {
 
 model Project {
   id            String        @id @default(cuid())
-  projectNumber String        @unique // Human-readable project identifier (e.g., PRJ-1234567890123-456)
+  projectNumber String?       @unique // Human-readable project identifier (e.g., PRJ-1234567890123-456)
   title         String
   description   String
   requirements  String?

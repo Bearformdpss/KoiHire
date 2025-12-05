@@ -37,7 +37,7 @@ import axios from 'axios'
 
 interface Project {
   id: string
-  projectNumber: string
+  projectNumber?: string
   title: string
   description: string
   requirements?: string
@@ -528,12 +528,14 @@ export default function ProjectDetailPage() {
               {/* Project Header */}
               <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                 {/* Project Number */}
-                <div className="mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900">Project #{project.projectNumber}</h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Posted {getTimeAgo(project.createdAt)}
-                  </p>
-                </div>
+                {project.projectNumber && (
+                  <div className="mb-4">
+                    <h2 className="text-2xl font-bold text-gray-900">Project #{project.projectNumber}</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Posted {getTimeAgo(project.createdAt)}
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between mb-4">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
