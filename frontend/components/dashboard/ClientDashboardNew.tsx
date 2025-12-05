@@ -9,7 +9,7 @@ import PostProjectForm from '@/components/projects/PostProjectFormNew'
 
 // Import new sections
 import { HeroSection } from './HeroSection'
-import { CategoryChips } from './CategoryChips'
+import { CategoryPills } from '@/components/services/CategoryPills'
 import { GuidanceCards } from './GuidanceCards'
 import { QuickActionBar } from './QuickActionBar'
 import { ActiveProjectsSection } from './ActiveProjectsSection'
@@ -19,6 +19,7 @@ import { RecentServicesSection } from './RecentServicesSection'
 import { CategoryBrowseSection } from './CategoryBrowseSection'
 import { HomepageCategoryCards } from './HomepageCategoryCards'
 import { ActionBanner } from './ActionBanner'
+import { categoriesApi } from '@/lib/api/categories'
 
 interface Project {
   id: string
@@ -34,14 +35,27 @@ interface Project {
   }
 }
 
+interface Category {
+  id: string
+  name: string
+  slug: string
+  icon?: string
+  _count?: {
+    services?: number
+  }
+}
+
 export function ClientDashboardNew() {
   const { user } = useAuthStore()
   const [projects, setProjects] = useState<Project[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loadingProjects, setLoadingProjects] = useState(true)
+  const [loadingCategories, setLoadingCategories] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     fetchProjects()
+    fetchCategories()
   }, [])
 
   const fetchProjects = async () => {
@@ -62,6 +76,20 @@ export function ClientDashboardNew() {
     }
   }
 
+  const fetchCategories = async () => {
+    try {
+      setLoadingCategories(true)
+      const response = await categoriesApi.getCategories()
+      if (response.success) {
+        setCategories(response.categories || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error)
+    } finally {
+      setLoadingCategories(false)
+    }
+  }
+
   const handleProjectCreated = () => {
     setShowCreateModal(false)
     toast.success('Project created successfully!')
@@ -77,8 +105,15 @@ export function ClientDashboardNew() {
         {/* Hero Section with Search */}
         <HeroSection />
 
-        {/* Category Filter Chips */}
-        <CategoryChips />
+        {/* Category Pills with Navigation */}
+        {!loadingCategories && categories.length > 0 && (
+          <div className="mb-6">
+            <CategoryPills
+              categories={categories}
+              mode="navigate"
+            />
+          </div>
+        )}
 
         {/* Guidance Cards - Post Project or Browse Services */}
         <GuidanceCards onPostProject={() => setShowCreateModal(true)} />

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -26,21 +27,24 @@ interface Category {
 
 interface CategoryPillsProps {
   categories: Category[]
-  selectedCategoryId: string | null
+  selectedCategoryId?: string | null
   selectedSubcategoryId?: string | null
-  onSelectCategory: (categoryId: string | null) => void
+  onSelectCategory?: (categoryId: string | null) => void
   onSelectSubcategory?: (subcategoryId: string | null) => void
+  mode?: 'filter' | 'navigate'
   className?: string
 }
 
 export function CategoryPills({
   categories,
-  selectedCategoryId,
-  selectedSubcategoryId,
+  selectedCategoryId = null,
+  selectedSubcategoryId = null,
   onSelectCategory,
   onSelectSubcategory,
+  mode = 'filter',
   className
 }: CategoryPillsProps) {
+  const router = useRouter()
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null)
   const [subcategoriesData, setSubcategoriesData] = useState<Map<string, Subcategory[]>>(new Map())
   const [loadingSubcategories, setLoadingSubcategories] = useState(false)
@@ -140,17 +144,24 @@ export function CategoryPills({
   }
 
   const handleSubcategoryClick = (categoryId: string, subcategoryId: string) => {
-    onSelectCategory(categoryId)
-    if (onSelectSubcategory) {
-      onSelectSubcategory(subcategoryId)
+    if (mode === 'navigate') {
+      // Navigate to services page with filters
+      router.push(`/services?category=${categoryId}&subcategory=${subcategoryId}`)
+      setHoveredCategoryId(null)
+    } else {
+      // Filter mode - use callbacks
+      if (onSelectCategory) onSelectCategory(categoryId)
+      if (onSelectSubcategory) onSelectSubcategory(subcategoryId)
+      setHoveredCategoryId(null)
     }
-    setHoveredCategoryId(null)
   }
 
   const clearSelection = () => {
-    onSelectCategory(null)
-    if (onSelectSubcategory) {
-      onSelectSubcategory(null)
+    if (mode === 'navigate') {
+      router.push('/services')
+    } else {
+      if (onSelectCategory) onSelectCategory(null)
+      if (onSelectSubcategory) onSelectSubcategory(null)
     }
     setHoveredCategoryId(null)
   }
@@ -171,8 +182,8 @@ export function CategoryPills({
 
   return (
     <div className={cn("relative", className)} ref={dropdownRef}>
-      {/* Active Filter Badge */}
-      {(selectedCategoryId || selectedSubcategoryId) && (
+      {/* Active Filter Badge - Only show in filter mode */}
+      {mode === 'filter' && (selectedCategoryId || selectedSubcategoryId) && (
         <div className="mb-3 flex items-center gap-2">
           <span className="text-sm text-gray-600 font-medium">Active filter:</span>
           <Badge
