@@ -164,7 +164,7 @@ export default function FreelancerServicesPage() {
             </div>
             <Button
               onClick={() => router.push('/freelancer/services/create')}
-              className="bg-slate-800 hover:bg-slate-900"
+              className="bg-slate-900 hover:bg-slate-800 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create Service
@@ -248,7 +248,7 @@ export default function FreelancerServicesPage() {
                     </div>
                     <Button
                       onClick={handleSearch}
-                      className="bg-slate-800 hover:bg-slate-900 flex-shrink-0"
+                      className="bg-slate-900 hover:bg-slate-800 text-white flex-shrink-0"
                       disabled={isRefreshing}
                     >
                       {isRefreshing ? (
@@ -266,7 +266,7 @@ export default function FreelancerServicesPage() {
                     onClick={() => setStatusFilter('ALL')}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       statusFilter === 'ALL'
-                        ? 'bg-slate-800 text-white'
+                        ? 'bg-slate-900 hover:bg-slate-800 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -310,7 +310,7 @@ export default function FreelancerServicesPage() {
                 </p>
                 <Button
                   onClick={() => router.push('/freelancer/services/create')}
-                  className="bg-slate-800 hover:bg-slate-900"
+                  className="bg-slate-900 hover:bg-slate-800 text-white"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create Your First Service
