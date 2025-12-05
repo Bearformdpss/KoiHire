@@ -136,7 +136,7 @@ export default function ProjectTimeline({ projectId }: ProjectTimelineProps) {
       case 'CHANGES_REQUESTED':
         return (
           <div className="text-sm text-gray-600 mt-1">
-            <p className="italic">&quot;{metadata.feedback}&quot;</p>
+            <p className="italic">&quot;{metadata.message}&quot;</p>
           </div>
         )
 

@@ -105,6 +105,7 @@ export default function ProjectDetailPage() {
   // Review Modal state
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [pendingApproval, setPendingApproval] = useState(false)
+  const [hasSubmittedReview, setHasSubmittedReview] = useState(false)
 
   // Payment state
   const [showCheckout, setShowCheckout] = useState(false)
@@ -323,12 +324,20 @@ export default function ProjectDetailPage() {
 
   // Handle review submission
   const handleReviewSuccess = () => {
+    setHasSubmittedReview(true)
     toast.success('Review submitted successfully! Click "Complete Project" to finalize and release payment.')
     // Don't auto-approve - let client explicitly click "Complete Project" button
   }
 
   // Handle skipping review
   const handleSkipReview = () => {
+    // If review was already submitted, proceed directly to approval
+    if (hasSubmittedReview) {
+      handleFinalApproval()
+      return
+    }
+
+    // Otherwise, confirm they want to skip
     const confirmed = window.confirm(
       'Are you sure you want to skip leaving a review? This is a great opportunity to help other clients find quality freelancers.'
     )
