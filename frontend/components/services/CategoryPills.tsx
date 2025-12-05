@@ -56,38 +56,23 @@ export function CategoryPills({
   // Detect touch device
   const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window
 
-  // Fetch all subcategories on mount
-  useEffect(() => {
-    const fetchAllSubcategories = async () => {
-      if (categories.length === 0) return
+  // Lazy fetch subcategories only when needed (on hover/click)
+  const fetchSubcategoriesForCategory = async (categoryId: string) => {
+    // Skip if already loaded
+    if (subcategoriesData.has(categoryId)) return
 
-      setLoadingSubcategories(true)
-      try {
-        const subcategoriesMap = new Map<string, Subcategory[]>()
-
-        // Fetch subcategories for all categories in parallel
-        const fetchPromises = categories.map(async (category) => {
-          try {
-            const response = await categoriesApi.getSubcategories(category.id)
-            if (response.success && response.subcategories) {
-              subcategoriesMap.set(category.id, response.subcategories)
-            }
-          } catch (error) {
-            console.error(`Failed to fetch subcategories for ${category.name}:`, error)
-          }
-        })
-
-        await Promise.all(fetchPromises)
-        setSubcategoriesData(subcategoriesMap)
-      } catch (error) {
-        console.error('Failed to fetch subcategories:', error)
-      } finally {
-        setLoadingSubcategories(false)
+    setLoadingSubcategories(true)
+    try {
+      const response = await categoriesApi.getSubcategories(categoryId)
+      if (response.success && response.subcategories) {
+        setSubcategoriesData(prev => new Map(prev).set(categoryId, response.subcategories))
       }
+    } catch (error) {
+      console.error(`Failed to fetch subcategories for category ${categoryId}:`, error)
+    } finally {
+      setLoadingSubcategories(false)
     }
-
-    fetchAllSubcategories()
-  }, [categories])
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -108,6 +93,9 @@ export function CategoryPills({
       clearTimeout(closeTimeoutRef.current)
       closeTimeoutRef.current = null
     }
+
+    // Fetch subcategories for this category if not already loaded
+    fetchSubcategoriesForCategory(categoryId)
 
     // Set hover with slight delay to prevent flicker
     hoverTimeoutRef.current = setTimeout(() => {
@@ -137,6 +125,9 @@ export function CategoryPills({
   }
 
   const handleCategoryClick = (categoryId: string) => {
+    // Fetch subcategories if not already loaded
+    fetchSubcategoriesForCategory(categoryId)
+
     // For touch devices, toggle dropdown
     if (isTouchDevice) {
       setHoveredCategoryId(hoveredCategoryId === categoryId ? null : categoryId)
@@ -255,44 +246,57 @@ export function CategoryPills({
                 </button>
 
                 {/* Hover Mega Menu Dropdown */}
-                {hasSubcategories && isHovered && (
+                {isHovered && (
                   <div
                     className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[80vh] overflow-y-auto"
                     onMouseEnter={handleDropdownMouseEnter}
                     onMouseLeave={handleMouseLeave}
                   >
-                    {/* Multi-column Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6 min-w-[600px] max-w-[1000px]">
-                      {categorySubcategories.map((subcategory) => (
-                        <div key={subcategory.id} className="space-y-1">
-                          {/* Subcategory Header - CLICKABLE */}
-                          <button
-                            onClick={() => handleSubcategoryClick(category.id, subcategory.id)}
-                            className={cn(
-                              "font-bold text-gray-900 hover:bg-blue-50 hover:text-blue-600 w-full text-left px-2 py-1 rounded transition-colors text-sm",
-                              selectedSubcategoryId === subcategory.id && "text-blue-600 bg-blue-50"
-                            )}
-                          >
-                            {subcategory.name}
-                          </button>
+                    {/* Loading State */}
+                    {loadingSubcategories && categorySubcategories.length === 0 ? (
+                      <div className="p-6 min-w-[300px] text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="text-sm text-gray-600 mt-2">Loading subcategories...</p>
+                      </div>
+                    ) : categorySubcategories.length > 0 ? (
+                      /* Multi-column Grid */
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6 min-w-[600px] max-w-[1000px]">
+                        {categorySubcategories.map((subcategory) => (
+                          <div key={subcategory.id} className="space-y-1">
+                            {/* Subcategory Header - CLICKABLE */}
+                            <button
+                              onClick={() => handleSubcategoryClick(category.id, subcategory.id)}
+                              className={cn(
+                                "font-bold text-gray-900 hover:bg-blue-50 hover:text-blue-600 w-full text-left px-2 py-1 rounded transition-colors text-sm",
+                                selectedSubcategoryId === subcategory.id && "text-blue-600 bg-blue-50"
+                              )}
+                            >
+                              {subcategory.name}
+                            </button>
 
-                          {/* Sub-items List - CLICKABLE (same action as header) */}
-                          {subcategory.items && subcategory.items.length > 0 && (
-                            <div className="space-y-0.5 ml-2">
-                              {subcategory.items.map((item, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => handleSubcategoryClick(category.id, subcategory.id)}
-                                  className="text-sm text-gray-600 hover:text-blue-600 w-full text-left px-2 py-0.5 rounded transition-colors block"
-                                >
-                                  {item}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                            {/* Sub-items List - CLICKABLE (same action as header) */}
+                            {subcategory.items && subcategory.items.length > 0 && (
+                              <div className="space-y-0.5 ml-2">
+                                {subcategory.items.map((item, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => handleSubcategoryClick(category.id, subcategory.id)}
+                                    className="text-sm text-gray-600 hover:text-blue-600 w-full text-left px-2 py-0.5 rounded transition-colors block"
+                                  >
+                                    {item}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      /* No subcategories */
+                      <div className="p-6 min-w-[300px] text-center">
+                        <p className="text-sm text-gray-600">No subcategories available</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
