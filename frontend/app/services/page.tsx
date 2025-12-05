@@ -60,7 +60,7 @@ export default function ServicesMarketplacePage() {
   const [totalServices, setTotalServices] = useState(0)
 
   // Calculate if any filters are active
-  const hasActiveFilters = !!(searchTerm || selectedCategory)
+  const hasActiveFilters = !!(searchTerm || selectedCategory || selectedSubcategory)
 
   useEffect(() => {
     fetchInitialData()
@@ -120,6 +120,7 @@ export default function ServicesMarketplacePage() {
 
       if (searchTerm) params.search = searchTerm
       if (selectedCategory) params.category = selectedCategory
+      if (selectedSubcategory) params.subcategory = selectedSubcategory
 
       const response = await servicesApi.getServices(params)
 

@@ -15,6 +15,7 @@ router.get('/', asyncHandler(async (req, res) => {
     page = 1,
     limit = 20,
     category,
+    subcategory,
     minPrice,
     maxPrice,
     search,
@@ -52,6 +53,10 @@ router.get('/', asyncHandler(async (req, res) => {
 
   if (category) {
     where.categoryId = category as string;
+  }
+
+  if (subcategory) {
+    where.subcategoryId = subcategory as string;
   }
 
   if (minPrice || maxPrice) {
