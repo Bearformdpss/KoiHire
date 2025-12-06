@@ -5,19 +5,21 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ClientOnly } from '@/components/auth/RoleProtection'
 import { ApplicationReview } from '@/components/projects/ApplicationReview'
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Eye, 
-  Edit, 
+import PostProjectForm from '@/components/projects/PostProjectFormNew'
+import {
+  Plus,
+  Search,
+  Filter,
+  Eye,
+  Edit,
   MessageCircle,
   Calendar,
   DollarSign,
   Users,
   Loader2,
   Briefcase,
-  Clock
+  Clock,
+  X
 } from 'lucide-react'
 import { projectsApi } from '@/lib/api/projects'
 import toast from 'react-hot-toast'
@@ -60,6 +62,7 @@ export default function MyProjectsPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [filterStatus, setFilterStatus] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     fetchProjects()
@@ -86,6 +89,18 @@ export default function MyProjectsPage() {
 
   const handleApplicationUpdate = () => {
     fetchProjects()
+  }
+
+  const handleProjectCreated = (createdProject: any) => {
+    setShowCreateModal(false)
+    toast.success('Project created successfully!')
+    // Redirect directly to the project details page
+    if (createdProject?.id) {
+      router.push(`/projects/${createdProject.id}`)
+    } else {
+      // Fallback: refresh projects list
+      fetchProjects()
+    }
   }
 
   const filteredProjects = projects.filter(project => {
@@ -143,7 +158,7 @@ export default function MyProjectsPage() {
                   <h1 className="text-3xl font-bold text-gray-900">My Projects</h1>
                   <p className="text-gray-600 mt-2">Manage your posted projects and applications</p>
                 </div>
-                <Button onClick={() => router.push('/post-project')} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => setShowCreateModal(true)} className="bg-[#1e3a5f] hover:bg-[#152a45] text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Post New Project
                 </Button>
@@ -163,7 +178,7 @@ export default function MyProjectsPage() {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Search by title or description..."
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -174,7 +189,7 @@ export default function MyProjectsPage() {
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
                     >
                       <option value="all">All Statuses</option>
                       <option value="OPEN">Open</option>
@@ -208,7 +223,7 @@ export default function MyProjectsPage() {
                     }
                   </p>
                   {projects.length === 0 && (
-                    <Button onClick={() => router.push('/post-project')} className="bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={() => setShowCreateModal(true)} className="bg-[#1e3a5f] hover:bg-[#152a45] text-white">
                       <Plus className="w-4 h-4 mr-2" />
                       Post Your First Project
                     </Button>
@@ -337,6 +352,29 @@ export default function MyProjectsPage() {
             </div>
           )}
         </div>
+
+        {/* Create Project Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Create New Project</h2>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6">
+                <PostProjectForm
+                  onClose={() => setShowCreateModal(false)}
+                  onSuccess={handleProjectCreated}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ClientOnly>
   )

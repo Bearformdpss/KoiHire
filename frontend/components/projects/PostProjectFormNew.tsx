@@ -267,17 +267,21 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
       }
 
       const response = await projectsApi.createProject(projectData)
-      
+
       if (response.success) {
         const selectedUpgrade = premiumOptions.find(opt => opt.tier === formData.premiumTier)
-        const successMessage = selectedUpgrade && selectedUpgrade.price > 0 
+        const successMessage = selectedUpgrade && selectedUpgrade.price > 0
           ? `Project posted with ${selectedUpgrade.title} upgrade!`
           : 'Project posted successfully!'
-        
+
         toast.success(successMessage)
 
+        // Get the created project from response
+        const createdProject = response.data?.data?.project || response.data?.project
+
         if (onSuccess) {
-          onSuccess()
+          // Pass the created project to onSuccess callback
+          onSuccess(createdProject)
         } else {
           router.push('/my-projects')
         }
