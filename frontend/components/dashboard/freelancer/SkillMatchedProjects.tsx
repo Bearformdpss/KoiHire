@@ -147,7 +147,7 @@ export function SkillMatchedProjects() {
             </h3>
 
             {/* Project Description */}
-            <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+            <p className="text-sm text-gray-600 mb-3 line-clamp-2 break-words">
               {project.description}
             </p>
 
