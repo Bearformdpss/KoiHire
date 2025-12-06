@@ -83,9 +83,10 @@ export function ReviewForm({
       } else {
         toast.error('Failed to submit review')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit review:', error)
-      toast.error('Failed to submit review - backend endpoint not available yet')
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to submit review'
+      toast.error(errorMessage)
     } finally {
       setSubmitting(false)
     }
