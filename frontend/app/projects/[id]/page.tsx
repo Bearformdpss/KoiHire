@@ -125,10 +125,21 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     if (projectId) {
       fetchProject()
-      checkEscrowStatus()
-      fetchCurrentSubmission()
     }
   }, [projectId])
+
+  // Only fetch escrow and submission data for project participants (client or assigned freelancer)
+  useEffect(() => {
+    if (project && user) {
+      const isClient = project.client?.id === user.id
+      const isAssignedFreelancer = project.freelancer?.id === user.id
+
+      if (isClient || isAssignedFreelancer) {
+        checkEscrowStatus()
+        fetchCurrentSubmission()
+      }
+    }
+  }, [project, user])
 
   // Close quick actions dropdown when clicking outside
   useEffect(() => {
@@ -473,7 +484,7 @@ export default function ProjectDetailPage() {
     (user?.id === project?.client?.id || user?.id === project?.freelancer?.id)
   const isProjectOwner = user?.id === project?.client?.id
   const canManageProject = isProjectOwner && project?.status !== 'IN_PROGRESS'
-  const isAssignedFreelancer = user?.role === 'FREELANCER' && project?.freelancerId === user?.id
+  const isAssignedFreelancer = user?.role === 'FREELANCER' && project?.freelancer?.id === user?.id
   const canSubmitWork = isAssignedFreelancer && project?.status === 'IN_PROGRESS'
 
   if (loading) {
@@ -882,7 +893,7 @@ export default function ProjectDetailPage() {
               )}
 
               {/* Event Timeline - Show for assigned freelancer and client */}
-              {(isProjectOwner || (project.freelancerId && project.freelancerId === user?.id)) && (
+              {(isProjectOwner || (project.freelancer?.id && project.freelancer.id === user?.id)) && (
                 <ProjectTimeline projectId={project.id} />
               )}
 
