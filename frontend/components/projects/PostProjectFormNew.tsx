@@ -299,42 +299,14 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Header with step indicator */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">{getStepTitle()}</h2>
-        </div>
-        
-        {/* Step Progress Indicator */}
-        <div className="flex items-center space-x-4 mb-6">
-          <div className={`flex items-center space-x-2 ${
-            currentStep === 'details' ? 'text-blue-600' : 
-            ['premium', 'review'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'
-          }`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              currentStep === 'details' ? 'bg-blue-600 text-white' :
-              ['premium', 'review'].includes(currentStep) ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-              {['premium', 'review'].includes(currentStep) ? <CheckCircle className="w-4 h-4" /> : '1'}
-            </div>
-            <span className="font-medium">Project Details</span>
-          </div>
-          
-          <div className={`w-12 h-px ${
-            currentStep === 'review' ? 'bg-green-600' : 'bg-gray-200'
-          }`} />
-
-          <div className={`flex items-center space-x-2 ${
-            currentStep === 'review' ? 'text-blue-600' : 'text-gray-400'
-          }`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              currentStep === 'review' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-              2
-            </div>
-            <span className="font-medium">Review & Post</span>
-          </div>
-        </div>
+      {/* Header - Clean and professional */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-[#1e3a5f] mb-2">{getStepTitle()}</h2>
+        <p className="text-gray-600">
+          {currentStep === 'details'
+            ? 'Tell us about your project to attract the best freelancers'
+            : 'Review your project details before posting'}
+        </p>
       </div>
 
       {/* Step Content */}
@@ -351,7 +323,7 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g. Build a responsive e-commerce website"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
               maxLength={200}
             />
             {errors.title && (
@@ -372,7 +344,7 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Describe your project in detail. What do you want to build? What are your goals?"
               rows={5}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
               maxLength={2000}
             />
             {errors.description && (
@@ -393,7 +365,7 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
               onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
               placeholder="Any specific requirements, technical specifications, or deliverables?"
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
               maxLength={1000}
             />
             <p className="mt-1 text-sm text-gray-500">
@@ -414,7 +386,7 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
                 onChange={(e) => setFormData(prev => ({ ...prev, minBudget: e.target.value }))}
                 placeholder="500"
                 min="1"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
               />
               {errors.minBudget && (
                 <p className="mt-1 text-sm text-red-600">{errors.minBudget}</p>
@@ -431,7 +403,7 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
                 onChange={(e) => setFormData(prev => ({ ...prev, maxBudget: e.target.value }))}
                 placeholder="2000"
                 min="1"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
               />
               {errors.maxBudget && (
                 <p className="mt-1 text-sm text-red-600">{errors.maxBudget}</p>
@@ -450,7 +422,7 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
               value={formData.timeline}
               onChange={(e) => setFormData(prev => ({ ...prev, timeline: e.target.value }))}
               placeholder="e.g. 2-3 weeks, 1 month, ASAP"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
               maxLength={100}
             />
             {errors.timeline && (
@@ -467,7 +439,7 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
             <select
               value={formData.categoryId}
               onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
             >
               <option value="">Select a category</option>
               {categories.map((category) => (
@@ -531,7 +503,7 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
             <Button
               type="button"
               onClick={handleNext}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              className="flex items-center gap-2 bg-[#1e3a5f] hover:bg-[#152a45] text-white"
             >
               Next
               <ArrowRight className="w-4 h-4" />
@@ -540,7 +512,7 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
             <Button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700 min-w-32"
+              className="bg-[#1e3a5f] hover:bg-[#152a45] text-white min-w-32"
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
