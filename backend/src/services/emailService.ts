@@ -6,6 +6,24 @@ import {
   orderCompletedFreelancerEmail,
   applicationReceivedClientEmail,
   passwordResetEmail,
+  // Phase 1 - Critical emails
+  applicationAcceptedFreelancerEmail,
+  applicationRejectedFreelancerEmail,
+  workSubmittedClientEmail,
+  workApprovedFreelancerEmail,
+  projectPaymentReleasedFreelancerEmail,
+  changesRequestedFreelancerEmail,
+  serviceOrderAcceptedClientEmail,
+  revisionRequestedFreelancerEmail,
+  // Phase 2 - Important emails
+  projectUpdatePostedClientEmail,
+  escrowFundedFreelancerEmail,
+  orderCancelledEmail,
+  welcomeEmail,
+  // Phase 3 - Nice-to-have emails
+  projectCancelledFreelancerEmail,
+  serviceReviewReceivedFreelancerEmail,
+  passwordChangedConfirmationEmail,
 } from '../templates/emailTemplates';
 
 /**
@@ -250,6 +268,403 @@ class EmailService {
     await this.sendEmail(
       data.email,
       'Reset Your KoiHire Password',
+      html
+    );
+  }
+
+  // ==================== PHASE 1: CRITICAL EMAIL METHODS ====================
+
+  /**
+   * EMAIL #7: Application Accepted - Freelancer Notification
+   */
+  async sendApplicationAcceptedFreelancerEmail(data: {
+    freelancer: { email: string; firstName: string; lastName: string };
+    client: { firstName: string; lastName: string };
+    project: { id: string; title: string };
+    agreedAmount: number;
+  }): Promise<void> {
+    const html = applicationAcceptedFreelancerEmail({
+      freelancerName: `${data.freelancer.firstName}`,
+      projectTitle: data.project.title,
+      clientName: `${data.client.firstName} ${data.client.lastName}`,
+      agreedAmount: data.agreedAmount,
+      projectUrl: `${this.frontendUrl}/projects/${data.project.id}/workspace`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.freelancer.email,
+      `🎉 You've Been Hired! - ${data.project.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #8: Application Rejected - Freelancer Notification
+   */
+  async sendApplicationRejectedFreelancerEmail(data: {
+    freelancer: { email: string; firstName: string };
+    project: { title: string };
+  }): Promise<void> {
+    const html = applicationRejectedFreelancerEmail({
+      freelancerName: data.freelancer.firstName,
+      projectTitle: data.project.title,
+      browseProjectsUrl: `${this.frontendUrl}/projects`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.freelancer.email,
+      `Application Update - ${data.project.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #9: Work Submitted for Review - Client Notification
+   */
+  async sendWorkSubmittedClientEmail(data: {
+    client: { email: string; firstName: string };
+    freelancer: { firstName: string; lastName: string };
+    project: { id: string; title: string };
+    submission: { title: string; submissionNumber: number };
+  }): Promise<void> {
+    const html = workSubmittedClientEmail({
+      clientName: data.client.firstName,
+      projectTitle: data.project.title,
+      freelancerName: `${data.freelancer.firstName} ${data.freelancer.lastName}`,
+      submissionTitle: data.submission.title,
+      submissionNumber: data.submission.submissionNumber,
+      projectUrl: `${this.frontendUrl}/projects/${data.project.id}/workspace`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.client.email,
+      `📬 Work Submitted for Review - ${data.project.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #10: Work Approved - Freelancer Notification
+   */
+  async sendWorkApprovedFreelancerEmail(data: {
+    freelancer: { email: string; firstName: string };
+    client: { firstName: string; lastName: string };
+    project: { id: string; title: string };
+  }): Promise<void> {
+    const html = workApprovedFreelancerEmail({
+      freelancerName: data.freelancer.firstName,
+      projectTitle: data.project.title,
+      clientName: `${data.client.firstName} ${data.client.lastName}`,
+      projectUrl: `${this.frontendUrl}/projects/${data.project.id}/workspace`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.freelancer.email,
+      `✅ Your Work Has Been Approved! - ${data.project.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #11: Project Payment Released - Freelancer Notification
+   */
+  async sendProjectPaymentReleasedFreelancerEmail(data: {
+    freelancer: { email: string; firstName: string };
+    client: { firstName: string; lastName: string };
+    project: { title: string };
+    paymentAmount: number;
+  }): Promise<void> {
+    const html = projectPaymentReleasedFreelancerEmail({
+      freelancerName: data.freelancer.firstName,
+      projectTitle: data.project.title,
+      clientName: `${data.client.firstName} ${data.client.lastName}`,
+      paymentAmount: data.paymentAmount,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.freelancer.email,
+      `💰 Payment Released! - ${data.project.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #12: Changes Requested - Freelancer Notification
+   */
+  async sendChangesRequestedFreelancerEmail(data: {
+    freelancer: { email: string; firstName: string };
+    client: { firstName: string; lastName: string };
+    project: { id: string; title: string };
+    changeMessage: string;
+    revisionsUsed: number;
+    maxRevisions: number;
+  }): Promise<void> {
+    const html = changesRequestedFreelancerEmail({
+      freelancerName: data.freelancer.firstName,
+      projectTitle: data.project.title,
+      clientName: `${data.client.firstName} ${data.client.lastName}`,
+      changeMessage: data.changeMessage,
+      revisionsUsed: data.revisionsUsed,
+      maxRevisions: data.maxRevisions,
+      projectUrl: `${this.frontendUrl}/projects/${data.project.id}/workspace`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.freelancer.email,
+      `📝 Revision Requested - ${data.project.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #13: Service Order Accepted - Client Notification
+   */
+  async sendServiceOrderAcceptedClientEmail(data: {
+    client: { email: string; firstName: string };
+    freelancer: { firstName: string; lastName: string };
+    order: { id: string; orderNumber: string };
+    service: { title: string };
+    expectedDeliveryDate: string;
+  }): Promise<void> {
+    const html = serviceOrderAcceptedClientEmail({
+      clientName: data.client.firstName,
+      orderNumber: data.order.orderNumber,
+      serviceTitle: data.service.title,
+      freelancerName: `${data.freelancer.firstName} ${data.freelancer.lastName}`,
+      expectedDeliveryDate: data.expectedDeliveryDate,
+      orderUrl: `${this.frontendUrl}/orders/${data.order.id}`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.client.email,
+      `✅ Order Accepted - ${data.service.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #14: Revision Requested on Service Order - Freelancer Notification
+   */
+  async sendRevisionRequestedFreelancerEmail(data: {
+    freelancer: { email: string; firstName: string };
+    client: { firstName: string; lastName: string };
+    order: { id: string; orderNumber: string };
+    service: { title: string };
+    revisionNote: string;
+    revisionsUsed: number;
+    maxRevisions: number;
+  }): Promise<void> {
+    const html = revisionRequestedFreelancerEmail({
+      freelancerName: data.freelancer.firstName,
+      orderNumber: data.order.orderNumber,
+      serviceTitle: data.service.title,
+      clientName: `${data.client.firstName} ${data.client.lastName}`,
+      revisionNote: data.revisionNote,
+      revisionsUsed: data.revisionsUsed,
+      maxRevisions: data.maxRevisions,
+      orderUrl: `${this.frontendUrl}/orders/${data.order.id}`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.freelancer.email,
+      `📝 Revision Requested - ${data.service.title}`,
+      html
+    );
+  }
+
+  // ==================== PHASE 2: IMPORTANT EMAIL METHODS ====================
+
+  /**
+   * EMAIL #15: Project Update Posted - Client Notification
+   */
+  async sendProjectUpdatePostedClientEmail(data: {
+    client: { email: string; firstName: string };
+    freelancer: { firstName: string; lastName: string };
+    project: { id: string; title: string };
+    update: { title: string; type: string; message: string };
+  }): Promise<void> {
+    const html = projectUpdatePostedClientEmail({
+      clientName: data.client.firstName,
+      projectTitle: data.project.title,
+      freelancerName: `${data.freelancer.firstName} ${data.freelancer.lastName}`,
+      updateTitle: data.update.title,
+      updateType: data.update.type,
+      updateMessage: data.update.message,
+      projectUrl: `${this.frontendUrl}/projects/${data.project.id}/workspace`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.client.email,
+      `📊 Project Update - ${data.project.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #16: Escrow Funded - Freelancer Notification
+   */
+  async sendEscrowFundedFreelancerEmail(data: {
+    freelancer: { email: string; firstName: string };
+    client: { firstName: string; lastName: string };
+    project: { id: string; title: string };
+    fundedAmount: number;
+  }): Promise<void> {
+    const html = escrowFundedFreelancerEmail({
+      freelancerName: data.freelancer.firstName,
+      projectTitle: data.project.title,
+      clientName: `${data.client.firstName} ${data.client.lastName}`,
+      fundedAmount: data.fundedAmount,
+      projectUrl: `${this.frontendUrl}/projects/${data.project.id}/workspace`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.freelancer.email,
+      `🔒 Escrow Funded - ${data.project.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #17: Order Cancelled - Notification to Both Parties
+   */
+  async sendOrderCancelledEmail(data: {
+    recipient: { email: string; firstName: string; role: 'CLIENT' | 'FREELANCER' };
+    cancelledBy: { firstName: string; lastName: string; role: 'CLIENT' | 'FREELANCER' };
+    order: { orderNumber: string };
+    service: { title: string };
+    reason?: string;
+  }): Promise<void> {
+    const ordersUrl = data.recipient.role === 'CLIENT'
+      ? `${this.frontendUrl}/client/orders`
+      : `${this.frontendUrl}/freelancer/orders`;
+
+    const html = orderCancelledEmail({
+      recipientName: data.recipient.firstName,
+      orderNumber: data.order.orderNumber,
+      serviceTitle: data.service.title,
+      cancelledByName: `${data.cancelledBy.firstName} ${data.cancelledBy.lastName}`,
+      cancelledByRole: data.cancelledBy.role,
+      reason: data.reason,
+      ordersUrl,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.recipient.email,
+      `Order Cancelled - ${data.service.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #18: Welcome Email - New User Registration
+   */
+  async sendWelcomeEmail(data: {
+    email: string;
+    firstName: string;
+    role: 'CLIENT' | 'FREELANCER';
+  }): Promise<void> {
+    const html = welcomeEmail({
+      firstName: data.firstName,
+      role: data.role,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+      settingsUrl: `${this.frontendUrl}/settings`,
+    });
+
+    await this.sendEmail(
+      data.email,
+      `🎉 Welcome to KoiHire, ${data.firstName}!`,
+      html
+    );
+  }
+
+  // ==================== PHASE 3: NICE-TO-HAVE EMAIL METHODS ====================
+
+  /**
+   * EMAIL #19: Project Cancelled - Freelancer Notification
+   * Only sent if freelancer was assigned to the project
+   */
+  async sendProjectCancelledFreelancerEmail(data: {
+    freelancer: { email: string; firstName: string };
+    client: { firstName: string; lastName: string };
+    project: { title: string };
+    reason?: string;
+  }): Promise<void> {
+    const html = projectCancelledFreelancerEmail({
+      freelancerName: data.freelancer.firstName,
+      projectTitle: data.project.title,
+      clientName: `${data.client.firstName} ${data.client.lastName}`,
+      reason: data.reason,
+      browseProjectsUrl: `${this.frontendUrl}/projects`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.freelancer.email,
+      `Project Cancelled - ${data.project.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #20: Service Review Received - Freelancer Notification
+   */
+  async sendServiceReviewReceivedFreelancerEmail(data: {
+    freelancer: { email: string; firstName: string };
+    client: { firstName: string; lastName: string };
+    service: { title: string };
+    review: { rating: number; comment?: string };
+  }): Promise<void> {
+    const html = serviceReviewReceivedFreelancerEmail({
+      freelancerName: data.freelancer.firstName,
+      serviceTitle: data.service.title,
+      clientName: `${data.client.firstName} ${data.client.lastName}`,
+      rating: data.review.rating,
+      comment: data.review.comment,
+      servicesUrl: `${this.frontendUrl}/freelancer/services`,
+      dashboardUrl: `${this.frontendUrl}/dashboard`,
+    });
+
+    await this.sendEmail(
+      data.freelancer.email,
+      `⭐ New Review - ${data.service.title}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #21: Password Changed Confirmation
+   */
+  async sendPasswordChangedConfirmationEmail(data: {
+    email: string;
+    firstName: string;
+  }): Promise<void> {
+    const html = passwordChangedConfirmationEmail({
+      firstName: data.firstName,
+      changedAt: new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      }),
+      loginUrl: `${this.frontendUrl}/login`,
+    });
+
+    await this.sendEmail(
+      data.email,
+      '🔐 Password Changed - KoiHire',
       html
     );
   }

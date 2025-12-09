@@ -4,6 +4,7 @@ import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest, authMiddleware, requireRole } from '../middleware/auth';
 import { validate, projectSchema } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
+import { emailService } from '../services/emailService';
 import { calculateProjectPricing } from '../utils/pricing';
 import { releaseProjectEscrowPayment } from '../services/stripeService';
 import { createProjectEvent, PROJECT_EVENT_TYPES, getProjectEvents } from '../services/eventService';
@@ -544,6 +545,43 @@ router.post('/:projectId/accept/:applicationId', authMiddleware, asyncHandler(as
     // Don't fail the request if notifications fail
   }
 
+  // Send email notifications
+  try {
+    // Get accepted freelancer details for email
+    const acceptedFreelancer = await prisma.user.findUnique({
+      where: { id: acceptedApplication.freelancerId },
+      select: { email: true, firstName: true, lastName: true }
+    });
+
+    // Email accepted freelancer
+    if (acceptedFreelancer) {
+      await emailService.sendApplicationAcceptedFreelancerEmail({
+        freelancer: acceptedFreelancer,
+        client: { firstName: project.client.firstName, lastName: project.client.lastName },
+        project: { id: projectId, title: project.title },
+        agreedAmount: pricing.agreedAmount
+      });
+    }
+
+    // Email rejected freelancers
+    for (const rejectedApp of rejectedApplications) {
+      const rejectedFreelancer = await prisma.user.findUnique({
+        where: { id: rejectedApp.freelancerId },
+        select: { email: true, firstName: true }
+      });
+
+      if (rejectedFreelancer) {
+        await emailService.sendApplicationRejectedFreelancerEmail({
+          freelancer: rejectedFreelancer,
+          project: { title: project.title }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error sending application status emails:', error);
+    // Don't fail the request if emails fail
+  }
+
   res.json({
     success: true,
     message: 'Application accepted successfully'
@@ -914,6 +952,21 @@ router.put('/:projectId/submit-work', authMiddleware, asyncHandler(async (req: A
     // Don't fail the request if notification fails
   }
 
+  // Send email to client about work submission
+  try {
+    if (project.freelancer) {
+      await emailService.sendWorkSubmittedClientEmail({
+        client: { email: project.client.email, firstName: project.client.firstName },
+        freelancer: { firstName: project.freelancer.firstName, lastName: project.freelancer.lastName },
+        project: { id: projectId, title: project.title },
+        submission: { title: title.trim(), submissionNumber }
+      });
+    }
+  } catch (error) {
+    console.error('Error sending work submitted email:', error);
+    // Don't fail the request if email fails
+  }
+
   res.json({
     success: true,
     message: 'Work submitted for client review successfully',
@@ -1129,6 +1182,32 @@ router.post('/:projectId/approve', authMiddleware, asyncHandler(async (req: Auth
     throw new AppError(`Failed to release payment: ${error.message}`, 500);
   }
 
+  // Send emails to freelancer about approval and payment
+  try {
+    if (project.freelancer && client) {
+      // Calculate freelancer's net payment (agreedAmount - sellerCommission)
+      const freelancerPayment = (project.agreedAmount || 0) - (project.sellerCommission || 0);
+
+      // Send work approved email
+      await emailService.sendWorkApprovedFreelancerEmail({
+        freelancer: { email: project.freelancer.email, firstName: project.freelancer.firstName },
+        client: { firstName: client.firstName, lastName: client.lastName },
+        project: { id: projectId, title: project.title }
+      });
+
+      // Send payment released email
+      await emailService.sendProjectPaymentReleasedFreelancerEmail({
+        freelancer: { email: project.freelancer.email, firstName: project.freelancer.firstName },
+        client: { firstName: client.firstName, lastName: client.lastName },
+        project: { title: project.title },
+        paymentAmount: freelancerPayment
+      });
+    }
+  } catch (error) {
+    console.error('Error sending work approved/payment released emails:', error);
+    // Don't fail the request if emails fail
+  }
+
   res.json({
     success: true,
     message: 'Project approved and completed successfully. Payment has been released to the freelancer.'
@@ -1246,6 +1325,23 @@ router.post('/:projectId/request-changes', authMiddleware, asyncHandler(async (r
   } catch (error) {
     console.error('Error sending change request notification:', error);
     // Don't fail the request if notification fails
+  }
+
+  // Send email to freelancer about changes requested
+  try {
+    if (project.freelancer && client) {
+      await emailService.sendChangesRequestedFreelancerEmail({
+        freelancer: { email: project.freelancer.email, firstName: project.freelancer.firstName },
+        client: { firstName: client.firstName, lastName: client.lastName },
+        project: { id: projectId, title: project.title },
+        changeMessage: message.trim(),
+        revisionsUsed: project.revisionsRequested + 1,
+        maxRevisions: project.maxRevisionsAllowed
+      });
+    }
+  } catch (error) {
+    console.error('Error sending changes requested email:', error);
+    // Don't fail the request if email fails
   }
 
   const revisionsRemaining = project.maxRevisionsAllowed - (project.revisionsRequested + 1);

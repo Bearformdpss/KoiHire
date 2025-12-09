@@ -435,6 +435,47 @@ router.post('/:orderId/accept', authMiddleware, requireRole(['FREELANCER']), asy
     console.error('Error sending order acceptance notification:', error);
   }
 
+  // Send email to client about order acceptance
+  try {
+    // Get client email
+    const clientDetails = await prisma.user.findUnique({
+      where: { id: order.client.id },
+      select: { email: true, firstName: true }
+    });
+
+    if (clientDetails) {
+      // Calculate expected delivery date
+      const servicePackage = await prisma.servicePackage.findFirst({
+        where: { id: order.packageId }
+      });
+
+      const expectedDeliveryDate = order.deliveryDate
+        ? new Date(order.deliveryDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+        : servicePackage
+          ? new Date(Date.now() + servicePackage.deliveryTime * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })
+          : 'To be determined';
+
+      await emailService.sendServiceOrderAcceptedClientEmail({
+        client: { email: clientDetails.email, firstName: clientDetails.firstName },
+        freelancer: { firstName: order.freelancer.firstName, lastName: order.freelancer.lastName },
+        order: { id: orderId, orderNumber: order.orderNumber },
+        service: { title: order.service.title },
+        expectedDeliveryDate
+      });
+    }
+  } catch (error) {
+    console.error('Error sending order accepted email:', error);
+    // Don't fail the request if email fails
+  }
+
   res.json({
     success: true,
     message: 'Order accepted successfully',
@@ -815,6 +856,29 @@ router.post('/:orderId/revision', authMiddleware, requireRole(['CLIENT']), async
     console.error('Error sending revision notification:', error);
   }
 
+  // Send email to freelancer about revision request
+  try {
+    const freelancerDetails = await prisma.user.findUnique({
+      where: { id: order.freelancer.id },
+      select: { email: true, firstName: true }
+    });
+
+    if (freelancerDetails) {
+      await emailService.sendRevisionRequestedFreelancerEmail({
+        freelancer: { email: freelancerDetails.email, firstName: freelancerDetails.firstName },
+        client: { firstName: order.client.firstName, lastName: order.client.lastName },
+        order: { id: orderId, orderNumber: order.orderNumber },
+        service: { title: order.service.title },
+        revisionNote: revisionNote.trim(),
+        revisionsUsed: updatedOrder.revisionsUsed,
+        maxRevisions: order.package.revisions
+      });
+    }
+  } catch (error) {
+    console.error('Error sending revision requested email:', error);
+    // Don't fail the request if email fails
+  }
+
   res.json({
     success: true,
     message: 'Revision requested successfully',
@@ -871,6 +935,38 @@ router.post('/:orderId/cancel', authMiddleware, asyncHandler(async (req: AuthReq
     );
   } catch (error) {
     console.error('Error sending cancellation notification:', error);
+  }
+
+  // Send email to the other party about order cancellation
+  try {
+    const isCancelledByClient = order.clientId === req.user!.id;
+    const recipientId = isCancelledByClient ? order.freelancerId : order.clientId;
+
+    const recipientDetails = await prisma.user.findUnique({
+      where: { id: recipientId },
+      select: { email: true, firstName: true }
+    });
+
+    if (recipientDetails) {
+      await emailService.sendOrderCancelledEmail({
+        recipient: {
+          email: recipientDetails.email,
+          firstName: recipientDetails.firstName,
+          role: isCancelledByClient ? 'FREELANCER' : 'CLIENT'
+        },
+        cancelledBy: {
+          firstName: isCancelledByClient ? order.client.firstName : order.freelancer.firstName,
+          lastName: isCancelledByClient ? order.client.lastName : order.freelancer.lastName,
+          role: isCancelledByClient ? 'CLIENT' : 'FREELANCER'
+        },
+        order: { orderNumber: order.orderNumber },
+        service: { title: order.service.title },
+        reason
+      });
+    }
+  } catch (error) {
+    console.error('Error sending order cancelled email:', error);
+    // Don't fail the request if email fails
   }
 
   res.json({
@@ -945,7 +1041,30 @@ router.post('/:orderId/review', authMiddleware, requireRole(['CLIENT']), validat
     data: { rating: avgRating }
   });
 
-  // Review notification removed - freelancer reviews only, not service reviews
+  // Send email to freelancer about new review
+  try {
+    const freelancerDetails = await prisma.user.findUnique({
+      where: { id: order.freelancerId },
+      select: { email: true, firstName: true }
+    });
+
+    const clientDetails = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { firstName: true, lastName: true }
+    });
+
+    if (freelancerDetails && clientDetails) {
+      await emailService.sendServiceReviewReceivedFreelancerEmail({
+        freelancer: { email: freelancerDetails.email, firstName: freelancerDetails.firstName },
+        client: { firstName: clientDetails.firstName, lastName: clientDetails.lastName },
+        service: { title: order.service.title },
+        review: { rating, comment }
+      });
+    }
+  } catch (error) {
+    console.error('Error sending review received email:', error);
+    // Don't fail the request if email fails
+  }
 
   res.json({
     success: true,

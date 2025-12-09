@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
 import { createProjectEvent, createServiceEvent, PROJECT_EVENT_TYPES, SERVICE_EVENT_TYPES } from './eventService';
+import { emailService } from './emailService';
 
 const prisma = new PrismaClient();
 
@@ -198,6 +199,28 @@ export const confirmProjectEscrowPayment = async (projectId: string, paymentInte
       totalCharged: project.totalCharged || escrow.amount
     }
   });
+
+  // Send email to freelancer about escrow being funded
+  try {
+    if (project.freelancer) {
+      const freelancerDetails = await prisma.user.findUnique({
+        where: { id: project.freelancer.id },
+        select: { email: true, firstName: true }
+      });
+
+      if (freelancerDetails) {
+        await emailService.sendEscrowFundedFreelancerEmail({
+          freelancer: { email: freelancerDetails.email, firstName: freelancerDetails.firstName },
+          client: { firstName: project.client.firstName, lastName: project.client.lastName },
+          project: { id: projectId, title: project.title },
+          fundedAmount: project.agreedAmount || escrow.amount
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error sending escrow funded email:', error);
+    // Don't fail the payment if email fails
+  }
 
   return escrow;
 };

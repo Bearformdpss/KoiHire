@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { AuthRequest } from '../middleware/auth'
 import { notificationService } from '../services/notificationService'
+import { emailService } from '../services/emailService'
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -132,6 +133,26 @@ router.post('/projects/:projectId/updates', async (req: AuthRequest, res) => {
     } catch (error) {
       console.error('Error sending project update notification:', error);
       // Don't fail the request if notification fails
+    }
+
+    // Send email to client about project update
+    try {
+      const clientDetails = await prisma.user.findUnique({
+        where: { id: project.client.id },
+        select: { email: true, firstName: true }
+      });
+
+      if (clientDetails && project.freelancer) {
+        await emailService.sendProjectUpdatePostedClientEmail({
+          client: { email: clientDetails.email, firstName: clientDetails.firstName },
+          freelancer: { firstName: project.freelancer.firstName, lastName: project.freelancer.lastName },
+          project: { id: projectId, title: project.title },
+          update: { title, type, message: description }
+        });
+      }
+    } catch (error) {
+      console.error('Error sending project update email:', error);
+      // Don't fail the request if email fails
     }
 
     res.status(201).json({

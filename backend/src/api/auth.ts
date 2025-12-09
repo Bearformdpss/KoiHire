@@ -67,6 +67,18 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
   const { accessToken, refreshToken } = generateTokens(user.id);
   await saveRefreshToken(user.id, refreshToken);
 
+  // Send welcome email to new user
+  try {
+    await emailService.sendWelcomeEmail({
+      email: user.email,
+      firstName: user.firstName,
+      role: user.role as 'CLIENT' | 'FREELANCER'
+    });
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    // Don't fail the registration if email fails
+  }
+
   res.status(201).json({
     success: true,
     message: 'User registered successfully',
@@ -335,6 +347,17 @@ router.post('/reset-password', asyncHandler(async (req, res) => {
   });
 
   console.log(`✅ Password reset successful for user: ${validToken.user.email}`);
+
+  // Send password changed confirmation email
+  try {
+    await emailService.sendPasswordChangedConfirmationEmail({
+      email: validToken.user.email,
+      firstName: validToken.user.firstName
+    });
+  } catch (error) {
+    console.error('Error sending password changed confirmation email:', error);
+    // Don't fail the reset if email fails
+  }
 
   res.json({
     success: true,
