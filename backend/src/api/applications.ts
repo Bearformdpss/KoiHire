@@ -155,6 +155,34 @@ router.get('/project/:projectId', asyncHandler(async (req: AuthRequest, res) => 
   });
 }));
 
+// Check if user has applied to a specific project (freelancer only)
+router.get('/check/:projectId', requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
+  const { projectId } = req.params;
+
+  const application = await prisma.application.findUnique({
+    where: {
+      projectId_freelancerId: {
+        projectId,
+        freelancerId: req.user!.id
+      }
+    },
+    select: {
+      id: true,
+      status: true,
+      createdAt: true
+    }
+  });
+
+  // Consider WITHDRAWN as not applied (user can reapply)
+  const hasApplied = application !== null && application.status !== 'WITHDRAWN';
+
+  res.json({
+    success: true,
+    hasApplied,
+    application: hasApplied ? application : null
+  });
+}));
+
 // Get user's applications (freelancer only)
 router.get('/my-applications', requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
   const { status, page = 1, limit = 20 } = req.query;

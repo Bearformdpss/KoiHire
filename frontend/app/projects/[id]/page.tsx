@@ -23,10 +23,12 @@ import {
   X,
   Edit3,
   AlertTriangle,
-  FileCheck
+  FileCheck,
+  CheckCircle
 } from 'lucide-react'
 import { projectsApi } from '@/lib/api/projects'
 import { messagesApi } from '@/lib/api/messages'
+import { applicationsApi } from '@/lib/api/applications'
 import { useAuthStore } from '@/lib/store/authStore'
 import BidSubmissionModal from '@/components/projects/BidSubmissionModal'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
@@ -120,6 +122,10 @@ export default function ProjectDetailPage() {
   const [currentSubmission, setCurrentSubmission] = useState<any>(null)
   const [submissionNumber, setSubmissionNumber] = useState(1)
 
+  // Application status state (freelancer)
+  const [hasApplied, setHasApplied] = useState(false)
+  const [checkingApplication, setCheckingApplication] = useState(false)
+
   const projectId = params.id as string
 
   useEffect(() => {
@@ -139,6 +145,26 @@ export default function ProjectDetailPage() {
         fetchCurrentSubmission()
       }
     }
+  }, [project, user])
+
+  // Check if freelancer has already applied to this project
+  useEffect(() => {
+    const checkApplicationStatus = async () => {
+      if (project && user?.role === 'FREELANCER' && project.status === 'OPEN') {
+        setCheckingApplication(true)
+        try {
+          const response = await applicationsApi.checkApplicationStatus(project.id)
+          setHasApplied(response.hasApplied)
+        } catch (error) {
+          // Silently fail - button will default to "Apply" state
+          console.error('Error checking application status:', error)
+        } finally {
+          setCheckingApplication(false)
+        }
+      }
+    }
+
+    checkApplicationStatus()
   }, [project, user])
 
   // Close quick actions dropdown when clicking outside
@@ -271,6 +297,7 @@ export default function ProjectDetailPage() {
 
   const handleBidSuccess = () => {
     toast.success('Application submitted successfully!')
+    setHasApplied(true) // Update button state immediately
     fetchProject() // Refresh project to update application count
   }
 
@@ -479,7 +506,7 @@ export default function ProjectDetailPage() {
     return `${diffInWeeks} week${diffInWeeks > 1 ? 's' : ''} ago`
   }
 
-  const canApply = user?.role === 'FREELANCER' && project?.status === 'OPEN'
+  const isFreelancerViewingOpenProject = user?.role === 'FREELANCER' && project?.status === 'OPEN'
   const canStartConversation = project?.freelancer &&
     (user?.id === project?.client?.id || user?.id === project?.freelancer?.id)
   const isProjectOwner = user?.id === project?.client?.id
@@ -633,10 +660,25 @@ export default function ProjectDetailPage() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 flex-wrap">
-                  {canApply && (
-                    <Button onClick={handleApplyToProject} className="bg-blue-600 hover:bg-blue-700">
-                      Apply for This Project
-                    </Button>
+                  {isFreelancerViewingOpenProject && (
+                    hasApplied ? (
+                      <Button
+                        disabled
+                        className="bg-orange-600 hover:bg-orange-600 cursor-not-allowed"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Applied for This Project
+                      </Button>
+                    ) : checkingApplication ? (
+                      <Button disabled className="bg-blue-600">
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Apply for This Project
+                      </Button>
+                    ) : (
+                      <Button onClick={handleApplyToProject} className="bg-blue-600 hover:bg-blue-700">
+                        Apply for This Project
+                      </Button>
+                    )
                   )}
                   {canStartConversation && (
                     <Button

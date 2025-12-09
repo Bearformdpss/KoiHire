@@ -89,5 +89,16 @@ export const applicationsApi = {
       }
     })
     return response.data
+  },
+
+  // Check if user has applied to a specific project (freelancers only)
+  checkApplicationStatus: async (projectId: string) => {
+    const token = localStorage.getItem('accessToken')
+    const response = await axios.get(`${API_URL}/applications/check/${projectId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    return response.data
   }
 }
