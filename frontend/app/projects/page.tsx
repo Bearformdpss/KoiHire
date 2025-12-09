@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Loader2, Search, Briefcase } from 'lucide-react'
+import { Loader2, Search, Briefcase, CheckCircle } from 'lucide-react'
 import { projectsApi } from '@/lib/api/projects'
+import { applicationsApi } from '@/lib/api/applications'
 import { useAuthStore } from '@/lib/store/authStore'
 import toast from 'react-hot-toast'
 
@@ -37,10 +38,31 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const [appliedProjects, setAppliedProjects] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     fetchProjects()
   }, [])
+
+  // Check which projects the user has already applied to
+  useEffect(() => {
+    const checkAppliedProjects = async () => {
+      if (user?.role !== 'FREELANCER' || projects.length === 0) return
+
+      const projectIds = projects.map(p => p.id)
+
+      try {
+        const response = await applicationsApi.checkApplicationStatusBatch(projectIds)
+        if (response.success) {
+          setAppliedProjects(prev => ({ ...prev, ...response.appliedProjects }))
+        }
+      } catch (error) {
+        console.error('Error checking applied projects:', error)
+      }
+    }
+
+    checkAppliedProjects()
+  }, [projects, user])
 
   const fetchProjects = async (reset = false) => {
     try {
@@ -217,12 +239,22 @@ export default function ProjectsPage() {
                   </div>
 
                   <div className="ml-6">
-                    <button
-                      onClick={() => handleApplyNow(project.id)}
-                      className="bg-white text-koi-orange px-6 py-2.5 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md border border-koi-orange whitespace-nowrap"
-                    >
-                      Apply Now
-                    </button>
+                    {appliedProjects[project.id] ? (
+                      <button
+                        disabled
+                        className="bg-orange-600 text-white px-6 py-2.5 rounded-lg font-semibold cursor-not-allowed shadow-md flex items-center whitespace-nowrap"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Applied
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleApplyNow(project.id)}
+                        className="bg-white text-koi-orange px-6 py-2.5 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md border border-koi-orange whitespace-nowrap"
+                      >
+                        Apply Now
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -100,5 +100,16 @@ export const applicationsApi = {
       }
     })
     return response.data
+  },
+
+  // Batch check if user has applied to multiple projects (freelancers only)
+  checkApplicationStatusBatch: async (projectIds: string[]) => {
+    const token = localStorage.getItem('accessToken')
+    const response = await axios.post(`${API_URL}/applications/check-batch`, { projectIds }, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    return response.data
   }
 }

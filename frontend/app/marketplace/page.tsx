@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Search, Filter, ChevronDown, Star, MapPin, Clock, Loader2 } from 'lucide-react'
+import { Search, Filter, ChevronDown, Star, MapPin, Clock, Loader2, CheckCircle } from 'lucide-react'
 import { FreelancerOnly } from '@/components/auth/RoleProtection'
 import { projectsApi } from '@/lib/api/projects'
 import { categoriesApi } from '@/lib/api/categories'
+import { applicationsApi } from '@/lib/api/applications'
 import BidSubmissionModal from '@/components/projects/BidSubmissionModal'
 import { AdvancedSearch, SearchFilters } from '@/components/search/AdvancedSearch'
 import { useRouter } from 'next/navigation'
@@ -68,6 +69,7 @@ export default function MarketplacePage() {
   const [spotlightProjects, setSpotlightProjects] = useState<Project[]>([])
   const [loadingSpotlight, setLoadingSpotlight] = useState(true)
   const [currentSpotlightIndex, setCurrentSpotlightIndex] = useState(0)
+  const [appliedProjects, setAppliedProjects] = useState<Record<string, boolean>>({})
 
 
   useEffect(() => {
@@ -84,13 +86,42 @@ export default function MarketplacePage() {
     if (spotlightProjects.length <= 1) return
 
     const interval = setInterval(() => {
-      setCurrentSpotlightIndex(prev => 
+      setCurrentSpotlightIndex(prev =>
         prev >= spotlightProjects.length - 1 ? 0 : prev + 1
       )
     }, 10000) // 10 seconds
 
     return () => clearInterval(interval)
   }, [spotlightProjects.length])
+
+  // Check which projects the user has already applied to
+  useEffect(() => {
+    const checkAppliedProjects = async () => {
+      // Collect all project IDs from all sources
+      const allProjectIds = [
+        ...projects.map(p => p.id),
+        ...featuredProjects.map(p => p.id),
+        ...spotlightProjects.map(p => p.id)
+      ]
+
+      // Remove duplicates
+      const uniqueIds = Array.from(new Set(allProjectIds))
+
+      if (uniqueIds.length === 0) return
+
+      try {
+        const response = await applicationsApi.checkApplicationStatusBatch(uniqueIds)
+        if (response.success) {
+          setAppliedProjects(response.appliedProjects)
+        }
+      } catch (error) {
+        // Silently fail - buttons will default to "Apply Now" state
+        console.error('Error checking applied projects:', error)
+      }
+    }
+
+    checkAppliedProjects()
+  }, [projects, featuredProjects, spotlightProjects])
 
   const fetchInitialData = async () => {
     try {
@@ -240,6 +271,10 @@ export default function MarketplacePage() {
 
   const handleBidSuccess = () => {
     toast.success('Application submitted successfully!')
+    // Update applied state immediately for this project
+    if (selectedProject) {
+      setAppliedProjects(prev => ({ ...prev, [selectedProject.id]: true }))
+    }
     fetchProjects(true) // Refresh projects to update application count
   }
 
@@ -364,12 +399,22 @@ export default function MarketplacePage() {
                                   <p className="text-purple-200 text-xs">Verified & Featured</p>
                                 </div>
                                 
+                                {appliedProjects[project.id] ? (
+                                <Button
+                                  disabled
+                                  className="w-full bg-orange-600 hover:bg-orange-600 text-white font-bold py-3 text-sm cursor-not-allowed"
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Applied
+                                </Button>
+                              ) : (
                                 <Button
                                   onClick={() => handleApplyToProject(project)}
                                   className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-3 text-sm"
                                 >
                                   Apply to SPOTLIGHT
                                 </Button>
+                              )}
                               </div>
                             </div>
                           </div>
@@ -430,19 +475,30 @@ export default function MarketplacePage() {
                         <div className="text-xs text-gray-500">
                           {project._count.applications} bids • {getTimeAgo(project.createdAt)}
                         </div>
-                        <Button 
-                          size="sm" 
-                          className="bg-amber-600 hover:bg-amber-700 text-white"
-                          onClick={() => handleApplyToProject(project)}
-                        >
-                          Apply Now
-                        </Button>
+                        {appliedProjects[project.id] ? (
+                          <Button
+                            size="sm"
+                            disabled
+                            className="bg-orange-600 hover:bg-orange-600 text-white cursor-not-allowed"
+                          >
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Applied
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="bg-amber-600 hover:bg-amber-700 text-white"
+                            onClick={() => handleApplyToProject(project)}
+                          >
+                            Apply Now
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="mt-6 text-center">
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={() => router.push('/marketplace/featured')}
                   >
@@ -511,23 +567,26 @@ export default function MarketplacePage() {
                     </div>
                   </div>
                   
-                  <div className="ml-6 text-right">
-                    <div className="mb-4">
-                      <p className="text-gray-400 text-sm">Client Rating</p>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-semibold">{project.client.rating || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={() => handleApplyToProject(project)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Apply Now
-                    </Button>
+                  <div className="ml-6 flex items-center">
+                    {appliedProjects[project.id] ? (
+                      <Button
+                        disabled
+                        className="bg-orange-600 hover:bg-orange-600 text-white cursor-not-allowed"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Applied
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => handleApplyToProject(project)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Apply Now
+                      </Button>
+                    )}
                   </div>
                 </div>
-                
+
                 {/* Client Info */}
                 <div className="flex items-center gap-3 pt-4 border-t border-gray-600">
                   <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">

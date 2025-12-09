@@ -183,6 +183,41 @@ router.get('/check/:projectId', requireRole(['FREELANCER']), asyncHandler(async 
   });
 }));
 
+// Batch check if user has applied to multiple projects (freelancer only)
+router.post('/check-batch', requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
+  const { projectIds } = req.body;
+
+  if (!Array.isArray(projectIds) || projectIds.length === 0) {
+    throw new AppError('projectIds must be a non-empty array', 400);
+  }
+
+  // Limit to 50 projects per request to prevent abuse
+  const limitedIds = projectIds.slice(0, 50);
+
+  const applications = await prisma.application.findMany({
+    where: {
+      freelancerId: req.user!.id,
+      projectId: { in: limitedIds },
+      status: { not: 'WITHDRAWN' } // Exclude withdrawn applications
+    },
+    select: {
+      projectId: true,
+      status: true
+    }
+  });
+
+  // Create a map of projectId -> hasApplied
+  const appliedMap: Record<string, boolean> = {};
+  limitedIds.forEach(id => {
+    appliedMap[id] = applications.some(app => app.projectId === id);
+  });
+
+  res.json({
+    success: true,
+    appliedProjects: appliedMap
+  });
+}));
+
 // Get user's applications (freelancer only)
 router.get('/my-applications', requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
   const { status, page = 1, limit = 20 } = req.query;

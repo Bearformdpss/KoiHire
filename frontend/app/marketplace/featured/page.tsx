@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Star, MapPin, Clock, Loader2 } from 'lucide-react'
+import { ArrowLeft, Star, MapPin, Clock, Loader2, CheckCircle } from 'lucide-react'
 import { FreelancerOnly } from '@/components/auth/RoleProtection'
 import { projectsApi } from '@/lib/api/projects'
+import { applicationsApi } from '@/lib/api/applications'
 import BidSubmissionModal from '@/components/projects/BidSubmissionModal'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -47,10 +48,36 @@ export default function FeaturedProjectsPage() {
   const [currentSpotlightIndex, setCurrentSpotlightIndex] = useState(0)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [showBidModal, setShowBidModal] = useState(false)
+  const [appliedProjects, setAppliedProjects] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     fetchFeaturedProjects()
   }, [])
+
+  // Check which projects the user has already applied to
+  useEffect(() => {
+    const checkAppliedProjects = async () => {
+      const allProjectIds = [
+        ...spotlightProjects.map(p => p.id),
+        ...premiumProjects.map(p => p.id)
+      ]
+
+      const uniqueIds = Array.from(new Set(allProjectIds))
+
+      if (uniqueIds.length === 0) return
+
+      try {
+        const response = await applicationsApi.checkApplicationStatusBatch(uniqueIds)
+        if (response.success) {
+          setAppliedProjects(response.appliedProjects)
+        }
+      } catch (error) {
+        console.error('Error checking applied projects:', error)
+      }
+    }
+
+    checkAppliedProjects()
+  }, [spotlightProjects, premiumProjects])
 
   // Spotlight carousel rotation - 10 seconds per project
   useEffect(() => {
@@ -107,6 +134,9 @@ export default function FeaturedProjectsPage() {
 
   const handleBidSuccess = () => {
     toast.success('Application submitted successfully!')
+    if (selectedProject) {
+      setAppliedProjects(prev => ({ ...prev, [selectedProject.id]: true }))
+    }
     fetchFeaturedProjects()
   }
 
@@ -339,25 +369,30 @@ export default function FeaturedProjectsPage() {
                         </div>
                       )}
                       
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-1">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-semibold">{project.client.rating || 'N/A'}</span>
-                          </div>
-                        </div>
+                      <div className="flex items-center justify-end text-sm text-gray-500 mb-3">
                         <div className="text-xs">
                           {project._count.applications} bids • {getTimeAgo(project.createdAt)}
                         </div>
                       </div>
-                      
-                      <Button 
-                        size="sm" 
-                        className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-                        onClick={() => handleApplyToProject(project)}
-                      >
-                        Apply Now
-                      </Button>
+
+                      {appliedProjects[project.id] ? (
+                        <Button
+                          size="sm"
+                          disabled
+                          className="w-full bg-orange-600 hover:bg-orange-600 text-white cursor-not-allowed"
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Applied
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                          onClick={() => handleApplyToProject(project)}
+                        >
+                          Apply Now
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
