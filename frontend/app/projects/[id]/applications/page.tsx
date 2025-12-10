@@ -543,19 +543,27 @@ export default function ApplicationsPage() {
       </div>
 
       {/* Project Escrow Payment Modal */}
-      {project && selectedApplication && (
-        <CheckoutWrapper
-          isOpen={showCheckout}
-          onClose={() => {
-            setShowCheckout(false)
-            setSelectedApplication(null)
-          }}
-          projectId={projectId}
-          totalAmount={selectedApplication.proposedBudget || project.maxBudget}
-          serviceName={`Project: ${project.title}`}
-          onSuccess={handlePaymentSuccess}
-        />
-      )}
+      {project && selectedApplication && (() => {
+        const baseAmount = selectedApplication.proposedBudget || project.maxBudget
+        const buyerFee = baseAmount * 0.025 // 2.5% buyer fee
+        const totalAmount = baseAmount + buyerFee
+
+        return (
+          <CheckoutWrapper
+            isOpen={showCheckout}
+            onClose={() => {
+              setShowCheckout(false)
+              setSelectedApplication(null)
+            }}
+            projectId={projectId}
+            totalAmount={totalAmount}
+            serviceName={`Project: ${project.title}`}
+            onSuccess={handlePaymentSuccess}
+            baseAmount={baseAmount}
+            buyerFee={buyerFee}
+          />
+        )
+      })()}
     </div>
   )
 }
