@@ -13,11 +13,16 @@ export interface User {
   rating?: number;
   totalEarnings: number;
   totalSpent: number;
+  // Stripe Connect fields
   stripeConnectAccountId?: string | null;
   stripeOnboardingComplete?: boolean;
   stripePayoutsEnabled?: boolean;
   stripeDetailsSubmitted?: boolean;
   stripeChargesEnabled?: boolean;
+  // Payout preference fields (PayPal/Payoneer alternative to Stripe Connect)
+  payoutMethod?: 'STRIPE' | 'PAYPAL' | 'PAYONEER' | null;
+  paypalEmail?: string | null;
+  payoneerEmail?: string | null;
 }
 
 export interface AuthResponse {

@@ -111,5 +111,31 @@ export const usersApi = {
       }
     )
     return response.data
+  },
+
+  // Get payout preferences (freelancers only)
+  getPayoutPreferences: async () => {
+    const token = localStorage.getItem('accessToken')
+    const response = await axios.get(`${API_URL}/users/payout-preferences`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    return response.data
+  },
+
+  // Update payout preferences (freelancers only)
+  updatePayoutPreferences: async (data: {
+    payoutMethod?: 'STRIPE' | 'PAYPAL' | 'PAYONEER' | null
+    paypalEmail?: string | null
+    payoneerEmail?: string | null
+  }) => {
+    const token = localStorage.getItem('accessToken')
+    const response = await axios.put(`${API_URL}/users/payout-preferences`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    return response.data
   }
 }

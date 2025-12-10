@@ -1,24 +1,33 @@
 'use client'
 
 import React, { useState } from 'react'
-import { AlertCircle, CreditCard } from 'lucide-react'
+import { AlertCircle, CreditCard, Wallet, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { paymentsApi } from '@/lib/api/payments'
 
 interface StripeConnectAlertProps {
   stripeConnectAccountId?: string | null
   stripePayoutsEnabled?: boolean
+  payoutMethod?: 'STRIPE' | 'PAYPAL' | 'PAYONEER' | null
+  paypalEmail?: string | null
+  payoneerEmail?: string | null
 }
 
 export function StripeConnectAlert({
   stripeConnectAccountId,
-  stripePayoutsEnabled
+  stripePayoutsEnabled,
+  payoutMethod,
+  paypalEmail,
+  payoneerEmail
 }: StripeConnectAlertProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
-  // Check if user has completed Stripe Connect
-  const isComplete = stripePayoutsEnabled
+  // Check if user has ANY valid payout method
+  const hasStripeConnect = stripeConnectAccountId && stripePayoutsEnabled
+  const hasPayPal = payoutMethod === 'PAYPAL' && paypalEmail
+  const hasPayoneer = payoutMethod === 'PAYONEER' && payoneerEmail
+  const hasValidPayoutMethod = hasStripeConnect || hasPayPal || hasPayoneer
 
   const handleSetupPayments = async () => {
     setIsLoading(true)
@@ -30,18 +39,22 @@ export function StripeConnectAlert({
         window.location.href = response.onboardingUrl
       } else {
         console.error('Failed to create Stripe Connect account')
-        alert('Failed to start payment setup. Please try again.')
+        alert('Failed to start Stripe setup. Please try again.')
         setIsLoading(false)
       }
     } catch (error) {
       console.error('Error creating Stripe Connect account:', error)
-      alert('Failed to start payment setup. Please try again.')
+      alert('Failed to start Stripe setup. Please try again.')
       setIsLoading(false)
     }
   }
 
-  // Don't show if complete
-  if (isComplete) {
+  const handleGoToSettings = () => {
+    router.push('/settings?tab=payments')
+  }
+
+  // Don't show if user has a valid payout method
+  if (hasValidPayoutMethod) {
     return null
   }
 
@@ -58,26 +71,35 @@ export function StripeConnectAlert({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-bold text-gray-900 mb-2">
-            Complete Payment Setup to Accept Work
+            Set Up Your Payout Method to Accept Work
           </h3>
           <p className="text-gray-600 mb-4">
-            You need to set up your Stripe Connect account to receive payments for completed projects and service orders.
-            This ensures instant payouts when your work is approved by clients.
+            Choose how you'd like to receive payments for completed projects and service orders.
+            You can use PayPal, Payoneer, or set up Stripe Connect for instant payouts.
           </p>
 
-          {/* Action Button */}
-          <button
-            onClick={handleSetupPayments}
-            disabled={isLoading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-koi-orange hover:bg-koi-orange/90 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-3"
-          >
-            <CreditCard className="w-4 h-4" />
-            {isLoading ? 'Loading...' : 'Set Up Payments Now'}
-          </button>
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3 mb-3">
+            <button
+              onClick={handleGoToSettings}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-koi-orange hover:bg-koi-orange/90 text-white font-medium rounded-lg transition-colors"
+            >
+              <Wallet className="w-4 h-4" />
+              Set Up PayPal or Payoneer
+            </button>
+            <button
+              onClick={handleSetupPayments}
+              disabled={isLoading}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <CreditCard className="w-4 h-4" />
+              {isLoading ? 'Loading...' : 'Set Up Stripe Connect'}
+            </button>
+          </div>
 
-          {/* Help text for users who already started setup */}
+          {/* Help text */}
           <p className="text-sm text-gray-500 italic">
-            If you have signed up with Stripe and you're still seeing this banner, please check your Stripe account to ensure all requirements have been submitted.
+            PayPal and Payoneer are recommended for international freelancers. Stripe Connect provides instant payouts but may have limited availability in some countries.
           </p>
         </div>
       </div>

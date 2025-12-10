@@ -1,25 +1,30 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { AuthRequired } from '@/components/auth/ProtectedRoute'
 import { Button } from '@/components/ui/button'
 import { AvatarUpload } from '@/components/ui/AvatarUpload'
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Globe, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Globe,
   Lock,
   Bell,
   Trash2,
   Save,
   Eye,
   EyeOff,
-  Loader2
+  Loader2,
+  Wallet,
+  CreditCard,
+  CheckCircle2
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { usersApi } from '@/lib/api/users'
+import { paymentsApi } from '@/lib/api/payments'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
 
@@ -35,13 +40,24 @@ interface UserSettings {
   avatar?: string
 }
 
+type TabType = 'profile' | 'account' | 'payments' | 'notifications' | 'security'
+
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'notifications' | 'security'>('profile')
-  
+  const [activeTab, setActiveTab] = useState<TabType>('profile')
+
+  // Payout settings state
+  const [payoutForm, setPayoutForm] = useState({
+    payoutMethod: '' as '' | 'PAYPAL' | 'PAYONEER',
+    paypalEmail: '',
+    payoneerEmail: ''
+  })
+  const [stripeLoading, setStripeLoading] = useState(false)
+
   const [settings, setSettings] = useState<UserSettings>({
     firstName: '',
     lastName: '',
@@ -60,6 +76,14 @@ export default function SettingsPage() {
     confirmPassword: ''
   })
 
+  // Check URL params for tab selection
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'payments' && user?.role === 'FREELANCER') {
+      setActiveTab('payments')
+    }
+  }, [searchParams, user?.role])
+
   useEffect(() => {
     if (user) {
       setSettings({
@@ -67,11 +91,17 @@ export default function SettingsPage() {
         lastName: user.lastName || '',
         username: user.username || '',
         email: user.email || '',
-        phone: user.phone || '',
-        location: user.location || '',
-        website: user.website || '',
-        bio: user.bio || '',
+        phone: (user as any).phone || '',
+        location: (user as any).location || '',
+        website: (user as any).website || '',
+        bio: (user as any).bio || '',
         avatar: user.avatar || ''
+      })
+      // Set payout form from user data
+      setPayoutForm({
+        payoutMethod: (user.payoutMethod === 'PAYPAL' || user.payoutMethod === 'PAYONEER') ? user.payoutMethod : '',
+        paypalEmail: user.paypalEmail || '',
+        payoneerEmail: user.payoneerEmail || ''
       })
       setLoading(false)
     }
@@ -128,6 +158,63 @@ export default function SettingsPage() {
     }
   }
 
+  const handleSavePayoutPreferences = async () => {
+    // Validate
+    if (payoutForm.payoutMethod === 'PAYPAL' && !payoutForm.paypalEmail) {
+      toast.error('Please enter your PayPal email address')
+      return
+    }
+    if (payoutForm.payoutMethod === 'PAYONEER' && !payoutForm.payoneerEmail) {
+      toast.error('Please enter your Payoneer email address')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const response = await usersApi.updatePayoutPreferences({
+        payoutMethod: payoutForm.payoutMethod || null,
+        paypalEmail: payoutForm.paypalEmail || null,
+        payoneerEmail: payoutForm.payoneerEmail || null
+      })
+      if (response.success) {
+        updateUser({
+          payoutMethod: payoutForm.payoutMethod || null,
+          paypalEmail: payoutForm.paypalEmail || null,
+          payoneerEmail: payoutForm.payoneerEmail || null
+        })
+        toast.success('Payout preferences saved!')
+      }
+    } catch (error: any) {
+      console.error('Failed to update payout preferences:', error)
+      toast.error(error.response?.data?.error || 'Failed to update payout preferences')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSetupStripeConnect = async () => {
+    setStripeLoading(true)
+    try {
+      const response = await paymentsApi.createConnectAccount()
+      if (response.success && response.onboardingUrl) {
+        window.location.href = response.onboardingUrl
+      } else {
+        toast.error('Failed to start Stripe setup')
+        setStripeLoading(false)
+      }
+    } catch (error) {
+      console.error('Error setting up Stripe:', error)
+      toast.error('Failed to start Stripe setup')
+      setStripeLoading(false)
+    }
+  }
+
+  // Check if user has valid payout methods
+  const hasStripeConnect = user?.stripeConnectAccountId && user?.stripePayoutsEnabled
+  const hasPayPal = user?.payoutMethod === 'PAYPAL' && user?.paypalEmail
+  const hasPayoneer = user?.payoutMethod === 'PAYONEER' && user?.payoneerEmail
+  const hasValidPayout = hasStripeConnect || hasPayPal || hasPayoneer
+
   if (loading) {
     return (
       <AuthRequired>
@@ -153,10 +240,10 @@ export default function SettingsPage() {
           <div className="bg-white rounded-lg shadow-sm">
             {/* Tabs */}
             <div className="border-b border-gray-200">
-              <nav className="flex space-x-8 px-6">
+              <nav className="flex space-x-8 px-6 overflow-x-auto">
                 <button
                   onClick={() => setActiveTab('profile')}
-                  className={`py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     activeTab === 'profile'
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -166,7 +253,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                   onClick={() => setActiveTab('account')}
-                  className={`py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     activeTab === 'account'
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -174,9 +261,21 @@ export default function SettingsPage() {
                 >
                   Account
                 </button>
+                {user?.role === 'FREELANCER' && (
+                  <button
+                    onClick={() => setActiveTab('payments')}
+                    className={`py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                      activeTab === 'payments'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Payments
+                  </button>
+                )}
                 <button
                   onClick={() => setActiveTab('security')}
-                  className={`py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     activeTab === 'security'
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -186,7 +285,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                   onClick={() => setActiveTab('notifications')}
-                  className={`py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     activeTab === 'notifications'
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -209,7 +308,7 @@ export default function SettingsPage() {
                       size="lg"
                     />
                   </div>
-                  
+
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Profile Information</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -343,6 +442,156 @@ export default function SettingsPage() {
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete Account
                       </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'payments' && user?.role === 'FREELANCER' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Payout Method</h3>
+                    <p className="text-sm text-gray-600 mb-6">
+                      Choose how you want to receive payments for completed work. You must set up at least one payout method before you can accept projects or service orders.
+                    </p>
+
+                    {/* Current Status */}
+                    {hasValidPayout && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-green-800">Payout method configured</p>
+                          <p className="text-sm text-green-700">
+                            {hasStripeConnect && 'Stripe Connect (instant payouts)'}
+                            {hasPayPal && `PayPal: ${user.paypalEmail}`}
+                            {hasPayoneer && `Payoneer: ${user.payoneerEmail}`}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* PayPal / Payoneer Section */}
+                    <div className="border border-gray-200 rounded-lg p-5 mb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Wallet className="w-6 h-6 text-koi-orange" />
+                        <div>
+                          <h4 className="font-medium text-gray-900">PayPal or Payoneer</h4>
+                          <p className="text-sm text-gray-500">Best for international freelancers</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Select your preferred method
+                          </label>
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="payoutMethod"
+                                value="PAYPAL"
+                                checked={payoutForm.payoutMethod === 'PAYPAL'}
+                                onChange={(e) => setPayoutForm(prev => ({ ...prev, payoutMethod: e.target.value as 'PAYPAL' | 'PAYONEER' }))}
+                                className="w-4 h-4 text-koi-orange focus:ring-koi-orange"
+                              />
+                              <span className="text-sm text-gray-700">PayPal</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="payoutMethod"
+                                value="PAYONEER"
+                                checked={payoutForm.payoutMethod === 'PAYONEER'}
+                                onChange={(e) => setPayoutForm(prev => ({ ...prev, payoutMethod: e.target.value as 'PAYPAL' | 'PAYONEER' }))}
+                                className="w-4 h-4 text-koi-orange focus:ring-koi-orange"
+                              />
+                              <span className="text-sm text-gray-700">Payoneer</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {payoutForm.payoutMethod === 'PAYPAL' && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              PayPal Email Address
+                            </label>
+                            <input
+                              type="email"
+                              value={payoutForm.paypalEmail}
+                              onChange={(e) => setPayoutForm(prev => ({ ...prev, paypalEmail: e.target.value }))}
+                              placeholder="your-paypal@email.com"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-koi-orange focus:border-koi-orange"
+                            />
+                          </div>
+                        )}
+
+                        {payoutForm.payoutMethod === 'PAYONEER' && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Payoneer Email Address
+                            </label>
+                            <input
+                              type="email"
+                              value={payoutForm.payoneerEmail}
+                              onChange={(e) => setPayoutForm(prev => ({ ...prev, payoneerEmail: e.target.value }))}
+                              placeholder="your-payoneer@email.com"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-koi-orange focus:border-koi-orange"
+                            />
+                          </div>
+                        )}
+
+                        <Button
+                          onClick={handleSavePayoutPreferences}
+                          disabled={saving || !payoutForm.payoutMethod}
+                          className="bg-koi-orange hover:bg-koi-orange/90"
+                        >
+                          {saving ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <Save className="w-4 h-4 mr-2" />
+                          )}
+                          Save Payout Preferences
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Stripe Connect Section */}
+                    <div className="border border-gray-200 rounded-lg p-5">
+                      <div className="flex items-center gap-3 mb-4">
+                        <CreditCard className="w-6 h-6 text-gray-700" />
+                        <div>
+                          <h4 className="font-medium text-gray-900">Stripe Connect</h4>
+                          <p className="text-sm text-gray-500">Instant payouts (limited country availability)</p>
+                        </div>
+                      </div>
+
+                      {hasStripeConnect ? (
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle2 className="w-5 h-5" />
+                          <span className="text-sm font-medium">Stripe Connect is set up and active</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-sm text-gray-600">
+                            With Stripe Connect, payments are automatically transferred to your bank account when work is approved.
+                            This option may not be available in all countries.
+                          </p>
+                          <Button
+                            onClick={handleSetupStripeConnect}
+                            disabled={stripeLoading}
+                            variant="outline"
+                            className="border-gray-300"
+                          >
+                            {stripeLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <CreditCard className="w-4 h-4 mr-2" />
+                            )}
+                            Set Up Stripe Connect
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
