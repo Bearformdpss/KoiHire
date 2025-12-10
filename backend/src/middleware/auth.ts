@@ -15,6 +15,9 @@ export interface AuthRequest extends Request {
     stripePayoutsEnabled?: boolean;
     stripeDetailsSubmitted?: boolean;
     stripeChargesEnabled?: boolean;
+    payoutMethod?: string | null;
+    paypalEmail?: string | null;
+    payoneerEmail?: string | null;
   };
 }
 
@@ -46,7 +49,10 @@ export const authMiddleware = async (
         stripeOnboardingComplete: true,
         stripePayoutsEnabled: true,
         stripeDetailsSubmitted: true,
-        stripeChargesEnabled: true
+        stripeChargesEnabled: true,
+        payoutMethod: true,
+        paypalEmail: true,
+        payoneerEmail: true
       }
     });
 

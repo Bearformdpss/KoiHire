@@ -3,8 +3,13 @@ import { AuthRequest } from './auth';
 import { AppError } from './errorHandler';
 
 /**
- * Middleware to ensure freelancer has completed Stripe Connect onboarding
+ * Middleware to ensure freelancer has a valid payout method set up
  * before they can create services or apply to projects.
+ *
+ * Valid payout methods:
+ * - Stripe Connect (stripePayoutsEnabled = true)
+ * - PayPal (payoutMethod = 'PAYPAL' with valid paypalEmail)
+ * - Payoneer (payoutMethod = 'PAYONEER' with valid payoneerEmail)
  *
  * This prevents freelancers from creating services/applications that cannot
  * be accepted due to missing payment setup.
@@ -20,10 +25,14 @@ export const requireStripeConnect = (
     throw new AppError('Authentication required', 401);
   }
 
-  // Check if user has completed Stripe Connect onboarding
-  if (!user.stripeConnectAccountId || !user.stripePayoutsEnabled) {
+  // Check if user has a valid payout method
+  const hasStripeConnect = user.stripeConnectAccountId && user.stripePayoutsEnabled;
+  const hasPayPal = user.payoutMethod === 'PAYPAL' && user.paypalEmail;
+  const hasPayoneer = user.payoutMethod === 'PAYONEER' && user.payoneerEmail;
+
+  if (!hasStripeConnect && !hasPayPal && !hasPayoneer) {
     throw new AppError(
-      'You must complete Stripe Connect onboarding before performing this action. This ensures you can receive payments when clients accept your work.',
+      'You must set up a payout method before performing this action. Go to Settings > Payments to set up PayPal, Payoneer, or Stripe Connect.',
       403
     );
   }
