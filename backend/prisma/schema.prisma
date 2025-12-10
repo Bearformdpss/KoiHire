@@ -39,6 +39,11 @@ model User {
   stripeDetailsSubmitted   Boolean @default(false) // Has submitted verification docs
   stripeChargesEnabled     Boolean @default(false) // Account can accept charges
 
+  // Payout preference fields (PayPal/Payoneer alternative to Stripe Connect)
+  payoutMethod  PayoutMethod? // Preferred payout method
+  paypalEmail   String?       // PayPal email for payouts
+  payoneerEmail String?       // Payoneer email for payouts
+
   // Refresh tokens
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
@@ -773,18 +778,23 @@ enum DeliverableStatus {
   REVISION_REQUESTED
 }
 
-// Payout model for tracking Stripe Connect transfers
+// Payout model for tracking payments to freelancers (Stripe, PayPal, or Payoneer)
 model Payout {
-  id               String       @id @default(cuid())
+  id               String        @id @default(cuid())
   userId           String // Freelancer receiving payout
   projectId        String? // If from project
   serviceOrderId   String? // If from service order
   amount           Float // Net amount (after platform commission)
   platformFee      Float // Our commission (12.5%)
-  stripeTransferId String?      @unique // Stripe transfer ID (tr_xxx)
-  status           PayoutStatus @default(PENDING)
+  payoutMethod     PayoutMethod? // STRIPE, PAYPAL, or PAYONEER
+  stripeTransferId String?       @unique // Stripe transfer ID (tr_xxx) - for Stripe payouts
+  externalReference String?      // External reference (PayPal/Payoneer transaction ID)
+  payoutEmail      String?       // Email used for payout (PayPal/Payoneer)
+  status           PayoutStatus  @default(PENDING)
   failureReason    String? // If payout failed
-  createdAt        DateTime     @default(now())
+  adminNotes       String? // Notes from admin when processing manual payout
+  createdAt        DateTime      @default(now())
+  processedAt      DateTime? // When admin started processing (for manual payouts)
   completedAt      DateTime?
 
   user         User          @relation(fields: [userId], references: [id])
@@ -800,6 +810,12 @@ enum PayoutStatus {
   COMPLETED // Successfully paid out
   FAILED // Transfer failed
   CANCELLED // Cancelled before processing
+}
+
+enum PayoutMethod {
+  STRIPE   // Automatic via Stripe Connect
+  PAYPAL   // Manual via PayPal
+  PAYONEER // Manual via Payoneer
 }
 
 // Event tracking models for project and service timelines

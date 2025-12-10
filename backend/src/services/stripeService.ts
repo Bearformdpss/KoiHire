@@ -18,7 +18,8 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 /**
  * Create payment intent for project escrow
  * Funds are held in escrow with manual capture until work is approved
- * Uses Stripe Connect Destination Charges to automatically route payment to freelancer on capture
+ * Uses Stripe Connect Destination Charges if freelancer has Connect account,
+ * otherwise funds go to platform account for manual payout via PayPal/Payoneer
  */
 export const createProjectEscrowPayment = async (
   projectId: string,
@@ -39,7 +40,10 @@ export const createProjectEscrowPayment = async (
         select: {
           id: true,
           stripeConnectAccountId: true,
-          stripePayoutsEnabled: true
+          stripePayoutsEnabled: true,
+          payoutMethod: true,
+          paypalEmail: true,
+          payoneerEmail: true
         }
       }
     }
@@ -53,61 +57,73 @@ export const createProjectEscrowPayment = async (
     throw new Error('Project must have an assigned freelancer');
   }
 
-  // Check if freelancer has Connect account set up
-  if (!project.freelancer.stripeConnectAccountId) {
-    throw new Error('Freelancer must complete Stripe Connect onboarding before escrow can be funded');
-  }
-
-  if (!project.freelancer.stripePayoutsEnabled) {
-    throw new Error('Freelancer payouts not enabled. They may need to complete verification with Stripe.');
-  }
-
   // Calculate fee breakdown
   const agreedAmount = project.agreedAmount || amount;
   const sellerCommission = project.sellerCommission || 0;
   const buyerFee = project.buyerFee || 0;
   const totalPlatformFee = sellerCommission + buyerFee;
 
-  console.log('💰 Creating payment intent with destination charges:', {
-    totalAmount: amount,
-    agreedAmount,
-    platformFee: totalPlatformFee,
-    freelancerConnectAccount: project.freelancer.stripeConnectAccountId
-  });
+  // Check if freelancer has Stripe Connect for automatic payouts
+  const hasStripeConnect = project.freelancer.stripeConnectAccountId && project.freelancer.stripePayoutsEnabled;
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(amount * 100), // Convert to cents
-    currency: 'usd',
-    automatic_payment_methods: {
-      enabled: true
-    },
-    // Manual capture - funds held until work approved (ESCROW PROTECTION)
-    capture_method: 'manual',
+  if (hasStripeConnect) {
+    // Use Destination Charges for automatic payout to freelancer's Stripe account
+    console.log('💰 Creating payment intent with destination charges (Stripe Connect):', {
+      totalAmount: amount,
+      agreedAmount,
+      platformFee: totalPlatformFee,
+      freelancerConnectAccount: project.freelancer.stripeConnectAccountId
+    });
 
-    // Destination Charges: Route payment to freelancer's Connect account on capture
-    transfer_data: {
-      destination: project.freelancer.stripeConnectAccountId,
-    },
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+      capture_method: 'manual',
+      transfer_data: {
+        destination: project.freelancer.stripeConnectAccountId!,
+      },
+      application_fee_amount: Math.round(totalPlatformFee * 100),
+      metadata: {
+        projectId,
+        clientId,
+        freelancerId: project.freelancerId!,
+        type: 'project_escrow',
+        payoutMethod: 'STRIPE'
+      },
+      description: description || `Escrow payment for project ${projectId}`
+    });
 
-    // Platform fee: Automatically deducted and sent to platform account
-    application_fee_amount: Math.round(totalPlatformFee * 100),
+    console.log('✅ Payment intent created with destination charges');
+    return paymentIntent;
+  } else {
+    // No Stripe Connect - funds go to platform account for manual payout
+    console.log('💰 Creating payment intent WITHOUT destination charges (manual payout):', {
+      totalAmount: amount,
+      agreedAmount,
+      platformFee: totalPlatformFee,
+      payoutMethod: project.freelancer.payoutMethod || 'PENDING_SETUP'
+    });
 
-    metadata: {
-      projectId,
-      clientId,
-      freelancerId: project.freelancerId!,
-      type: 'project_escrow'
-    },
-    description: description || `Escrow payment for project ${projectId}`
-  });
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+      capture_method: 'manual',
+      // No transfer_data - funds stay in platform account
+      metadata: {
+        projectId,
+        clientId,
+        freelancerId: project.freelancerId!,
+        type: 'project_escrow',
+        payoutMethod: project.freelancer.payoutMethod || 'PENDING_SETUP'
+      },
+      description: description || `Escrow payment for project ${projectId}`
+    });
 
-  console.log('✅ Payment intent created with destination charges:', {
-    paymentIntentId: paymentIntent.id,
-    destination: project.freelancer.stripeConnectAccountId,
-    applicationFee: totalPlatformFee
-  });
-
-  return paymentIntent;
+    console.log('✅ Payment intent created for manual payout');
+    return paymentIntent;
+  }
 };
 
 /**
@@ -229,6 +245,9 @@ export const confirmProjectEscrowPayment = async (projectId: string, paymentInte
  * Release project escrow payment to freelancer
  * Called when client approves completed work
  * Captures payment and distributes funds with proper fee structure
+ *
+ * For Stripe Connect users: Funds automatically route to their Connect account
+ * For PayPal/Payoneer users: Creates a Payout record for manual processing
  */
 export const releaseProjectEscrowPayment = async (projectId: string) => {
   console.log(`🔍 releaseProjectEscrowPayment called for projectId: ${projectId}`);
@@ -273,14 +292,15 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
     throw new Error('Original payment not found');
   }
 
+  // Check the payment intent to see if it used destination charges (Stripe Connect)
+  const paymentIntent = await stripe.paymentIntents.retrieve(depositTransaction.stripeId);
+  const usedStripeConnect = !!paymentIntent.transfer_data?.destination;
+
   // Capture the payment (release from escrow)
   console.log(`📥 Capturing payment: ${depositTransaction.stripeId}`);
   await stripe.paymentIntents.capture(depositTransaction.stripeId);
 
   // Calculate amounts using the new fee structure
-  // Total held in escrow: agreedAmount + buyerFee (totalCharged)
-  // Platform keeps: buyerFee + sellerCommission
-  // Freelancer receives: agreedAmount - sellerCommission
   const agreedAmount = escrow.project.agreedAmount || escrow.amount;
   const buyerFee = escrow.project.buyerFee || 0;
   const sellerCommission = escrow.project.sellerCommission || 0;
@@ -293,8 +313,26 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
     buyerFee,
     sellerCommission,
     freelancerReceives: freelancerAmount,
-    platformTotal: totalPlatformFee
+    platformTotal: totalPlatformFee,
+    usedStripeConnect
   });
+
+  // Determine payout method and email
+  const freelancer = escrow.project.freelancer;
+  const payoutMethod = usedStripeConnect ? 'STRIPE' : (freelancer.payoutMethod || null);
+  const payoutEmail = payoutMethod === 'PAYPAL' ? freelancer.paypalEmail :
+                      payoutMethod === 'PAYONEER' ? freelancer.payoneerEmail : null;
+
+  // For non-Stripe Connect, create a Payout record for manual processing
+  const payoutData = !usedStripeConnect ? {
+    userId: freelancer.id,
+    projectId,
+    amount: freelancerAmount,
+    platformFee: sellerCommission,
+    payoutMethod: payoutMethod as any,
+    payoutEmail,
+    status: 'PENDING' as const
+  } : null;
 
   await prisma.$transaction([
     // Update escrow status
@@ -341,7 +379,7 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
         escrowId: escrow.id,
         type: 'WITHDRAWAL',
         amount: freelancerAmount,
-        status: 'COMPLETED',
+        status: usedStripeConnect ? 'COMPLETED' : 'PENDING',
         description: `Earnings from project: ${escrow.project.title}`
       }
     }),
@@ -362,32 +400,35 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
           increment: escrow.amount
         }
       }
-    })
+    }),
+    // Create Payout record for manual payouts (PayPal/Payoneer)
+    ...(payoutData ? [prisma.payout.create({ data: payoutData })] : [])
   ]);
 
-  // Create timeline event for payment release (after all Stripe operations complete)
+  // Create timeline event for payment release
   await createProjectEvent({
     projectId,
     eventType: PROJECT_EVENT_TYPES.PAYMENT_RELEASED,
-    actorId: null, // System-generated event
+    actorId: null,
     actorName: 'System',
     metadata: {
       amount: freelancerAmount,
       platformFee: totalPlatformFee,
       stripePaymentId: depositTransaction.stripeId,
       releasedTo: escrow.project.freelancerId,
-      releasedToName: `${escrow.project.freelancer.firstName} ${escrow.project.freelancer.lastName}`
+      releasedToName: `${escrow.project.freelancer.firstName} ${escrow.project.freelancer.lastName}`,
+      payoutMethod: usedStripeConnect ? 'STRIPE' : payoutMethod,
+      requiresManualPayout: !usedStripeConnect
     }
   });
 
   console.log(`✅ Escrow payment released successfully`);
 
-  // NOTE: With Stripe Connect Destination Charges, the payment automatically routes
-  // to the freelancer's Connect account when we capture the PaymentIntent above.
-  // The platform fee (application_fee_amount) is automatically deducted and sent to our account.
-  // No manual transfer needed - Stripe handles everything atomically on capture.
-
-  console.log(`💰 Payment automatically routed to freelancer via Destination Charges`);
+  if (usedStripeConnect) {
+    console.log(`💰 Payment automatically routed to freelancer via Destination Charges`);
+  } else {
+    console.log(`📋 Payout record created for manual processing via ${payoutMethod || 'PENDING_SETUP'}`);
+  }
   console.log(`   Freelancer receives: $${freelancerAmount} (after ${sellerCommission} commission)`);
   console.log(`   Platform receives: $${totalPlatformFee} (buyer fee + seller commission)`);
 
@@ -463,7 +504,8 @@ export const refundProjectEscrowPayment = async (projectId: string, reason?: str
 /**
  * Create payment intent for service order
  * Funds are held in escrow until work is approved
- * Uses Stripe Connect Destination Charges to automatically route payment to freelancer on capture
+ * Uses Stripe Connect Destination Charges if freelancer has Connect account,
+ * otherwise funds go to platform account for manual payout via PayPal/Payoneer
  */
 export const createServiceOrderPayment = async (
   orderId: string,
@@ -485,7 +527,10 @@ export const createServiceOrderPayment = async (
         select: {
           id: true,
           stripeConnectAccountId: true,
-          stripePayoutsEnabled: true
+          stripePayoutsEnabled: true,
+          payoutMethod: true,
+          paypalEmail: true,
+          payoneerEmail: true
         }
       }
     }
@@ -499,58 +544,70 @@ export const createServiceOrderPayment = async (
     throw new Error('Service order must have an assigned freelancer');
   }
 
-  // Check if freelancer has Connect account set up
-  if (!order.freelancer.stripeConnectAccountId) {
-    throw new Error('Freelancer must complete Stripe Connect onboarding before payment can be processed');
-  }
-
-  if (!order.freelancer.stripePayoutsEnabled) {
-    throw new Error('Freelancer payouts not enabled. They may need to complete verification with Stripe.');
-  }
-
   // Calculate fee breakdown
   const totalPlatformFee = order.buyerFee + order.sellerCommission;
 
-  console.log('💰 Creating service order payment intent with destination charges:', {
-    totalAmount: amount,
-    packagePrice: order.packagePrice,
-    platformFee: totalPlatformFee,
-    freelancerConnectAccount: order.freelancer.stripeConnectAccountId
-  });
+  // Check if freelancer has Stripe Connect for automatic payouts
+  const hasStripeConnect = order.freelancer.stripeConnectAccountId && order.freelancer.stripePayoutsEnabled;
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(amount * 100), // Convert to cents
-    currency: 'usd',
-    automatic_payment_methods: {
-      enabled: true
-    },
-    // Manual capture - funds held until work approved (ESCROW PROTECTION)
-    capture_method: 'manual',
+  if (hasStripeConnect) {
+    // Use Destination Charges for automatic payout to freelancer's Stripe account
+    console.log('💰 Creating service order payment intent with destination charges (Stripe Connect):', {
+      totalAmount: amount,
+      packagePrice: order.packagePrice,
+      platformFee: totalPlatformFee,
+      freelancerConnectAccount: order.freelancer.stripeConnectAccountId
+    });
 
-    // Destination Charges: Route payment to freelancer's Connect account on capture
-    transfer_data: {
-      destination: order.freelancer.stripeConnectAccountId,
-    },
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+      capture_method: 'manual',
+      transfer_data: {
+        destination: order.freelancer.stripeConnectAccountId!,
+      },
+      application_fee_amount: Math.round(totalPlatformFee * 100),
+      metadata: {
+        orderId,
+        clientId,
+        freelancerId: order.freelancerId,
+        type: 'service_order',
+        payoutMethod: 'STRIPE'
+      },
+      description: description || `Payment for service order ${orderId}`
+    });
 
-    // Platform fee: Automatically deducted and sent to platform account
-    application_fee_amount: Math.round(totalPlatformFee * 100),
+    console.log('✅ Service order payment intent created with destination charges');
+    return paymentIntent;
+  } else {
+    // No Stripe Connect - funds go to platform account for manual payout
+    console.log('💰 Creating service order payment intent WITHOUT destination charges (manual payout):', {
+      totalAmount: amount,
+      packagePrice: order.packagePrice,
+      platformFee: totalPlatformFee,
+      payoutMethod: order.freelancer.payoutMethod || 'PENDING_SETUP'
+    });
 
-    metadata: {
-      orderId,
-      clientId,
-      freelancerId: order.freelancerId,
-      type: 'service_order'
-    },
-    description: description || `Payment for service order ${orderId}`
-  });
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+      capture_method: 'manual',
+      // No transfer_data - funds stay in platform account
+      metadata: {
+        orderId,
+        clientId,
+        freelancerId: order.freelancerId,
+        type: 'service_order',
+        payoutMethod: order.freelancer.payoutMethod || 'PENDING_SETUP'
+      },
+      description: description || `Payment for service order ${orderId}`
+    });
 
-  console.log('✅ Service order payment intent created with destination charges:', {
-    paymentIntentId: paymentIntent.id,
-    destination: order.freelancer.stripeConnectAccountId,
-    applicationFee: totalPlatformFee
-  });
-
-  return paymentIntent;
+    console.log('✅ Service order payment intent created for manual payout');
+    return paymentIntent;
+  }
 };
 
 /**
@@ -636,6 +693,9 @@ export const confirmServiceOrderPayment = async (orderId: string, paymentIntentI
 /**
  * Capture payment and release to freelancer
  * Called when client approves the work
+ *
+ * For Stripe Connect users: Funds automatically route to their Connect account
+ * For PayPal/Payoneer users: Creates a Payout record for manual processing
  */
 export const releaseServiceOrderPayment = async (orderId: string) => {
   const order = await prisma.serviceOrder.findUnique({
@@ -643,13 +703,7 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
     include: {
       service: true,
       transactions: true,
-      freelancer: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true
-        }
-      }
+      freelancer: true
     }
   });
 
@@ -667,13 +721,14 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
     throw new Error('Original payment not found');
   }
 
+  // Check the payment intent to see if it used destination charges (Stripe Connect)
+  const paymentIntent = await stripe.paymentIntents.retrieve(depositTransaction.stripeId);
+  const usedStripeConnect = !!paymentIntent.transfer_data?.destination;
+
   // Capture the payment (release from escrow)
   await stripe.paymentIntents.capture(depositTransaction.stripeId);
 
-  // Calculate amounts using the new fee structure
-  // Total held in escrow: packagePrice + buyerFee
-  // Platform keeps: buyerFee + sellerCommission
-  // Freelancer receives: packagePrice - sellerCommission
+  // Calculate amounts
   const freelancerAmount = order.packagePrice - order.sellerCommission;
   const totalPlatformFee = order.buyerFee + order.sellerCommission;
 
@@ -683,8 +738,26 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
     buyerFee: order.buyerFee,
     sellerCommission: order.sellerCommission,
     freelancerReceives: freelancerAmount,
-    platformTotal: totalPlatformFee
+    platformTotal: totalPlatformFee,
+    usedStripeConnect
   });
+
+  // Determine payout method and email
+  const freelancer = order.freelancer;
+  const payoutMethod = usedStripeConnect ? 'STRIPE' : (freelancer.payoutMethod || null);
+  const payoutEmail = payoutMethod === 'PAYPAL' ? freelancer.paypalEmail :
+                      payoutMethod === 'PAYONEER' ? freelancer.payoneerEmail : null;
+
+  // For non-Stripe Connect, create a Payout record for manual processing
+  const payoutData = !usedStripeConnect ? {
+    userId: freelancer.id,
+    serviceOrderId: orderId,
+    amount: freelancerAmount,
+    platformFee: order.sellerCommission,
+    payoutMethod: payoutMethod as any,
+    payoutEmail,
+    status: 'PENDING' as const
+  } : null;
 
   await prisma.$transaction([
     // Update order payment status
@@ -724,7 +797,7 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
         serviceOrderId: order.id,
         type: 'WITHDRAWAL',
         amount: freelancerAmount,
-        status: 'COMPLETED',
+        status: usedStripeConnect ? 'COMPLETED' : 'PENDING',
         description: `Earnings from service: ${order.service.title}`
       }
     }),
@@ -745,30 +818,33 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
           increment: order.totalAmount
         }
       }
-    })
+    }),
+    // Create Payout record for manual payouts (PayPal/Payoneer)
+    ...(payoutData ? [prisma.payout.create({ data: payoutData })] : [])
   ]);
 
-  // NOTE: With Stripe Connect Destination Charges, the payment automatically routes
-  // to the freelancer's Connect account when we capture the PaymentIntent above.
-  // The platform fee (application_fee_amount) is automatically deducted and sent to our account.
-  // No manual transfer needed - Stripe handles everything atomically on capture.
-
-  console.log(`💰 Payment automatically routed to freelancer via Destination Charges`);
+  if (usedStripeConnect) {
+    console.log(`💰 Payment automatically routed to freelancer via Destination Charges`);
+  } else {
+    console.log(`📋 Payout record created for manual processing via ${payoutMethod || 'PENDING_SETUP'}`);
+  }
   console.log(`   Freelancer receives: $${freelancerAmount} (after ${order.sellerCommission} commission)`);
   console.log(`   Platform receives: $${totalPlatformFee} (buyer fee + seller commission)`);
 
-  // Create timeline event for payment release (after all Stripe operations complete)
+  // Create timeline event for payment release
   await createServiceEvent({
     serviceOrderId: orderId,
     eventType: SERVICE_EVENT_TYPES.PAYMENT_RELEASED,
-    actorId: null, // System-generated event
+    actorId: null,
     actorName: 'System',
     metadata: {
       amount: freelancerAmount,
       platformFee: totalPlatformFee,
       stripePaymentId: depositTransaction.stripeId,
       releasedTo: order.freelancerId,
-      releasedToName: `${order.freelancer.firstName} ${order.freelancer.lastName}`
+      releasedToName: `${order.freelancer.firstName} ${order.freelancer.lastName}`,
+      payoutMethod: usedStripeConnect ? 'STRIPE' : payoutMethod,
+      requiresManualPayout: !usedStripeConnect
     }
   });
 

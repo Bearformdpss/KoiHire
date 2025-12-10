@@ -33,6 +33,9 @@ router.get('/profile', asyncHandler(async (req: AuthRequest, res) => {
       stripePayoutsEnabled: true,
       stripeDetailsSubmitted: true,
       stripeChargesEnabled: true,
+      payoutMethod: true,
+      paypalEmail: true,
+      payoneerEmail: true,
       skills: {
         include: {
           skill: {
@@ -363,6 +366,110 @@ router.patch('/availability', asyncHandler(async (req: AuthRequest, res) => {
   res.json({
     success: true,
     isAvailable: updatedUser.isAvailable
+  });
+}));
+
+// Update payout preferences (freelancers only)
+router.put('/payout-preferences', asyncHandler(async (req: AuthRequest, res) => {
+  if (!req.user) {
+    throw new AppError('Authentication required', 401);
+  }
+
+  if (req.user.role !== 'FREELANCER') {
+    throw new AppError('Only freelancers can update payout preferences', 403);
+  }
+
+  const { payoutMethod, paypalEmail, payoneerEmail } = req.body;
+
+  // Validate payout method
+  const validMethods = ['STRIPE', 'PAYPAL', 'PAYONEER'];
+  if (payoutMethod && !validMethods.includes(payoutMethod)) {
+    throw new AppError('Invalid payout method. Must be STRIPE, PAYPAL, or PAYONEER', 400);
+  }
+
+  // Validate email if PayPal is selected
+  if (payoutMethod === 'PAYPAL' && !paypalEmail) {
+    throw new AppError('PayPal email is required when PayPal is selected as payout method', 400);
+  }
+
+  // Validate email if Payoneer is selected
+  if (payoutMethod === 'PAYONEER' && !payoneerEmail) {
+    throw new AppError('Payoneer email is required when Payoneer is selected as payout method', 400);
+  }
+
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (paypalEmail && !emailRegex.test(paypalEmail)) {
+    throw new AppError('Invalid PayPal email format', 400);
+  }
+  if (payoneerEmail && !emailRegex.test(payoneerEmail)) {
+    throw new AppError('Invalid Payoneer email format', 400);
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: req.user.id },
+    data: {
+      payoutMethod: payoutMethod || null,
+      paypalEmail: paypalEmail || null,
+      payoneerEmail: payoneerEmail || null
+    },
+    select: {
+      id: true,
+      payoutMethod: true,
+      paypalEmail: true,
+      payoneerEmail: true,
+      stripeConnectAccountId: true,
+      stripeOnboardingComplete: true
+    }
+  });
+
+  res.json({
+    success: true,
+    message: 'Payout preferences updated successfully',
+    payoutPreferences: {
+      payoutMethod: updatedUser.payoutMethod,
+      paypalEmail: updatedUser.paypalEmail,
+      payoneerEmail: updatedUser.payoneerEmail,
+      hasStripeConnect: !!updatedUser.stripeConnectAccountId && updatedUser.stripeOnboardingComplete
+    }
+  });
+}));
+
+// Get payout preferences (freelancers only)
+router.get('/payout-preferences', asyncHandler(async (req: AuthRequest, res) => {
+  if (!req.user) {
+    throw new AppError('Authentication required', 401);
+  }
+
+  if (req.user.role !== 'FREELANCER') {
+    throw new AppError('Only freelancers can view payout preferences', 403);
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: {
+      payoutMethod: true,
+      paypalEmail: true,
+      payoneerEmail: true,
+      stripeConnectAccountId: true,
+      stripeOnboardingComplete: true,
+      stripePayoutsEnabled: true
+    }
+  });
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  res.json({
+    success: true,
+    payoutPreferences: {
+      payoutMethod: user.payoutMethod,
+      paypalEmail: user.paypalEmail,
+      payoneerEmail: user.payoneerEmail,
+      hasStripeConnect: !!user.stripeConnectAccountId && user.stripeOnboardingComplete,
+      stripePayoutsEnabled: user.stripePayoutsEnabled
+    }
   });
 }));
 

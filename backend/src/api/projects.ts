@@ -428,21 +428,33 @@ router.post('/:projectId/accept/:applicationId', authMiddleware, asyncHandler(as
     throw new AppError('Application not found', 404);
   }
 
-  // Check if freelancer has Stripe Connect set up and verified
+  // Check if freelancer has any payout method set up (Stripe Connect OR PayPal/Payoneer)
   const freelancer = await prisma.user.findUnique({
     where: { id: application.freelancerId },
     select: {
       stripeConnectAccountId: true,
       stripeOnboardingComplete: true,
       stripePayoutsEnabled: true,
+      payoutMethod: true,
+      paypalEmail: true,
+      payoneerEmail: true,
       firstName: true,
       lastName: true
     }
   });
 
-  if (!freelancer?.stripeConnectAccountId || !freelancer.stripeOnboardingComplete || !freelancer.stripePayoutsEnabled) {
+  // Freelancer can work if they have:
+  // 1. Stripe Connect set up and verified, OR
+  // 2. PayPal payout method with email, OR
+  // 3. Payoneer payout method with email
+  const hasStripeConnect = freelancer?.stripeConnectAccountId && freelancer.stripeOnboardingComplete && freelancer.stripePayoutsEnabled;
+  const hasPayPal = freelancer?.payoutMethod === 'PAYPAL' && freelancer.paypalEmail;
+  const hasPayoneer = freelancer?.payoutMethod === 'PAYONEER' && freelancer.payoneerEmail;
+  const hasValidPayoutMethod = hasStripeConnect || hasPayPal || hasPayoneer;
+
+  if (!hasValidPayoutMethod) {
     throw new AppError(
-      `Cannot accept application. ${freelancer?.firstName} ${freelancer?.lastName} has not completed Stripe Connect onboarding. They need to set up their payment account before accepting work.`,
+      `Cannot accept application. ${freelancer?.firstName} ${freelancer?.lastName} has not set up a payout method. They need to configure PayPal, Payoneer, or Stripe Connect before accepting work.`,
       400
     );
   }

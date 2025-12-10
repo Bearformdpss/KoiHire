@@ -237,7 +237,10 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
           lastName: true,
           stripeConnectAccountId: true,
           stripeOnboardingComplete: true,
-          stripePayoutsEnabled: true
+          stripePayoutsEnabled: true,
+          payoutMethod: true,
+          paypalEmail: true,
+          payoneerEmail: true
         }
       },
       packages: {
@@ -254,10 +257,16 @@ router.post('/:serviceId/order', authMiddleware, requireRole(['CLIENT']), valida
     throw new AppError('Service is not available', 400);
   }
 
-  // Check if freelancer has Stripe Connect set up and verified
-  if (!service.freelancer.stripeConnectAccountId || !service.freelancer.stripeOnboardingComplete || !service.freelancer.stripePayoutsEnabled) {
+  // Check if freelancer has any payout method set up (Stripe Connect OR PayPal/Payoneer)
+  const freelancer = service.freelancer;
+  const hasStripeConnect = freelancer.stripeConnectAccountId && freelancer.stripeOnboardingComplete && freelancer.stripePayoutsEnabled;
+  const hasPayPal = freelancer.payoutMethod === 'PAYPAL' && freelancer.paypalEmail;
+  const hasPayoneer = freelancer.payoutMethod === 'PAYONEER' && freelancer.payoneerEmail;
+  const hasValidPayoutMethod = hasStripeConnect || hasPayPal || hasPayoneer;
+
+  if (!hasValidPayoutMethod) {
     throw new AppError(
-      `This service is temporarily unavailable. ${service.freelancer.firstName} ${service.freelancer.lastName} has not completed payment setup yet.`,
+      `This service is temporarily unavailable. ${freelancer.firstName} ${freelancer.lastName} has not set up a payout method yet.`,
       400
     );
   }
