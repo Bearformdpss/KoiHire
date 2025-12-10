@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "echo 'Skipping build'",
     "start": "tsx src/server.ts",
-    "start:railway": "npx prisma db push --accept-data-loss && npm start",
+    "start:railway": "npx prisma migrate deploy && npm start",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

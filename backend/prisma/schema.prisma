@@ -40,9 +40,10 @@ model User {
   stripeChargesEnabled     Boolean @default(false) // Account can accept charges
 
   // Payout preference fields (PayPal/Payoneer alternative to Stripe Connect)
-  payoutMethod  PayoutMethod? // Preferred payout method
-  paypalEmail   String?       // PayPal email for payouts
-  payoneerEmail String?       // Payoneer email for payouts
+  // These fields allow freelancers to receive payouts via PayPal or Payoneer
+  payoutMethod  PayoutMethod? // Preferred payout method (STRIPE, PAYPAL, PAYONEER)
+  paypalEmail   String?       // PayPal email address for receiving payouts
+  payoneerEmail String?       // Payoneer email address for receiving payouts
 
   // Refresh tokens
   refreshTokens       RefreshToken[]
