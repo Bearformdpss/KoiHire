@@ -45,12 +45,17 @@ export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Check Stripe Connect status when modal opens
+  // Check if user has a valid payout method (Stripe Connect, PayPal, or Payoneer)
+  const hasValidPayoutMethod = user?.stripePayoutsEnabled ||
+    (user?.payoutMethod === 'PAYPAL' && user?.paypalEmail) ||
+    (user?.payoutMethod === 'PAYONEER' && user?.payoneerEmail)
+
+  // Check payout status when modal opens
   useEffect(() => {
-    if (isOpen && user && !user.stripePayoutsEnabled) {
+    if (isOpen && user && !hasValidPayoutMethod) {
       setShowStripeModal(true)
     }
-  }, [isOpen, user])
+  }, [isOpen, user, hasValidPayoutMethod])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}

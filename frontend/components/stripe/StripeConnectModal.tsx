@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { X, Lock, DollarSign, Shield, Clock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { X, Lock, DollarSign, Shield, Clock, Wallet, CreditCard } from 'lucide-react'
 import { paymentsApi } from '@/lib/api/payments'
 
 interface StripeConnectModalProps {
@@ -15,13 +16,14 @@ export function StripeConnectModal({
   onClose,
   context
 }: StripeConnectModalProps) {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
   if (!isOpen) return null
 
   const contextText = context === 'service' ? 'create services' : 'apply to projects'
 
-  const handleSetupPayments = async () => {
+  const handleSetupStripe = async () => {
     setIsLoading(true)
     try {
       const response = await paymentsApi.createConnectAccount()
@@ -31,14 +33,19 @@ export function StripeConnectModal({
         window.location.href = response.onboardingUrl
       } else {
         console.error('Failed to create Stripe Connect account')
-        alert('Failed to start payment setup. Please try again.')
+        alert('Failed to start Stripe setup. Please try again.')
         setIsLoading(false)
       }
     } catch (error) {
       console.error('Error creating Stripe Connect account:', error)
-      alert('Failed to start payment setup. Please try again.')
+      alert('Failed to start Stripe setup. Please try again.')
       setIsLoading(false)
     }
+  }
+
+  const handleGoToSettings = () => {
+    router.push('/settings?tab=payments')
+    onClose()
   }
 
   return (
@@ -63,7 +70,7 @@ export function StripeConnectModal({
 
           {/* Icon */}
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-koi-orange/10 flex items-center justify-center">
-            <Lock className="w-8 h-8 text-koi-orange" />
+            <Wallet className="w-8 h-8 text-koi-orange" />
           </div>
 
           {/* Title */}
@@ -73,59 +80,66 @@ export function StripeConnectModal({
 
           {/* Description */}
           <p className="text-gray-600 text-center mb-6">
-            To {contextText}, you need to set up your payment account with Stripe.
+            To {contextText}, you need to set up a payout method to receive payments.
           </p>
 
-          {/* Benefits */}
-          <div className="space-y-3 mb-6">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-koi-orange/10 flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-koi-orange" />
+          {/* Options */}
+          <div className="space-y-4 mb-6">
+            {/* PayPal/Payoneer Option */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-koi-orange/10 flex items-center justify-center">
+                  <Wallet className="w-5 h-5 text-koi-orange" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 text-sm">PayPal or Payoneer</h4>
+                  <p className="text-gray-600 text-xs mt-1">Best for international freelancers. Quick setup - just enter your email.</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 text-sm">Instant Payouts</h4>
-                <p className="text-gray-600 text-sm">Receive payments immediately when work is approved</p>
-              </div>
+              <button
+                onClick={handleGoToSettings}
+                className="w-full mt-3 py-2 px-4 bg-koi-orange hover:bg-koi-orange/90 text-white font-semibold rounded-lg transition-colors text-sm"
+              >
+                Set Up PayPal/Payoneer
+              </button>
             </div>
 
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-koi-orange/10 flex items-center justify-center">
-                <Shield className="w-4 h-4 text-koi-orange" />
+            {/* Stripe Connect Option */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 text-sm">Stripe Connect</h4>
+                  <p className="text-gray-600 text-xs mt-1">Instant automatic payouts. Limited country availability.</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 text-sm">Secure & Trusted</h4>
-                <p className="text-gray-600 text-sm">Powered by Stripe, trusted by millions worldwide</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-koi-orange/10 flex items-center justify-center">
-                <Clock className="w-4 h-4 text-koi-orange" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 text-sm">Quick Setup</h4>
-                <p className="text-gray-600 text-sm">Takes only 5 minutes to complete</p>
-              </div>
+              <button
+                onClick={handleSetupStripe}
+                disabled={isLoading}
+                className="w-full mt-3 py-2 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg transition-colors text-sm hover:bg-gray-50 disabled:opacity-50"
+              >
+                {isLoading ? 'Loading...' : 'Set Up Stripe Connect'}
+              </button>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={handleSetupPayments}
-              disabled={isLoading}
-              className="w-full py-3 px-4 bg-koi-orange hover:bg-koi-orange/90 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Loading...' : 'Set Up Payments Now'}
-            </button>
-
-            <button
-              onClick={onClose}
-              className="w-full py-3 px-4 text-gray-600 hover:text-gray-900 font-medium transition-colors"
-            >
-              Maybe Later
-            </button>
+          {/* Benefits summary */}
+          <div className="bg-gray-50 rounded-lg p-3 mb-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Shield className="w-4 h-4 text-green-600" />
+              <span>All payment methods are secure and trusted</span>
+            </div>
           </div>
+
+          {/* Cancel Button */}
+          <button
+            onClick={onClose}
+            className="w-full py-2 px-4 text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
+          >
+            Maybe Later
+          </button>
         </div>
       </div>
     </div>

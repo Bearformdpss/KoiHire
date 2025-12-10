@@ -37,12 +37,17 @@ export default function CreateServicePage() {
   const totalSteps = 5
   const progress = (currentStep / totalSteps) * 100
 
-  // Check if Stripe Connect is set up
+  // Check if user has a valid payout method (Stripe Connect, PayPal, or Payoneer)
+  const hasValidPayoutMethod = user?.stripePayoutsEnabled ||
+    (user?.payoutMethod === 'PAYPAL' && user?.paypalEmail) ||
+    (user?.payoutMethod === 'PAYONEER' && user?.payoneerEmail)
+
+  // Check if payout method is set up
   useEffect(() => {
-    if (user && !user.stripePayoutsEnabled) {
+    if (user && !hasValidPayoutMethod) {
       setShowStripeModal(true)
     }
-  }, [user])
+  }, [user, hasValidPayoutMethod])
 
   // Form data state
   const [formData, setFormData] = useState<CreateServiceData>({
