@@ -335,6 +335,60 @@ export default function OrderDetailPage() {
               </Card>
             )}
 
+            {/* Freelancer Actions - Submit Work (when IN_PROGRESS or REVISION_REQUESTED) */}
+            {isFreelancer && (order.status === 'IN_PROGRESS' || order.status === 'REVISION_REQUESTED') && order.paymentStatus === 'PAID' && (
+              <Card className="border-2 border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="text-blue-900">Ready to Deliver?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-blue-800 mb-4">
+                    {order.status === 'REVISION_REQUESTED'
+                      ? 'Submit your revised work for client approval.'
+                      : 'Submit your completed work for client approval.'}
+                  </p>
+                  <Button
+                    onClick={() => setShowDeliverModal(true)}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Deliver Work
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Client Actions - Approve or Request Revision */}
+            {isClient && order.status === 'DELIVERED' && (
+              <Card className="border-2 border-green-200 bg-green-50">
+                <CardHeader>
+                  <CardTitle className="text-green-900">Review Delivery</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-green-800 mb-4">
+                    The freelancer has delivered their work. Review the files and approve if satisfied, or request revisions if needed.
+                  </p>
+                  <Button
+                    onClick={handleApprove}
+                    disabled={actionLoading || showReviewModal}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    <ThumbsUp className="w-4 h-4 mr-2" />
+                    Approve & Release Payment
+                  </Button>
+                  <Button
+                    onClick={handleRequestRevision}
+                    disabled={actionLoading || showReviewModal}
+                    variant="outline"
+                    className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Request Revision
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Order Timeline */}
             <Card>
               <CardHeader>
@@ -393,9 +447,12 @@ export default function OrderDetailPage() {
                     {order.freelancer.firstName?.[0]}{order.freelancer.lastName?.[0]}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">
+                    <Link
+                      href={`/profile/${order.freelancer.username}`}
+                      className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                    >
                       {order.freelancer.firstName} {order.freelancer.lastName}
-                    </p>
+                    </Link>
                     <p className="text-sm text-gray-600">@{order.freelancer.username}</p>
                   </div>
                 </div>
@@ -448,60 +505,6 @@ export default function OrderDetailPage() {
 
             {/* Order Files */}
             <ServiceOrderFiles orderId={orderId} canUpload={true} />
-
-            {/* Freelancer Actions - Submit Work (when IN_PROGRESS or REVISION_REQUESTED) */}
-            {isFreelancer && (order.status === 'IN_PROGRESS' || order.status === 'REVISION_REQUESTED') && order.paymentStatus === 'PAID' && (
-              <Card className="border-2 border-blue-200 bg-blue-50">
-                <CardHeader>
-                  <CardTitle className="text-blue-900">Ready to Deliver?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-blue-800 mb-4">
-                    {order.status === 'REVISION_REQUESTED'
-                      ? 'Submit your revised work for client approval.'
-                      : 'Submit your completed work for client approval.'}
-                  </p>
-                  <Button
-                    onClick={() => setShowDeliverModal(true)}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    Deliver Work
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Client Actions - Approve or Request Revision */}
-            {isClient && order.status === 'DELIVERED' && (
-              <Card className="border-2 border-green-200 bg-green-50">
-                <CardHeader>
-                  <CardTitle className="text-green-900">Review Delivery</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-green-800 mb-4">
-                    The freelancer has delivered their work. Review the files and approve if satisfied, or request revisions if needed.
-                  </p>
-                  <Button
-                    onClick={handleApprove}
-                    disabled={actionLoading || showReviewModal}
-                    className="w-full bg-green-600 hover:bg-green-700"
-                  >
-                    <ThumbsUp className="w-4 h-4 mr-2" />
-                    Approve & Release Payment
-                  </Button>
-                  <Button
-                    onClick={handleRequestRevision}
-                    disabled={actionLoading || showReviewModal}
-                    variant="outline"
-                    className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Request Revision
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
 
             {/* General Actions */}
             {order.status === 'PENDING' && (

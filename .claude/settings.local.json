@@ -55,9 +55,14 @@
       "Bash(git revert:*)",
       "Bash(git restore:*)",
       "Bash(git reset:*)",
-      "Bash(del backendscriptsinsert-subcategories.js backendscriptscleanup-duplicate-subcategories.js)"
+      "Bash(del backendscriptsinsert-subcategories.js backendscriptscleanup-duplicate-subcategories.js)",
+      "Bash(claude --version:*)",
+      "Bash(npm update:*)",
+      "Bash(grep:*)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "model": "claude-opus-4-5-20251101"
 }

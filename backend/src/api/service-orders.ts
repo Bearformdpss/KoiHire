@@ -1014,8 +1014,8 @@ router.post('/:orderId/review', authMiddleware, requireRole(['CLIENT']), validat
     throw new AppError('Not authorized to review this order', 403);
   }
 
-  if (order.status !== 'COMPLETED') {
-    throw new AppError('Order must be completed to submit review', 400);
+  if (order.status !== 'COMPLETED' && order.status !== 'DELIVERED') {
+    throw new AppError('Order must be delivered or completed to submit review', 400);
   }
 
   if (order.reviews.length > 0) {
