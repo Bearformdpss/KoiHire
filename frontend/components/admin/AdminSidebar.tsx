@@ -8,15 +8,20 @@ import {
   FolderKanban,
   Users,
   ShoppingBag,
-  Shield
+  Shield,
+  Banknote,
+  Package,
+  ClipboardList
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Payouts', href: '/admin/payouts', icon: Banknote },
   { name: 'Payments', href: '/admin/payments', icon: DollarSign },
   { name: 'Projects', href: '/admin/projects', icon: FolderKanban },
-  { name: 'Users', href: '/admin/users', icon: Users },
+  { name: 'Services', href: '/admin/services', icon: Package },
   { name: 'Service Orders', href: '/admin/service-orders', icon: ShoppingBag },
+  { name: 'Users', href: '/admin/users', icon: Users },
 ]
 
 export default function AdminSidebar() {

@@ -909,3 +909,21 @@ enum SubmissionStatus {
   APPROVED
   REVISION_REQUESTED
 }
+
+// Admin action audit log for tracking all admin operations
+model AdminActionLog {
+  id         String   @id @default(cuid())
+  adminId    String   // Admin who performed the action
+  adminEmail String   // Admin email for quick reference
+  action     String   // Action type (e.g., "RELEASE_PAYOUT", "UPDATE_USER", "SUSPEND_USER")
+  targetType String   // Entity type (e.g., "User", "Payout", "Project", "Service")
+  targetId   String   // ID of the affected entity
+  details    Json?    // Action-specific data (old values, new values, reason, etc.)
+  ipAddress  String?  // IP address of admin
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("admin_action_logs")
+}

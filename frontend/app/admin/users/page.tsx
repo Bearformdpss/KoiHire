@@ -5,8 +5,227 @@ import { adminApi } from '@/lib/api/admin'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Search, CheckCircle, XCircle, User } from 'lucide-react'
+import { Loader2, Search, CheckCircle, XCircle, User, Edit, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+interface EditUserModalProps {
+  user: any
+  onClose: () => void
+  onSave: () => void
+}
+
+function EditUserModal({ user, onClose, onSave }: EditUserModalProps) {
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    firstName: user.firstName || '',
+    lastName: user.lastName || '',
+    email: user.email || '',
+    username: user.username || '',
+    bio: user.bio || '',
+    location: user.location || '',
+    website: user.website || '',
+    phone: user.phone || '',
+    payoutMethod: user.payoutMethod || '',
+    paypalEmail: user.paypalEmail || '',
+    payoneerEmail: user.payoneerEmail || ''
+  })
+  const [roleData, setRoleData] = useState(user.role)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      // Update profile
+      const profileResponse = await adminApi.updateUserProfile(user.id, {
+        ...formData,
+        payoutMethod: formData.payoutMethod || null,
+        paypalEmail: formData.paypalEmail || null,
+        payoneerEmail: formData.payoneerEmail || null
+      })
+
+      if (!profileResponse.success) {
+        throw new Error(profileResponse.message || 'Failed to update profile')
+      }
+
+      // Update role if changed
+      if (roleData !== user.role) {
+        const roleResponse = await adminApi.updateUserRole(user.id, roleData)
+        if (!roleResponse.success) {
+          throw new Error(roleResponse.message || 'Failed to update role')
+        }
+      }
+
+      toast.success('User updated successfully')
+      onSave()
+      onClose()
+    } catch (error: any) {
+      console.error('Failed to update user:', error)
+      toast.error(error.message || 'Failed to update user')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-xl font-bold">Edit User Profile</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+              <Input
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+              <Input
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <Input
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <select
+              value={roleData}
+              onChange={(e) => setRoleData(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value="CLIENT">Client</option>
+              <option value="FREELANCER">Freelancer</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+            <textarea
+              value={formData.bio}
+              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <Input
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <Input
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+            <Input
+              type="url"
+              value={formData.website}
+              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+            />
+          </div>
+
+          {/* Payout Settings Section */}
+          <div className="pt-4 border-t border-gray-200">
+            <h3 className="text-lg font-medium mb-4">Payout Settings</h3>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payout Method</label>
+              <select
+                value={formData.payoutMethod}
+                onChange={(e) => setFormData({ ...formData, payoutMethod: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Not Set</option>
+                <option value="STRIPE">Stripe Connect</option>
+                <option value="PAYPAL">PayPal</option>
+                <option value="PAYONEER">Payoneer</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">PayPal Email</label>
+                <Input
+                  type="email"
+                  value={formData.paypalEmail}
+                  onChange={(e) => setFormData({ ...formData, paypalEmail: e.target.value })}
+                  placeholder="paypal@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payoneer Email</label>
+                <Input
+                  type="email"
+                  value={formData.payoneerEmail}
+                  onChange={(e) => setFormData({ ...formData, payoneerEmail: e.target.value })}
+                  placeholder="payoneer@example.com"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([])
@@ -18,6 +237,7 @@ export default function AdminUsersPage() {
     page: 1,
     limit: 20
   })
+  const [editingUser, setEditingUser] = useState<any>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -161,7 +381,7 @@ export default function AdminUsersPage() {
                             <span className={`px-2 py-1 rounded text-xs font-medium ${
                               user.role === 'CLIENT' ? 'bg-blue-100 text-blue-800' :
                               user.role === 'FREELANCER' ? 'bg-purple-100 text-purple-800' :
-                              'bg-gray-100 text-gray-800'
+                              'bg-red-100 text-red-800'
                             }`}>
                               {user.role}
                             </span>
@@ -232,13 +452,21 @@ export default function AdminUsersPage() {
                       {/* Metadata */}
                       <div className="mt-4 pt-4 border-t border-gray-200 flex items-center gap-4 text-xs text-gray-500">
                         <span>Joined: {formatDate(user.createdAt)}</span>
-                        <span>•</span>
+                        <span>-</span>
                         <span>Last Active: {formatDate(user.lastActiveAt)}</span>
                       </div>
                     </div>
 
                     {/* Actions */}
                     <div className="ml-4 flex flex-col gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingUser(user)}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
                       {!user.isVerified && (
                         <Button
                           size="sm"
@@ -284,6 +512,15 @@ export default function AdminUsersPage() {
             ))
           )}
         </div>
+      )}
+
+      {/* Edit User Modal */}
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSave={fetchUsers}
+        />
       )}
     </div>
   )

@@ -197,4 +197,150 @@ export const adminApi = {
     });
     return response.json();
   },
+
+  // ==================== PAYOUTS ====================
+
+  getPayouts: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    payoutMethod?: string;
+    search?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.payoutMethod) queryParams.append('payoutMethod', params.payoutMethod);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const url = `${API_URL}/admin/payouts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiClient(url);
+    return response.json();
+  },
+
+  processPayoutStart: async (payoutId: string, adminNotes?: string) => {
+    const response = await apiClient(`${API_URL}/admin/payouts/${payoutId}/process`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminNotes })
+    });
+    return response.json();
+  },
+
+  completePayoutManually: async (payoutId: string, data: { externalReference?: string; adminNotes?: string }) => {
+    const response = await apiClient(`${API_URL}/admin/payouts/${payoutId}/complete`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  },
+
+  failPayout: async (payoutId: string, data: { failureReason: string; adminNotes?: string }) => {
+    const response = await apiClient(`${API_URL}/admin/payouts/${payoutId}/fail`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  },
+
+  // ==================== USER PROFILE MANAGEMENT ====================
+
+  updateUserProfile: async (userId: string, data: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    username?: string;
+    bio?: string;
+    location?: string;
+    website?: string;
+    phone?: string;
+    payoutMethod?: string | null;
+    paypalEmail?: string | null;
+    payoneerEmail?: string | null;
+  }) => {
+    const response = await apiClient(`${API_URL}/admin/users/${userId}/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  },
+
+  updateUserRole: async (userId: string, role: string) => {
+    const response = await apiClient(`${API_URL}/admin/users/${userId}/role`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role })
+    });
+    return response.json();
+  },
+
+  // ==================== SERVICES ====================
+
+  getServices: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    categoryId?: string;
+    search?: string;
+    featured?: boolean;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.featured !== undefined) queryParams.append('featured', params.featured.toString());
+
+    const url = `${API_URL}/admin/services${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiClient(url);
+    return response.json();
+  },
+
+  getService: async (serviceId: string) => {
+    const response = await apiClient(`${API_URL}/admin/services/${serviceId}`);
+    return response.json();
+  },
+
+  updateServiceStatus: async (serviceId: string, isActive: boolean) => {
+    const response = await apiClient(`${API_URL}/admin/services/${serviceId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive })
+    });
+    return response.json();
+  },
+
+  unfeatureService: async (serviceId: string) => {
+    const response = await apiClient(`${API_URL}/admin/services/${serviceId}/unfeature`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.json();
+  },
+
+  // ==================== ACTIVITY LOGS ====================
+
+  getActivityLogs: async (params?: {
+    page?: number;
+    limit?: number;
+    action?: string;
+    targetType?: string;
+    adminId?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.action) queryParams.append('action', params.action);
+    if (params?.targetType) queryParams.append('targetType', params.targetType);
+    if (params?.adminId) queryParams.append('adminId', params.adminId);
+
+    const url = `${API_URL}/admin/activity-logs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiClient(url);
+    return response.json();
+  },
 };

@@ -993,12 +993,683 @@ router.post('/service-orders/:id/refund', asyncHandler(async (req: AuthRequest, 
   await refundServiceOrderPayment(id, reason);
 
   // Log admin action
-  console.log(`[ADMIN ACTION] User ${req.user!.email} refunded service order ${id}. Reason: ${reason}`);
+  await logAdminAction(req, 'REFUND_SERVICE_ORDER', 'ServiceOrder', id, { reason });
 
   res.json({
     success: true,
     message: 'Service order refunded successfully'
   });
 }));
+
+// ==================== PAYOUTS MANAGEMENT ====================
+
+// Get all payouts with filtering
+router.get('/payouts', asyncHandler(async (req: AuthRequest, res) => {
+  const {
+    page = '1',
+    limit = '20',
+    status,
+    payoutMethod,
+    search
+  } = req.query;
+
+  const skip = (Number(page) - 1) * Number(limit);
+  const take = Number(limit);
+
+  const where: any = {};
+
+  if (status) where.status = status;
+  if (payoutMethod) where.payoutMethod = payoutMethod;
+
+  if (search) {
+    where.OR = [
+      { user: { email: { contains: search as string, mode: 'insensitive' } } },
+      { user: { username: { contains: search as string, mode: 'insensitive' } } },
+      { payoutEmail: { contains: search as string, mode: 'insensitive' } }
+    ];
+  }
+
+  const [payouts, total] = await Promise.all([
+    prisma.payout.findMany({
+      where,
+      skip,
+      take,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            payoutMethod: true,
+            paypalEmail: true,
+            payoneerEmail: true,
+            stripeConnectAccountId: true
+          }
+        },
+        project: {
+          select: {
+            id: true,
+            title: true,
+            projectNumber: true
+          }
+        },
+        serviceOrder: {
+          select: {
+            id: true,
+            orderNumber: true,
+            service: {
+              select: {
+                title: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.payout.count({ where })
+  ]);
+
+  // Get summary stats
+  const [pendingCount, pendingTotal, processingCount, completedToday] = await Promise.all([
+    prisma.payout.count({ where: { status: 'PENDING', payoutMethod: { in: ['PAYPAL', 'PAYONEER'] } } }),
+    prisma.payout.aggregate({
+      where: { status: 'PENDING', payoutMethod: { in: ['PAYPAL', 'PAYONEER'] } },
+      _sum: { amount: true }
+    }),
+    prisma.payout.count({ where: { status: 'PROCESSING' } }),
+    prisma.payout.count({
+      where: {
+        status: 'COMPLETED',
+        completedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+      }
+    })
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      payouts,
+      summary: {
+        pendingCount,
+        pendingTotal: pendingTotal._sum.amount || 0,
+        processingCount,
+        completedToday
+      },
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit))
+      }
+    }
+  });
+}));
+
+// Mark payout as processing
+router.put('/payouts/:id/process', asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const { adminNotes } = req.body;
+
+  const payout = await prisma.payout.findUnique({
+    where: { id },
+    include: { user: { select: { email: true, username: true } } }
+  });
+
+  if (!payout) {
+    throw new AppError('Payout not found', 404);
+  }
+
+  if (payout.status !== 'PENDING') {
+    throw new AppError('Only pending payouts can be marked as processing', 400);
+  }
+
+  const updatedPayout = await prisma.payout.update({
+    where: { id },
+    data: {
+      status: 'PROCESSING',
+      processedAt: new Date(),
+      adminNotes: adminNotes || payout.adminNotes
+    }
+  });
+
+  await logAdminAction(req, 'PROCESS_PAYOUT', 'Payout', id, {
+    amount: payout.amount,
+    payoutMethod: payout.payoutMethod,
+    payoutEmail: payout.payoutEmail,
+    adminNotes
+  });
+
+  res.json({
+    success: true,
+    message: 'Payout marked as processing',
+    data: { payout: updatedPayout }
+  });
+}));
+
+// Mark payout as completed
+router.put('/payouts/:id/complete', asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const { externalReference, adminNotes } = req.body;
+
+  const payout = await prisma.payout.findUnique({
+    where: { id },
+    include: { user: { select: { email: true, username: true } } }
+  });
+
+  if (!payout) {
+    throw new AppError('Payout not found', 404);
+  }
+
+  if (payout.status !== 'PENDING' && payout.status !== 'PROCESSING') {
+    throw new AppError('Only pending or processing payouts can be completed', 400);
+  }
+
+  const updatedPayout = await prisma.payout.update({
+    where: { id },
+    data: {
+      status: 'COMPLETED',
+      completedAt: new Date(),
+      externalReference: externalReference || payout.externalReference,
+      adminNotes: adminNotes || payout.adminNotes
+    }
+  });
+
+  await logAdminAction(req, 'COMPLETE_PAYOUT', 'Payout', id, {
+    amount: payout.amount,
+    payoutMethod: payout.payoutMethod,
+    externalReference,
+    adminNotes
+  });
+
+  res.json({
+    success: true,
+    message: 'Payout marked as completed',
+    data: { payout: updatedPayout }
+  });
+}));
+
+// Mark payout as failed
+router.put('/payouts/:id/fail', asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const { failureReason, adminNotes } = req.body;
+
+  if (!failureReason) {
+    throw new AppError('Failure reason is required', 400);
+  }
+
+  const payout = await prisma.payout.findUnique({
+    where: { id }
+  });
+
+  if (!payout) {
+    throw new AppError('Payout not found', 404);
+  }
+
+  if (payout.status === 'COMPLETED') {
+    throw new AppError('Cannot fail a completed payout', 400);
+  }
+
+  const updatedPayout = await prisma.payout.update({
+    where: { id },
+    data: {
+      status: 'FAILED',
+      failureReason,
+      adminNotes: adminNotes || payout.adminNotes
+    }
+  });
+
+  await logAdminAction(req, 'FAIL_PAYOUT', 'Payout', id, {
+    amount: payout.amount,
+    payoutMethod: payout.payoutMethod,
+    failureReason,
+    adminNotes
+  });
+
+  res.json({
+    success: true,
+    message: 'Payout marked as failed',
+    data: { payout: updatedPayout }
+  });
+}));
+
+// ==================== USER PROFILE MANAGEMENT ====================
+
+// Update user profile (admin can edit any user)
+router.put('/users/:id/profile', asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const {
+    firstName,
+    lastName,
+    email,
+    username,
+    bio,
+    location,
+    website,
+    phone,
+    payoutMethod,
+    paypalEmail,
+    payoneerEmail
+  } = req.body;
+
+  const existingUser = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      firstName: true,
+      lastName: true,
+      bio: true,
+      location: true,
+      website: true,
+      phone: true,
+      payoutMethod: true,
+      paypalEmail: true,
+      payoneerEmail: true
+    }
+  });
+
+  if (!existingUser) {
+    throw new AppError('User not found', 404);
+  }
+
+  // Check for email/username conflicts
+  if (email && email !== existingUser.email) {
+    const emailExists = await prisma.user.findUnique({ where: { email } });
+    if (emailExists) {
+      throw new AppError('Email already in use', 400);
+    }
+  }
+
+  if (username && username !== existingUser.username) {
+    const usernameExists = await prisma.user.findUnique({ where: { username } });
+    if (usernameExists) {
+      throw new AppError('Username already in use', 400);
+    }
+  }
+
+  const updateData: any = {};
+  if (firstName !== undefined) updateData.firstName = firstName;
+  if (lastName !== undefined) updateData.lastName = lastName;
+  if (email !== undefined) updateData.email = email;
+  if (username !== undefined) updateData.username = username;
+  if (bio !== undefined) updateData.bio = bio;
+  if (location !== undefined) updateData.location = location;
+  if (website !== undefined) updateData.website = website;
+  if (phone !== undefined) updateData.phone = phone;
+  if (payoutMethod !== undefined) updateData.payoutMethod = payoutMethod || null;
+  if (paypalEmail !== undefined) updateData.paypalEmail = paypalEmail || null;
+  if (payoneerEmail !== undefined) updateData.payoneerEmail = payoneerEmail || null;
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: updateData,
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      firstName: true,
+      lastName: true,
+      bio: true,
+      location: true,
+      website: true,
+      phone: true,
+      role: true,
+      isVerified: true,
+      isAvailable: true,
+      payoutMethod: true,
+      paypalEmail: true,
+      payoneerEmail: true
+    }
+  });
+
+  await logAdminAction(req, 'UPDATE_USER_PROFILE', 'User', id, {
+    previousValues: existingUser,
+    newValues: updateData
+  });
+
+  res.json({
+    success: true,
+    message: 'User profile updated successfully',
+    data: { user: updatedUser }
+  });
+}));
+
+// Update user role
+router.put('/users/:id/role', asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  if (!role) {
+    throw new AppError('Role is required', 400);
+  }
+
+  const validRoles = ['CLIENT', 'FREELANCER', 'ADMIN'];
+  if (!validRoles.includes(role)) {
+    throw new AppError('Invalid role', 400);
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, email: true, role: true }
+  });
+
+  if (!existingUser) {
+    throw new AppError('User not found', 404);
+  }
+
+  // Prevent removing last admin
+  if (existingUser.role === 'ADMIN' && role !== 'ADMIN') {
+    const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+    if (adminCount <= 1) {
+      throw new AppError('Cannot change role of the last admin user', 400);
+    }
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: { role },
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      role: true
+    }
+  });
+
+  await logAdminAction(req, 'CHANGE_USER_ROLE', 'User', id, {
+    previousRole: existingUser.role,
+    newRole: role
+  });
+
+  res.json({
+    success: true,
+    message: 'User role updated successfully',
+    data: { user: updatedUser }
+  });
+}));
+
+// ==================== SERVICES MANAGEMENT ====================
+
+// Get all services
+router.get('/services', asyncHandler(async (req: AuthRequest, res) => {
+  const {
+    page = '1',
+    limit = '20',
+    status,
+    categoryId,
+    search,
+    featured
+  } = req.query;
+
+  const skip = (Number(page) - 1) * Number(limit);
+  const take = Number(limit);
+
+  const where: any = {};
+
+  if (status === 'active') where.isActive = true;
+  if (status === 'inactive') where.isActive = false;
+  if (categoryId) where.categoryId = categoryId;
+  if (featured === 'true') where.isFeatured = true;
+
+  if (search) {
+    where.OR = [
+      { title: { contains: search as string, mode: 'insensitive' } },
+      { description: { contains: search as string, mode: 'insensitive' } },
+      { freelancer: { username: { contains: search as string, mode: 'insensitive' } } },
+      { freelancer: { email: { contains: search as string, mode: 'insensitive' } } }
+    ];
+  }
+
+  const [services, total] = await Promise.all([
+    prisma.service.findMany({
+      where,
+      skip,
+      take,
+      include: {
+        freelancer: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            isVerified: true
+          }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        packages: {
+          select: {
+            id: true,
+            tier: true,
+            price: true,
+            isActive: true
+          }
+        },
+        _count: {
+          select: {
+            serviceOrders: true,
+            reviews: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.service.count({ where })
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      services,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit))
+      }
+    }
+  });
+}));
+
+// Get service details
+router.get('/services/:id', asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+
+  const service = await prisma.service.findUnique({
+    where: { id },
+    include: {
+      freelancer: {
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          isVerified: true,
+          rating: true
+        }
+      },
+      category: true,
+      subcategory: true,
+      packages: true,
+      faqs: true,
+      reviews: {
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          client: {
+            select: {
+              id: true,
+              username: true
+            }
+          }
+        }
+      },
+      _count: {
+        select: {
+          serviceOrders: true,
+          reviews: true
+        }
+      }
+    }
+  });
+
+  if (!service) {
+    throw new AppError('Service not found', 404);
+  }
+
+  res.json({
+    success: true,
+    data: { service }
+  });
+}));
+
+// Toggle service active status
+router.put('/services/:id/status', asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const { isActive } = req.body;
+
+  if (typeof isActive !== 'boolean') {
+    throw new AppError('isActive must be a boolean', 400);
+  }
+
+  const service = await prisma.service.findUnique({
+    where: { id },
+    select: { id: true, title: true, isActive: true }
+  });
+
+  if (!service) {
+    throw new AppError('Service not found', 404);
+  }
+
+  const updatedService = await prisma.service.update({
+    where: { id },
+    data: { isActive }
+  });
+
+  await logAdminAction(req, isActive ? 'ACTIVATE_SERVICE' : 'DEACTIVATE_SERVICE', 'Service', id, {
+    title: service.title,
+    previousStatus: service.isActive,
+    newStatus: isActive
+  });
+
+  res.json({
+    success: true,
+    message: `Service ${isActive ? 'activated' : 'deactivated'} successfully`,
+    data: { service: updatedService }
+  });
+}));
+
+// Remove featured status from service
+router.put('/services/:id/unfeature', asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+
+  const service = await prisma.service.findUnique({
+    where: { id },
+    select: { id: true, title: true, isFeatured: true, featuredLevel: true }
+  });
+
+  if (!service) {
+    throw new AppError('Service not found', 404);
+  }
+
+  const updatedService = await prisma.service.update({
+    where: { id },
+    data: {
+      isFeatured: false,
+      featuredLevel: 'NONE',
+      featuredUntil: null
+    }
+  });
+
+  await logAdminAction(req, 'UNFEATURE_SERVICE', 'Service', id, {
+    title: service.title,
+    previousFeaturedLevel: service.featuredLevel
+  });
+
+  res.json({
+    success: true,
+    message: 'Service featured status removed',
+    data: { service: updatedService }
+  });
+}));
+
+// ==================== ADMIN ACTION LOGGING ====================
+
+// Get admin action logs
+router.get('/activity-logs', asyncHandler(async (req: AuthRequest, res) => {
+  const {
+    page = '1',
+    limit = '50',
+    action,
+    targetType,
+    adminId
+  } = req.query;
+
+  const skip = (Number(page) - 1) * Number(limit);
+  const take = Number(limit);
+
+  const where: any = {};
+
+  if (action) where.action = action;
+  if (targetType) where.targetType = targetType;
+  if (adminId) where.adminId = adminId;
+
+  const [logs, total] = await Promise.all([
+    prisma.adminActionLog.findMany({
+      where,
+      skip,
+      take,
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.adminActionLog.count({ where })
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      logs,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit))
+      }
+    }
+  });
+}));
+
+// Helper function to log admin actions
+async function logAdminAction(
+  req: AuthRequest,
+  action: string,
+  targetType: string,
+  targetId: string,
+  details?: any
+) {
+  try {
+    await prisma.adminActionLog.create({
+      data: {
+        adminId: req.user!.id,
+        adminEmail: req.user!.email,
+        action,
+        targetType,
+        targetId,
+        details,
+        ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || null
+      }
+    });
+  } catch (error) {
+    console.error('Failed to log admin action:', error);
+    // Don't throw - logging failure shouldn't break the main action
+  }
+}
 
 export default router;
