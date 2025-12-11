@@ -59,7 +59,10 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
       stripeOnboardingComplete: true,
       stripePayoutsEnabled: true,
       stripeDetailsSubmitted: true,
-      stripeChargesEnabled: true
+      stripeChargesEnabled: true,
+      payoutMethod: true,
+      paypalEmail: true,
+      payoneerEmail: true
     }
   });
 
@@ -131,7 +134,10 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
       stripeOnboardingComplete: user.stripeOnboardingComplete,
       stripePayoutsEnabled: user.stripePayoutsEnabled,
       stripeDetailsSubmitted: user.stripeDetailsSubmitted,
-      stripeChargesEnabled: user.stripeChargesEnabled
+      stripeChargesEnabled: user.stripeChargesEnabled,
+      payoutMethod: user.payoutMethod,
+      paypalEmail: user.paypalEmail,
+      payoneerEmail: user.payoneerEmail
     },
     accessToken,
     refreshToken
