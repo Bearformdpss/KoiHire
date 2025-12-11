@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { X, Loader2, Star, Send } from 'lucide-react'
+import { serviceOrdersApi } from '@/lib/api/service-orders'
 import toast from 'react-hot-toast'
 
 interface ServiceReviewModalProps {
@@ -19,8 +20,8 @@ interface ReviewData {
   comment: string
   communication: number
   quality: number
-  timeliness: number
-  professionalism: number
+  delivery: number
+  value: number
 }
 
 export function ServiceReviewModal({
@@ -36,8 +37,8 @@ export function ServiceReviewModal({
     comment: '',
     communication: 0,
     quality: 0,
-    timeliness: 0,
-    professionalism: 0
+    delivery: 0,
+    value: 0
   })
   const [submitting, setSubmitting] = useState(false)
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false)
@@ -67,18 +68,28 @@ export function ServiceReviewModal({
     }
 
     if (reviewData.communication === 0 || reviewData.quality === 0 ||
-        reviewData.timeliness === 0 || reviewData.professionalism === 0) {
+        reviewData.delivery === 0 || reviewData.value === 0) {
       toast.error('Please rate all categories')
       return
     }
 
     setSubmitting(true)
     try {
-      // TODO: Call service review API endpoint
-      // For now, we'll just mark as submitted
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setHasSubmittedReview(true)
-      toast.success('Review submitted successfully! Now click "Approve & Release Payment" to finalize.')
+      const response = await serviceOrdersApi.submitReview(serviceOrderId, {
+        rating: reviewData.rating,
+        comment: reviewData.comment,
+        communication: reviewData.communication,
+        quality: reviewData.quality,
+        delivery: reviewData.delivery,
+        value: reviewData.value
+      })
+
+      if (response.data?.success) {
+        setHasSubmittedReview(true)
+        toast.success('Review submitted successfully! Now click "Approve & Release Payment" to finalize.')
+      } else {
+        toast.error(response.data?.message || 'Failed to submit review')
+      }
     } catch (error: any) {
       console.error('Failed to submit review:', error)
       toast.error(error.response?.data?.message || 'Failed to submit review')
@@ -197,16 +208,16 @@ export function ServiceReviewModal({
                 'Meets expectations and requirements'
               )}
               {renderStarRating(
-                'Timeliness',
-                'timeliness',
-                reviewData.timeliness,
-                'Meets deadlines and schedules'
+                'Delivery',
+                'delivery',
+                reviewData.delivery,
+                'Timeliness and delivery speed'
               )}
               {renderStarRating(
-                'Professionalism',
-                'professionalism',
-                reviewData.professionalism,
-                'Professional conduct and attitude'
+                'Value for Money',
+                'value',
+                reviewData.value,
+                'Worth the price paid'
               )}
             </div>
 
