@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
-  ArrowLeft, Clock, RotateCw, Package, User, Calendar, MessageCircle, Loader2, CheckCircle2, AlertCircle, CreditCard, Send, ThumbsUp, RotateCcw
+  ArrowLeft, Clock, RotateCw, Package, User, Calendar, MessageCircle, Loader2, CheckCircle2, AlertCircle, CreditCard, Send, ThumbsUp, RotateCcw, Play
 } from 'lucide-react'
 import { serviceOrdersApi, ServiceOrder } from '@/lib/api/service-orders'
 import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
@@ -106,6 +106,25 @@ export default function OrderDetailPage() {
   const isFreelancer = user?.id === order?.freelancerId
   // Check if user is the client for this order
   const isClient = user?.id === order?.clientId
+
+  // Handle starting work (transition from ACCEPTED to IN_PROGRESS)
+  const handleStartWork = async () => {
+    setActionLoading(true)
+    try {
+      const response = await serviceOrdersApi.startWork(orderId)
+      if (response.data?.success) {
+        toast.success('Work started! You can now deliver when ready.')
+        fetchOrder()
+      } else {
+        toast.error(response.data?.message || 'Failed to start work')
+      }
+    } catch (error: any) {
+      console.error('Start work error:', error)
+      toast.error(error.response?.data?.message || 'Failed to start work')
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   // Handle delivery submission
   const handleSubmitDelivery = async (data: { title: string; description: string; files: string[] }) => {
@@ -444,8 +463,34 @@ export default function OrderDetailPage() {
             {/* Order Files */}
             <ServiceOrderFiles orderId={orderId} canUpload={true} />
 
-            {/* Freelancer Actions - Submit Work */}
-            {isFreelancer && (order.status === 'IN_PROGRESS' || order.status === 'ACCEPTED' || order.status === 'REVISION_REQUESTED') && order.paymentStatus === 'PAID' && (
+            {/* Freelancer Actions - Start Work (when ACCEPTED) */}
+            {isFreelancer && order.status === 'ACCEPTED' && order.paymentStatus === 'PAID' && (
+              <Card className="border-2 border-purple-200 bg-purple-50">
+                <CardHeader>
+                  <CardTitle className="text-purple-900">Ready to Begin?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-purple-800 mb-4">
+                    Click below to start working on this order. The client will be notified that you've begun.
+                  </p>
+                  <Button
+                    onClick={handleStartWork}
+                    disabled={actionLoading}
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Play className="w-4 h-4 mr-2" />
+                    )}
+                    Start Work
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Freelancer Actions - Submit Work (when IN_PROGRESS or REVISION_REQUESTED) */}
+            {isFreelancer && (order.status === 'IN_PROGRESS' || order.status === 'REVISION_REQUESTED') && order.paymentStatus === 'PAID' && (
               <Card className="border-2 border-blue-200 bg-blue-50">
                 <CardHeader>
                   <CardTitle className="text-blue-900">Ready to Deliver?</CardTitle>
