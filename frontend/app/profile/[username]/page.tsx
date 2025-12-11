@@ -77,6 +77,28 @@ interface UserProfile {
       title: string
     }
   }>
+  freelancerServiceReviews?: Array<{
+    id: string
+    rating: number
+    comment?: string
+    communication?: number
+    quality?: number
+    delivery?: number
+    value?: number
+    createdAt: string
+    client: {
+      username: string
+      avatar?: string
+      firstName: string
+      lastName: string
+    }
+    service: {
+      title: string
+    }
+    order: {
+      orderNumber: string
+    }
+  }>
 }
 
 export default function UserProfilePage() {
@@ -337,7 +359,7 @@ export default function UserProfilePage() {
                     <div className="flex items-center">
                       <Star className="w-5 h-5 text-koi-gold fill-current mr-1" />
                       <span className="font-semibold text-koi-navy">{profile.rating.toFixed(1)}</span>
-                      <span className="text-gray-600 ml-1">({profile.freelancerReviews.length} reviews)</span>
+                      <span className="text-gray-600 ml-1">({(profile.freelancerReviews.length + (profile.freelancerServiceReviews?.length || 0))} reviews)</span>
                     </div>
                   )}
                   {profile.role === 'FREELANCER' && profile.totalEarnings && (
@@ -404,7 +426,7 @@ export default function UserProfilePage() {
                   : 'text-gray-600 hover:text-koi-navy'
               }`}
             >
-              Reviews ({profile.freelancerReviews.length})
+              Reviews ({profile.freelancerReviews.length + (profile.freelancerServiceReviews?.length || 0)})
             </button>
             {profile.role === 'FREELANCER' && (
               <button
@@ -503,15 +525,38 @@ export default function UserProfilePage() {
               <ReviewDisplay
                 userId={profile.id}
                 showStats={true}
-                profileReviews={profile.freelancerReviews.map(review => ({
-                  ...review,
-                  communication: (review as any).communication || review.rating,
-                  quality: (review as any).quality || review.rating,
-                  timeliness: (review as any).timeliness || review.rating,
-                  professionalism: (review as any).professionalism || review.rating,
-                  helpful: 0,
-                  isHelpful: false
-                }))}
+                profileReviews={[
+                  // Project reviews
+                  ...profile.freelancerReviews.map(review => ({
+                    ...review,
+                    communication: (review as any).communication || review.rating,
+                    quality: (review as any).quality || review.rating,
+                    timeliness: (review as any).timeliness || review.rating,
+                    professionalism: (review as any).professionalism || review.rating,
+                    helpful: 0,
+                    isHelpful: false
+                  })),
+                  // Service reviews (convert to match expected format)
+                  ...(profile.freelancerServiceReviews || []).map(review => ({
+                    id: review.id,
+                    rating: review.rating,
+                    comment: review.comment || '',
+                    communication: review.communication || review.rating,
+                    quality: review.quality || review.rating,
+                    timeliness: review.delivery || review.rating,
+                    professionalism: review.value || review.rating,
+                    createdAt: review.createdAt,
+                    reviewer: {
+                      username: review.client.username,
+                      avatar: review.client.avatar
+                    },
+                    project: {
+                      title: `Service: ${review.service.title}`
+                    },
+                    helpful: 0,
+                    isHelpful: false
+                  }))
+                ]}
               />
             </div>
           )}

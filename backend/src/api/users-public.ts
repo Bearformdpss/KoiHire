@@ -170,6 +170,31 @@ router.get('/username/:username', asyncHandler(async (req, res) => {
         },
         orderBy: { createdAt: 'desc' },
         take: 10
+      },
+      freelancerServiceReviews: {
+        where: { isPublic: true },
+        include: {
+          client: {
+            select: {
+              username: true,
+              avatar: true,
+              firstName: true,
+              lastName: true
+            }
+          },
+          service: {
+            select: {
+              title: true
+            }
+          },
+          order: {
+            select: {
+              orderNumber: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10
       }
     }
   });
