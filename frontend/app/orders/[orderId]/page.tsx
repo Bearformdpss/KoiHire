@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
-  ArrowLeft, Clock, RotateCw, Package, User, Calendar, MessageCircle, Loader2, CheckCircle2, AlertCircle, CreditCard
+  ArrowLeft, Clock, RotateCw, Package, User, Calendar, MessageCircle, Loader2, CheckCircle2, AlertCircle, CreditCard, Send, ThumbsUp, RotateCcw
 } from 'lucide-react'
 import { serviceOrdersApi, ServiceOrder } from '@/lib/api/service-orders'
 import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
 import { ServiceOrderFiles } from '@/components/files/ServiceOrderFiles'
+import { SubmitWorkModal } from '@/components/orders/SubmitWorkModal'
 import { useAuthStore } from '@/lib/store/authStore'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -24,6 +25,8 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<ServiceOrder | null>(null)
   const [loading, setLoading] = useState(true)
   const [showCheckout, setShowCheckout] = useState(false)
+  const [showDeliverModal, setShowDeliverModal] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
     if (orderId) {
@@ -97,6 +100,75 @@ export default function OrderDetailPage() {
       hour: 'numeric',
       minute: '2-digit'
     }).format(new Date(dateString))
+  }
+
+  // Check if user is the freelancer for this order
+  const isFreelancer = user?.id === order?.freelancerId
+  // Check if user is the client for this order
+  const isClient = user?.id === order?.clientId
+
+  // Handle delivery submission
+  const handleSubmitDelivery = async (data: { title: string; description: string; files: string[] }) => {
+    try {
+      const response = await serviceOrdersApi.submitDelivery(orderId, data)
+      if (response.data?.success) {
+        toast.success('Work submitted successfully! The client will be notified.')
+        fetchOrder()
+      } else {
+        toast.error(response.data?.message || 'Failed to submit delivery')
+      }
+    } catch (error: any) {
+      console.error('Submit delivery error:', error)
+      toast.error(error.response?.data?.message || 'Failed to submit delivery')
+      throw error
+    }
+  }
+
+  // Handle client approval
+  const handleApprove = async () => {
+    if (!confirm('Are you sure you want to approve this delivery? This will release the payment to the freelancer.')) {
+      return
+    }
+
+    setActionLoading(true)
+    try {
+      const response = await serviceOrdersApi.approveDelivery(orderId)
+      if (response.data?.success) {
+        toast.success('Delivery approved! Payment has been released to the freelancer.')
+        fetchOrder()
+      } else {
+        toast.error(response.data?.message || 'Failed to approve delivery')
+      }
+    } catch (error: any) {
+      console.error('Approve delivery error:', error)
+      toast.error(error.response?.data?.message || 'Failed to approve delivery')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Handle revision request
+  const handleRequestRevision = async () => {
+    const reason = prompt('Please describe what changes you need:')
+    if (!reason || !reason.trim()) {
+      return
+    }
+
+    setActionLoading(true)
+    try {
+      const response = await serviceOrdersApi.requestRevision(orderId, { reason: reason.trim() })
+      if (response.data?.success) {
+        toast.success('Revision requested. The freelancer will be notified.')
+        fetchOrder()
+      } else {
+        toast.error(response.data?.message || 'Failed to request revision')
+      }
+    } catch (error: any) {
+      console.error('Request revision error:', error)
+      toast.error(error.response?.data?.message || 'Failed to request revision')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   if (loading) {
@@ -372,7 +444,65 @@ export default function OrderDetailPage() {
             {/* Order Files */}
             <ServiceOrderFiles orderId={orderId} canUpload={true} />
 
-            {/* Actions */}
+            {/* Freelancer Actions - Submit Work */}
+            {isFreelancer && (order.status === 'IN_PROGRESS' || order.status === 'ACCEPTED' || order.status === 'REVISION_REQUESTED') && order.paymentStatus === 'PAID' && (
+              <Card className="border-2 border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="text-blue-900">Ready to Deliver?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-blue-800 mb-4">
+                    {order.status === 'REVISION_REQUESTED'
+                      ? 'Submit your revised work for client approval.'
+                      : 'Submit your completed work for client approval.'}
+                  </p>
+                  <Button
+                    onClick={() => setShowDeliverModal(true)}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Deliver Work
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Client Actions - Approve or Request Revision */}
+            {isClient && order.status === 'DELIVERED' && (
+              <Card className="border-2 border-green-200 bg-green-50">
+                <CardHeader>
+                  <CardTitle className="text-green-900">Review Delivery</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-green-800 mb-4">
+                    The freelancer has delivered their work. Review the files and approve if satisfied.
+                  </p>
+                  <Button
+                    onClick={handleApprove}
+                    disabled={actionLoading}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <ThumbsUp className="w-4 h-4 mr-2" />
+                    )}
+                    Approve & Release Payment
+                  </Button>
+                  <Button
+                    onClick={handleRequestRevision}
+                    disabled={actionLoading}
+                    variant="outline"
+                    className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Request Revision
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* General Actions */}
             {order.status === 'PENDING' && (
               <Card>
                 <CardHeader>
@@ -400,6 +530,14 @@ export default function OrderDetailPage() {
           onSuccess={fetchOrder}
         />
       )}
+
+      {/* Submit Work Modal */}
+      <SubmitWorkModal
+        isOpen={showDeliverModal}
+        onClose={() => setShowDeliverModal(false)}
+        onSubmit={handleSubmitDelivery}
+        orderTitle={order?.service?.title || 'Order'}
+      />
     </div>
   )
 }
