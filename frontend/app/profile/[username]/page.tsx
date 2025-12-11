@@ -362,14 +362,6 @@ export default function UserProfilePage() {
                       <span className="text-gray-600 ml-1">({(profile.freelancerReviews.length + (profile.freelancerServiceReviews?.length || 0))} reviews)</span>
                     </div>
                   )}
-                  {profile.role === 'FREELANCER' && profile.totalEarnings && (
-                    <div className="text-sm">
-                      <span className="font-semibold text-koi-teal">
-                        ${profile.totalEarnings.toLocaleString()}
-                      </span>
-                      <span className="text-gray-600 ml-1">earned</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
