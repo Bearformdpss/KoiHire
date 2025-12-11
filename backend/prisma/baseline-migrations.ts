@@ -12,6 +12,45 @@ const migrations = [
   { name: '20251210000000_add_payout_preferences', checksum: '9e3f9b1b19ada07de72bcf91167c48a4b2a171d5749fccf46b16b2187798ae7b' },
 ];
 
+// Ensure critical columns exist in the database
+async function ensureCriticalColumnsExist() {
+  console.log('🔧 Ensuring critical database columns exist...');
+
+  try {
+    // Check and create PayoutMethod enum if it doesn't exist
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PayoutMethod') THEN
+          CREATE TYPE "PayoutMethod" AS ENUM ('STRIPE', 'PAYPAL', 'PAYONEER');
+        END IF;
+      END$$;
+    `);
+    console.log('  ✓ PayoutMethod enum verified');
+
+    // Add payout preference columns to users table if they don't exist
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "payoutMethod" "PayoutMethod";
+    `);
+    console.log('  ✓ payoutMethod column verified');
+
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "paypalEmail" TEXT;
+    `);
+    console.log('  ✓ paypalEmail column verified');
+
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "payoneerEmail" TEXT;
+    `);
+    console.log('  ✓ payoneerEmail column verified');
+
+    console.log('✅ All critical columns verified!');
+  } catch (error) {
+    console.error('⚠️ Error ensuring columns:', error);
+    // Don't throw - let the app continue, Prisma will report specific errors
+  }
+}
+
 async function baselineMigrations() {
   console.log('🔍 Checking migration baseline status...');
 
@@ -80,7 +119,12 @@ async function baselineMigrations() {
   }
 }
 
-baselineMigrations()
+async function main() {
+  await baselineMigrations();
+  await ensureCriticalColumnsExist();
+}
+
+main()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error('❌ Baseline failed:', error);
