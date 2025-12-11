@@ -12,6 +12,7 @@ import { serviceOrdersApi, ServiceOrder } from '@/lib/api/service-orders'
 import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
 import { ServiceOrderFiles } from '@/components/files/ServiceOrderFiles'
 import { SubmitWorkModal } from '@/components/orders/SubmitWorkModal'
+import { ServiceReviewModal } from '@/components/orders/ServiceReviewModal'
 import { useAuthStore } from '@/lib/store/authStore'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -26,6 +27,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [showCheckout, setShowCheckout] = useState(false)
   const [showDeliverModal, setShowDeliverModal] = useState(false)
+  const [showReviewModal, setShowReviewModal] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
@@ -124,12 +126,14 @@ export default function OrderDetailPage() {
     }
   }
 
-  // Handle client approval
+  // Handle client approval - show review modal first
   const handleApprove = async () => {
-    if (!confirm('Are you sure you want to approve this delivery? This will release the payment to the freelancer.')) {
-      return
-    }
+    // Show review modal first
+    setShowReviewModal(true)
+  }
 
+  // Handle actual approval after review flow
+  const handleFinalApproval = async () => {
     setActionLoading(true)
     try {
       const response = await serviceOrdersApi.approveDelivery(orderId)
@@ -142,6 +146,7 @@ export default function OrderDetailPage() {
     } catch (error: any) {
       console.error('Approve delivery error:', error)
       toast.error(error.response?.data?.message || 'Failed to approve delivery')
+      throw error // Re-throw so modal can handle it
     } finally {
       setActionLoading(false)
     }
@@ -475,23 +480,19 @@ export default function OrderDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-green-800 mb-4">
-                    The freelancer has delivered their work. Review the files and approve if satisfied.
+                    The freelancer has delivered their work. Review the files and approve if satisfied, or request revisions if needed.
                   </p>
                   <Button
                     onClick={handleApprove}
-                    disabled={actionLoading}
+                    disabled={actionLoading || showReviewModal}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
-                    {actionLoading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <ThumbsUp className="w-4 h-4 mr-2" />
-                    )}
+                    <ThumbsUp className="w-4 h-4 mr-2" />
                     Approve & Release Payment
                   </Button>
                   <Button
                     onClick={handleRequestRevision}
-                    disabled={actionLoading}
+                    disabled={actionLoading || showReviewModal}
                     variant="outline"
                     className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
                   >
@@ -538,6 +539,18 @@ export default function OrderDetailPage() {
         onSubmit={handleSubmitDelivery}
         orderTitle={order?.service?.title || 'Order'}
       />
+
+      {/* Service Review Modal */}
+      {order?.freelancer && (
+        <ServiceReviewModal
+          isOpen={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          onApprove={handleFinalApproval}
+          freelancerId={order.freelancer.id}
+          freelancerName={`${order.freelancer.firstName} ${order.freelancer.lastName}`}
+          serviceOrderId={orderId}
+        />
+      )}
     </div>
   )
 }
