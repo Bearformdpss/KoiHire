@@ -159,22 +159,6 @@ export default function FreelancerOrdersPage() {
     }
   }
 
-  const handleStartWork = async (orderId: string) => {
-    try {
-      const response = await serviceOrdersApi.startWork(orderId)
-      const data = response.data?.data || response.data
-      if (data || response.status === 200) {
-        toast.success('Work started!')
-        fetchOrders()
-      } else {
-        toast.error('Failed to start work')
-      }
-    } catch (error: any) {
-      console.error('Failed to start work:', error)
-      toast.error(error.response?.data?.message || error.message || 'Failed to start work')
-    }
-  }
-
   const handleSubmitWork = (orderId: string, orderTitle: string) => {
     setSubmitWorkModal({ isOpen: true, orderId, orderTitle })
   }
@@ -537,18 +521,6 @@ export default function FreelancerOrdersPage() {
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Accept Order
-                          </Button>
-                        )}
-
-                        {order.status === 'ACCEPTED' && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handleStartWork(order.id)}
-                            className="bg-orange-600 hover:bg-orange-700"
-                          >
-                            <Play className="w-4 h-4 mr-2" />
-                            Start Work
                           </Button>
                         )}
 

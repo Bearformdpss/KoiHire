@@ -268,40 +268,7 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
       });
     }
 
-    // 2. Orders to start (ACCEPTED status)
-    const ordersToStart = await prisma.serviceOrder.findMany({
-      where: {
-        freelancerId: userId,
-        status: 'ACCEPTED'
-      },
-      include: {
-        service: { select: { title: true } },
-        client: { select: { firstName: true, lastName: true } },
-        package: { select: { tier: true } }
-      }
-    });
-
-    for (const order of ordersToStart) {
-      const clientName = `${order.client.firstName} ${order.client.lastName}`;
-
-      actions.push({
-        id: order.id,
-        type: 'SERVICE_ORDER_START',
-        priority: 'NORMAL',
-        title: `${order.service.title} - ${order.package.tier}`,
-        message: `Start work for ${clientName}`,
-        link: `/orders/${order.id}`,
-        metadata: {
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          clientName
-        },
-        createdAt: order.createdAt.toISOString(),
-        updatedAt: order.updatedAt.toISOString()
-      });
-    }
-
-    // 3. Orders in progress (to deliver)
+    // 2. Orders in progress (to deliver) - orders go directly to IN_PROGRESS after payment
     const ordersInProgress = await prisma.serviceOrder.findMany({
       where: {
         freelancerId: userId,

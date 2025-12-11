@@ -637,12 +637,12 @@ export const confirmServiceOrderPayment = async (orderId: string, paymentIntentI
     currentPaymentStatus: order.paymentStatus
   });
 
-  // Update order payment status
+  // Update order payment status - go directly to IN_PROGRESS (matching project workflow)
   const updatedOrder = await prisma.serviceOrder.update({
     where: { id: orderId },
     data: {
       paymentStatus: 'PAID',
-      status: 'ACCEPTED' // Freelancer can start work
+      status: 'IN_PROGRESS' // Freelancer can start work immediately
     }
   });
 
