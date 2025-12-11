@@ -413,9 +413,10 @@ router.post('/:orderId/accept', authMiddleware, requireRole(['FREELANCER']), asy
     throw new AppError('Order cannot be accepted in current status', 400);
   }
 
+  // Go directly to IN_PROGRESS (matching project workflow)
   const updatedOrder = await prisma.serviceOrder.update({
     where: { id: orderId },
-    data: { status: 'ACCEPTED' }
+    data: { status: 'IN_PROGRESS' }
   });
 
   // Create timeline event for order confirmation
