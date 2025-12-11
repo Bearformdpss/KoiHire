@@ -6,13 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield, Loader2, AlertCircle } from 'lucide-react'
-import { useAuthStore } from '@/lib/store/auth'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5003'
+import { useAuthStore } from '@/lib/store/authStore'
 
 export default function AdminLoginPage() {
   const router = useRouter()
-  const { setAuth } = useAuthStore()
+  const { login } = useAuthStore()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({
@@ -26,31 +24,18 @@ export default function AdminLoginPage() {
     setError('')
 
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      })
+      // Use the store's login function which handles everything
+      await login(formData.email, formData.password)
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed')
-      }
+      // Get the user from the store after login
+      const user = useAuthStore.getState().user
 
       // Check if user is admin
-      if (data.user.role !== 'ADMIN') {
+      if (user?.role !== 'ADMIN') {
+        // Logout if not admin
+        await useAuthStore.getState().logout()
         throw new Error('Access denied. Admin privileges required.')
       }
-
-      // Store tokens
-      localStorage.setItem('accessToken', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
-
-      // Update auth store
-      setAuth(data.user, data.accessToken)
 
       // Redirect to admin dashboard
       router.push('/admin')
