@@ -180,21 +180,6 @@ export default function BasicDetailsStep({
         </p>
       </div>
 
-      {/* Short Description */}
-      <div>
-        <Label htmlFor="shortDescription">Short Description</Label>
-        <Input
-          id="shortDescription"
-          value={formData.shortDescription}
-          onChange={(e) => updateFormData({ shortDescription: e.target.value })}
-          placeholder="Brief one-line description of your service"
-          maxLength={300}
-        />
-        <p className="text-sm text-gray-500 mt-1">
-          Optional. {formData.shortDescription?.length || 0}/300 characters
-        </p>
-      </div>
-
       {/* Category */}
       <div>
         <Label htmlFor="category">Category *</Label>
