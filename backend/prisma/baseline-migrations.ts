@@ -16,21 +16,49 @@ async function baselineMigrations() {
   console.log('🔍 Checking migration baseline status...');
 
   try {
-    // Check if any migrations exist in the table
+    // Check for any failed migrations (finished_at is NULL means failed)
+    const failedMigrations = await prisma.$queryRaw<{ migration_name: string }[]>`
+      SELECT migration_name FROM "_prisma_migrations"
+      WHERE finished_at IS NULL AND rolled_back_at IS NULL
+    `;
+
+    if (failedMigrations.length > 0) {
+      console.log(`⚠️  Found ${failedMigrations.length} failed migration(s). Cleaning up...`);
+
+      // Delete all existing records and re-baseline
+      await prisma.$executeRaw`DELETE FROM "_prisma_migrations"`;
+      console.log('🗑️  Cleared migration table.');
+
+      // Insert all migrations as successfully applied
+      for (const migration of migrations) {
+        await prisma.$executeRaw`
+          INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
+          VALUES (gen_random_uuid(), ${migration.checksum}, NOW(), ${migration.name}, NULL, NULL, NOW(), 1)
+        `;
+        console.log(`  ✓ Marked as applied: ${migration.name}`);
+      }
+
+      console.log('✅ All migrations re-baselined successfully!');
+      return;
+    }
+
+    // Check if we have all 7 migrations
     const existingMigrations = await prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(*) as count FROM "_prisma_migrations"
+      SELECT COUNT(*) as count FROM "_prisma_migrations" WHERE finished_at IS NOT NULL
     `;
 
     const count = Number(existingMigrations[0].count);
 
-    if (count > 0) {
-      console.log(`✅ Migrations already baselined (${count} records found). Skipping.`);
+    if (count >= 7) {
+      console.log(`✅ All migrations already baselined (${count} records found). Skipping.`);
       return;
     }
 
-    console.log('📝 No migrations found. Baselining all migrations...');
+    console.log(`📝 Found ${count} migrations, need 7. Re-baselining...`);
 
-    // Insert all migrations as applied
+    // Clear and re-insert all
+    await prisma.$executeRaw`DELETE FROM "_prisma_migrations"`;
+
     for (const migration of migrations) {
       await prisma.$executeRaw`
         INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
