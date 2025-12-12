@@ -8,6 +8,9 @@ import {
 import { useAuthStore } from '@/lib/store/authStore'
 import { FreelancerSidebar } from './freelancer/FreelancerSidebar'
 import { ProfileCard } from './freelancer/ProfileCard'
+import { QuickStatsCard } from './freelancer/QuickStatsCard'
+import { LevelProgressCard } from './freelancer/LevelProgressCard'
+import { QuickActionsCard } from './freelancer/QuickActionsCard'
 import { AvailabilityToggle } from './freelancer/AvailabilityToggle'
 import { StripeConnectAlert } from '@/components/stripe/StripeConnectAlert'
 import { HeroSection } from '@/components/freelancer/HeroSection'
@@ -45,6 +48,9 @@ export function FreelancerDashboard() {
               </button>
             </div>
             <ProfileCard />
+            <QuickStatsCard />
+            <LevelProgressCard />
+            <QuickActionsCard />
             <AvailabilityToggle />
           </div>
         </div>
