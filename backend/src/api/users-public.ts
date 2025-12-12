@@ -39,7 +39,7 @@ router.get('/', asyncHandler(async (req, res) => {
       role: true,
       rating: true,
       isVerified: true,
-      totalEarnings: true,
+      // totalEarnings removed for privacy - not shown on public profiles
       skills: {
         include: {
           skill: {
@@ -81,8 +81,7 @@ router.get('/:userId', asyncHandler(async (req, res) => {
       rating: true,
       createdAt: true,
       isVerified: true,
-      totalEarnings: true,
-      totalSpent: true,
+      // totalEarnings and totalSpent removed for privacy - not shown on public profiles
       skills: {
         include: {
           skill: {
@@ -142,8 +141,7 @@ router.get('/username/:username', asyncHandler(async (req, res) => {
       rating: true,
       createdAt: true,
       isVerified: true,
-      totalEarnings: true,
-      totalSpent: true,
+      // totalEarnings and totalSpent removed for privacy - not shown on public profiles
       skills: {
         include: {
           skill: {

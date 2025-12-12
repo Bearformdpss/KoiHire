@@ -23,19 +23,10 @@ router.get('/profile', asyncHandler(async (req: AuthRequest, res) => {
       phone: true,
       role: true,
       rating: true,
-      totalEarnings: true,
-      totalSpent: true,
       isVerified: true,
       isAvailable: true,
       createdAt: true,
-      stripeConnectAccountId: true,
-      stripeOnboardingComplete: true,
-      stripePayoutsEnabled: true,
-      stripeDetailsSubmitted: true,
-      stripeChargesEnabled: true,
-      payoutMethod: true,
-      paypalEmail: true,
-      payoneerEmail: true,
+      // Sensitive payment data removed for security - fetch via /api/users/payment-settings when needed
       skills: {
         include: {
           skill: {
@@ -469,6 +460,48 @@ router.get('/payout-preferences', asyncHandler(async (req: AuthRequest, res) => 
       payoneerEmail: user.payoneerEmail,
       hasStripeConnect: !!user.stripeConnectAccountId && user.stripeOnboardingComplete,
       stripePayoutsEnabled: user.stripePayoutsEnabled
+    }
+  });
+}));
+
+// Get all payment settings (authenticated users only - own data)
+// This endpoint provides sensitive payment data that was removed from auth/profile endpoints for security
+router.get('/payment-settings', asyncHandler(async (req: AuthRequest, res) => {
+  if (!req.user) {
+    throw new AppError('Authentication required', 401);
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: {
+      id: true,
+      role: true,
+      stripeConnectAccountId: true,
+      stripeOnboardingComplete: true,
+      stripePayoutsEnabled: true,
+      stripeDetailsSubmitted: true,
+      stripeChargesEnabled: true,
+      payoutMethod: true,
+      paypalEmail: true,
+      payoneerEmail: true
+    }
+  });
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  res.json({
+    success: true,
+    paymentSettings: {
+      stripeConnectAccountId: user.stripeConnectAccountId,
+      stripeOnboardingComplete: user.stripeOnboardingComplete,
+      stripePayoutsEnabled: user.stripePayoutsEnabled,
+      stripeDetailsSubmitted: user.stripeDetailsSubmitted,
+      stripeChargesEnabled: user.stripeChargesEnabled,
+      payoutMethod: user.payoutMethod,
+      paypalEmail: user.paypalEmail,
+      payoneerEmail: user.payoneerEmail
     }
   });
 }));

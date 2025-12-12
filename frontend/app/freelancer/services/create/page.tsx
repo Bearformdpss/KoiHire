@@ -37,17 +37,36 @@ export default function CreateServicePage() {
   const totalSteps = 5
   const progress = (currentStep / totalSteps) * 100
 
-  // Check if user has a valid payout method (Stripe Connect, PayPal, or Payoneer)
-  const hasValidPayoutMethod = user?.stripePayoutsEnabled ||
-    (user?.payoutMethod === 'PAYPAL' && user?.paypalEmail) ||
-    (user?.payoutMethod === 'PAYONEER' && user?.payoneerEmail)
+  // Payment settings state - fetched separately for security
+  const [paymentSettings, setPaymentSettings] = useState<any>(null)
+  const [checkingPayment, setCheckingPayment] = useState(true)
 
-  // Check if payout method is set up
+  // Check payout method on mount
   useEffect(() => {
-    if (user && !hasValidPayoutMethod) {
-      setShowStripeModal(true)
+    if (user) {
+      checkPayoutMethod()
     }
-  }, [user, hasValidPayoutMethod])
+  }, [user])
+
+  const checkPayoutMethod = async () => {
+    try {
+      const { authApi } = await import('@/lib/auth')
+      const response = await authApi.getPaymentSettings()
+      if (response.success) {
+        setPaymentSettings(response.paymentSettings)
+        const hasValid = response.paymentSettings.stripePayoutsEnabled ||
+          (response.paymentSettings.payoutMethod === 'PAYPAL' && response.paymentSettings.paypalEmail) ||
+          (response.paymentSettings.payoutMethod === 'PAYONEER' && response.paymentSettings.payoneerEmail)
+        if (!hasValid) {
+          setShowStripeModal(true)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check payment settings:', error)
+    } finally {
+      setCheckingPayment(false)
+    }
+  }
 
   // Form data state
   const [formData, setFormData] = useState<CreateServiceData>({

@@ -26,6 +26,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { usersApi } from '@/lib/api/users'
 import { paymentsApi } from '@/lib/api/payments'
 import { api } from '@/lib/api'
+import { authApi, PaymentSettings } from '@/lib/auth'
 import toast from 'react-hot-toast'
 
 interface UserSettings {
@@ -49,6 +50,9 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [activeTab, setActiveTab] = useState<TabType>('profile')
+
+  // Payment settings - fetched separately for security
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null)
 
   // Payout settings state
   const [payoutForm, setPayoutForm] = useState({
@@ -84,6 +88,33 @@ export default function SettingsPage() {
     }
   }, [searchParams, user?.role])
 
+  // Fetch payment settings when payments tab is opened
+  useEffect(() => {
+    if (user && user.role === 'FREELANCER' && activeTab === 'payments' && !paymentSettings) {
+      fetchPaymentSettings()
+    }
+  }, [user, activeTab, paymentSettings])
+
+  const fetchPaymentSettings = async () => {
+    try {
+      const response = await authApi.getPaymentSettings()
+      if (response.success) {
+        setPaymentSettings(response.paymentSettings)
+        // Set payout form from payment settings
+        setPayoutForm({
+          payoutMethod: (response.paymentSettings.payoutMethod === 'PAYPAL' || response.paymentSettings.payoutMethod === 'PAYONEER')
+            ? response.paymentSettings.payoutMethod
+            : '',
+          paypalEmail: response.paymentSettings.paypalEmail || '',
+          payoneerEmail: response.paymentSettings.payoneerEmail || ''
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch payment settings:', error)
+      toast.error('Failed to load payment settings')
+    }
+  }
+
   useEffect(() => {
     if (user) {
       setSettings({
@@ -96,12 +127,6 @@ export default function SettingsPage() {
         website: (user as any).website || '',
         bio: (user as any).bio || '',
         avatar: user.avatar || ''
-      })
-      // Set payout form from user data
-      setPayoutForm({
-        payoutMethod: (user.payoutMethod === 'PAYPAL' || user.payoutMethod === 'PAYONEER') ? user.payoutMethod : '',
-        paypalEmail: user.paypalEmail || '',
-        payoneerEmail: user.payoneerEmail || ''
       })
       setLoading(false)
     }
@@ -173,15 +198,12 @@ export default function SettingsPage() {
     try {
       const response = await usersApi.updatePayoutPreferences({
         payoutMethod: payoutForm.payoutMethod || null,
-        paypalEmail: payoutForm.paypalEmail || null,
-        payoneerEmail: payoutForm.payoneerEmail || null
+        paypalEmail: payoutForm.payoutMethod === 'PAYPAL' ? payoutForm.paypalEmail : null,
+        payoneerEmail: payoutForm.payoutMethod === 'PAYONEER' ? payoutForm.payoneerEmail : null
       })
       if (response.success) {
-        updateUser({
-          payoutMethod: payoutForm.payoutMethod || null,
-          paypalEmail: payoutForm.paypalEmail || null,
-          payoneerEmail: payoutForm.payoneerEmail || null
-        })
+        // Refresh payment settings to get updated data
+        await fetchPaymentSettings()
         toast.success('Payout preferences saved!')
       }
     } catch (error: any) {
@@ -209,10 +231,10 @@ export default function SettingsPage() {
     }
   }
 
-  // Check if user has valid payout methods
-  const hasStripeConnect = user?.stripeConnectAccountId && user?.stripePayoutsEnabled
-  const hasPayPal = user?.payoutMethod === 'PAYPAL' && user?.paypalEmail
-  const hasPayoneer = user?.payoutMethod === 'PAYONEER' && user?.payoneerEmail
+  // Check if user has valid payout methods - using paymentSettings instead of user object
+  const hasStripeConnect = paymentSettings?.stripeConnectAccountId && paymentSettings?.stripePayoutsEnabled
+  const hasPayPal = paymentSettings?.payoutMethod === 'PAYPAL' && paymentSettings?.paypalEmail
+  const hasPayoneer = paymentSettings?.payoutMethod === 'PAYONEER' && paymentSettings?.payoneerEmail
   const hasValidPayout = hasStripeConnect || hasPayPal || hasPayoneer
 
   if (loading) {
@@ -463,8 +485,8 @@ export default function SettingsPage() {
                           <p className="text-sm font-medium text-green-800">Payout method configured</p>
                           <p className="text-sm text-green-700">
                             {hasStripeConnect && 'Stripe Connect (instant payouts)'}
-                            {hasPayPal && `PayPal: ${user.paypalEmail}`}
-                            {hasPayoneer && `Payoneer: ${user.payoneerEmail}`}
+                            {hasPayPal && `PayPal: ${paymentSettings?.paypalEmail}`}
+                            {hasPayoneer && `Payoneer: ${paymentSettings?.payoneerEmail}`}
                           </p>
                         </div>
                       </div>

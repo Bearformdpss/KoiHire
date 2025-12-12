@@ -48,8 +48,7 @@ interface UserProfile {
   phone?: string
   role: 'CLIENT' | 'FREELANCER'
   rating?: number
-  totalEarnings?: number
-  totalSpent?: number
+  // totalEarnings and totalSpent removed for privacy - not shown on public profiles
   isVerified: boolean
   createdAt: string
   skills: Array<{
@@ -144,14 +143,12 @@ export default function UserProfilePage() {
           lastName: currentUser.lastName,
           email: currentUser.email,
           avatar: currentUser.avatar,
-          bio: '', 
-          location: '', 
-          website: '',  
+          bio: '',
+          location: '',
+          website: '',
           phone: '',
           role: currentUser.role,
           rating: currentUser.rating,
-          totalEarnings: currentUser.totalEarnings,
-          totalSpent: currentUser.totalSpent,
           isVerified: currentUser.isVerified,
           createdAt: new Date().toISOString(),
           skills: [],

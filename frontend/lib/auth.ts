@@ -11,15 +11,18 @@ export interface User {
   isVerified: boolean;
   isAvailable?: boolean;
   rating?: number;
-  totalEarnings: number;
-  totalSpent: number;
-  // Stripe Connect fields
+  createdAt?: string;
+  // Sensitive payment data removed for security - fetch via separate endpoint when needed
+}
+
+// Payment settings interface - separate from User for security
+// Fetch from /api/users/payment-settings when needed (not included in auth responses)
+export interface PaymentSettings {
   stripeConnectAccountId?: string | null;
   stripeOnboardingComplete?: boolean;
   stripePayoutsEnabled?: boolean;
   stripeDetailsSubmitted?: boolean;
   stripeChargesEnabled?: boolean;
-  // Payout preference fields (PayPal/Payoneer alternative to Stripe Connect)
   payoutMethod?: 'STRIPE' | 'PAYPAL' | 'PAYONEER' | null;
   paypalEmail?: string | null;
   payoneerEmail?: string | null;
@@ -103,6 +106,13 @@ export const authApi = {
       password,
       confirmPassword,
     });
+    return response;
+  },
+
+  // Get payment settings (requires authentication)
+  // This fetches sensitive payment data that was removed from auth/profile responses for security
+  getPaymentSettings: async (): Promise<{ success: boolean; paymentSettings: PaymentSettings }> => {
+    const response = await apiRequest.get<{ success: boolean; paymentSettings: PaymentSettings }>('/users/payment-settings');
     return response;
   },
 };

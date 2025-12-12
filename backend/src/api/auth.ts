@@ -52,17 +52,8 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
       avatar: true,
       isVerified: true,
       isAvailable: true,
-      rating: true,
-      totalEarnings: true,
-      totalSpent: true,
-      stripeConnectAccountId: true,
-      stripeOnboardingComplete: true,
-      stripePayoutsEnabled: true,
-      stripeDetailsSubmitted: true,
-      stripeChargesEnabled: true,
-      payoutMethod: true,
-      paypalEmail: true,
-      payoneerEmail: true
+      rating: true
+      // Sensitive payment data removed for security - fetch via /api/users/payment-settings when needed
     }
   });
 
@@ -127,17 +118,8 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
       avatar: user.avatar,
       isVerified: user.isVerified,
       isAvailable: user.isAvailable,
-      rating: user.rating,
-      totalEarnings: user.totalEarnings,
-      totalSpent: user.totalSpent,
-      stripeConnectAccountId: user.stripeConnectAccountId,
-      stripeOnboardingComplete: user.stripeOnboardingComplete,
-      stripePayoutsEnabled: user.stripePayoutsEnabled,
-      stripeDetailsSubmitted: user.stripeDetailsSubmitted,
-      stripeChargesEnabled: user.stripeChargesEnabled,
-      payoutMethod: user.payoutMethod,
-      paypalEmail: user.paypalEmail,
-      payoneerEmail: user.payoneerEmail
+      rating: user.rating
+      // Sensitive payment data removed for security - fetch via /api/users/payment-settings when needed
     },
     accessToken,
     refreshToken
