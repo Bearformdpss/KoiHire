@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store/authStore';
+import { useMessagesStore } from '@/lib/store/messagesStore';
 import { authApi } from '@/lib/auth';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useSessionMonitor } from '@/hooks/useSessionMonitor';
@@ -17,45 +18,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const { initialize, isAuthenticated, user } = useAuthStore();
   const { showWarning, timeRemaining, handleStayLoggedIn, handleLogout } = useSessionMonitor();
+  const fetchUnreadCount = useMessagesStore((state) => state.fetchUnreadCount);
 
   useEffect(() => {
     const initializeAuth = async () => {
       // Initialize auth store from localStorage (for immediate render)
       initialize();
 
-      // If user is authenticated, fetch fresh data from server
-      const storedToken = localStorage.getItem('accessToken');
-      const storedUser = localStorage.getItem('user');
-
-      if (storedToken && storedUser) {
-        try {
-          // Fetch fresh user data from server to get latest Stripe Connect status
-          const { user: freshUser } = await authApi.getProfile();
-
-          // Update store with fresh data (overwrites localStorage)
-          useAuthStore.getState().updateUser(freshUser);
-
-          console.log('✅ User data refreshed from server');
-        } catch (error) {
-          console.log('⚠️ Failed to fetch fresh user data, using cached data');
-
-          // If fetch fails, try token refresh as fallback
-          const storedRefreshToken = localStorage.getItem('refreshToken');
-          if (storedRefreshToken) {
-            try {
-              await useAuthStore.getState().refreshTokens();
-            } catch (refreshError) {
-              console.log('Token refresh also failed during initialization');
-            }
-          }
-        }
-      }
+      // OPTIMIZATION: Removed automatic profile fetch on every page load
+      // User data from localStorage is sufficient for display
+      // Fresh data will be fetched only when:
+      // 1. User logs in (handled by login flow)
+      // 2. User explicitly refreshes on Settings page
+      // 3. After critical actions like Stripe Connect setup
+      // This reduces API calls by 1 per page load for authenticated users
 
       setIsInitialized(true);
     };
 
     initializeAuth();
   }, []);
+
+  // OPTIMIZATION: Fetch unread messages only once on app initialization
+  // Previous implementation fetched on every page load via Header component
+  // Now we fetch once here and store in global state
+  useEffect(() => {
+    if (isInitialized && isAuthenticated && user) {
+      fetchUnreadCount();
+    }
+  }, [isInitialized, isAuthenticated, user, fetchUnreadCount]);
 
   // Show loading spinner while initializing
   if (!isInitialized) {
