@@ -92,41 +92,10 @@ export function LevelProgressCard() {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
-      {/* Current Level Badge */}
-      <div className="mb-4">
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${getLevelColor(levelData.currentLevel)} text-white font-semibold text-sm`}>
-          <span>{getLevelIcon(levelData.currentLevel)}</span>
-          <span>{levelData.currentLevel}</span>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      {!isMaxLevel && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-gray-600">Progress to {levelData.nextLevel}</span>
-            <span className="text-xs font-semibold text-gray-900">{levelData.progress}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-koi-orange to-koi-teal h-full rounded-full transition-all duration-500"
-              style={{ width: `${levelData.progress}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {isMaxLevel && (
-        <div className="mb-4 py-2 px-3 bg-purple-50 border border-purple-200 rounded-lg">
-          <div className="flex items-center gap-2 text-purple-700">
-            <Award className="w-4 h-4" />
-            <span className="text-xs font-medium">Maximum level reached!</span>
-          </div>
-        </div>
-      )}
+      <h3 className="text-sm font-semibold text-gray-900 mb-4">Performance Metrics</h3>
 
       {/* Metrics Grid */}
-      <div className="space-y-3 pt-3 border-t border-gray-100">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-600">Completed Projects</span>
           <span className="text-sm font-semibold text-gray-900">{levelData.metrics.completedProjects}</span>
@@ -144,16 +113,6 @@ export function LevelProgressCard() {
           <span className="text-sm font-semibold text-blue-600">{levelData.metrics.completionRate}%</span>
         </div>
       </div>
-
-      {/* Next Level Info */}
-      {!isMaxLevel && (
-        <div className="mt-4 pt-3 border-t border-gray-100">
-          <div className="flex items-center gap-2 text-xs text-gray-600">
-            <TrendingUp className="w-3 h-3" />
-            <span>Keep up the great work to reach {levelData.nextLevel}!</span>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
