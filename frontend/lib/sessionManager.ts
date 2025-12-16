@@ -83,8 +83,13 @@ class SessionManager {
    */
   private async checkAndRefreshToken(): Promise<void> {
     const now = Date.now();
-    const timeSinceLastRefresh = now - this.lastTokenRefreshTime;
-    const timeUntilExpiry = SESSION_CONFIG.TOKEN_EXPIRY_TIME - timeSinceLastRefresh;
+    const tokenExpiresAt = useAuthStore.getState().tokenExpiresAt;
+
+    if (!tokenExpiresAt) {
+      return; // No token expiry time available
+    }
+
+    const timeUntilExpiry = tokenExpiresAt - now;
 
     // If token will expire soon and user is active, refresh proactively
     if (timeUntilExpiry <= SESSION_CONFIG.REFRESH_BEFORE_EXPIRY) {

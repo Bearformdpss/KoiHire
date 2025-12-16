@@ -10,6 +10,19 @@ import { emailService } from '../services/emailService';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Cookie configuration for secure token storage
+const getCookieOptions = (maxAge: number) => ({
+  httpOnly: true, // Cannot be accessed via JavaScript (XSS protection)
+  secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+  sameSite: 'lax' as const, // CSRF protection
+  maxAge,
+  domain: process.env.COOKIE_DOMAIN || undefined, // .koihire.com in production
+  path: '/',
+});
+
+const accessTokenCookieOptions = getCookieOptions(15 * 60 * 1000); // 15 minutes
+const refreshTokenCookieOptions = getCookieOptions(7 * 24 * 60 * 60 * 1000); // 7 days
+
 // Register
 router.post('/register', validate(registerSchema), asyncHandler(async (req, res) => {
   const { email, username, firstName, lastName, password, role } = req.body;
@@ -73,13 +86,17 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
     // Don't fail the registration if email fails
   }
 
-  res.status(201).json({
-    success: true,
-    message: 'User registered successfully',
-    user,
-    accessToken,
-    refreshToken
-  });
+  // Set httpOnly cookies for tokens (secure, XSS-protected)
+  res
+    .cookie('accessToken', accessToken, accessTokenCookieOptions)
+    .cookie('refreshToken', refreshToken, refreshTokenCookieOptions)
+    .status(201)
+    .json({
+      success: true,
+      message: 'User registered successfully',
+      user,
+      expiresAt: Date.now() + 15 * 60 * 1000, // Access token expiry time for frontend
+    });
 }));
 
 // Login
@@ -105,30 +122,34 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
   const { accessToken, refreshToken } = generateTokens(user.id);
   await saveRefreshToken(user.id, refreshToken);
 
-  res.json({
-    success: true,
-    message: 'Login successful',
-    user: {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      avatar: user.avatar,
-      isVerified: user.isVerified,
-      isAvailable: user.isAvailable,
-      rating: user.rating
-      // Sensitive payment data removed for security - fetch via /api/users/payment-settings when needed
-    },
-    accessToken,
-    refreshToken
-  });
+  // Set httpOnly cookies for tokens (secure, XSS-protected)
+  res
+    .cookie('accessToken', accessToken, accessTokenCookieOptions)
+    .cookie('refreshToken', refreshToken, refreshTokenCookieOptions)
+    .json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        avatar: user.avatar,
+        isVerified: user.isVerified,
+        isAvailable: user.isAvailable,
+        rating: user.rating
+        // Sensitive payment data removed for security - fetch via /api/users/payment-settings when needed
+      },
+      expiresAt: Date.now() + 15 * 60 * 1000, // Access token expiry time for frontend
+    });
 }));
 
 // Refresh token
 router.post('/refresh', asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
+  // Try to get refresh token from cookie first, then fallback to request body (for gradual migration)
+  const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
   if (!refreshToken) {
     throw new AppError('Refresh token required', 400);
@@ -146,25 +167,33 @@ router.post('/refresh', asyncHandler(async (req, res) => {
   const { accessToken, refreshToken: newRefreshToken } = generateTokens(user.id);
   await saveRefreshToken(user.id, newRefreshToken);
 
-  res.json({
-    success: true,
-    accessToken,
-    refreshToken: newRefreshToken
-  });
+  // Set httpOnly cookies for tokens (secure, XSS-protected)
+  res
+    .cookie('accessToken', accessToken, accessTokenCookieOptions)
+    .cookie('refreshToken', newRefreshToken, refreshTokenCookieOptions)
+    .json({
+      success: true,
+      expiresAt: Date.now() + 15 * 60 * 1000, // Access token expiry time for frontend
+    });
 }));
 
 // Logout
 router.post('/logout', asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
+  // Try to get refresh token from cookie first, then fallback to request body
+  const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
   if (refreshToken) {
     await revokeRefreshToken(refreshToken);
   }
 
-  res.json({
-    success: true,
-    message: 'Logged out successfully'
-  });
+  // Clear httpOnly cookies
+  res
+    .clearCookie('accessToken', { ...accessTokenCookieOptions, maxAge: undefined })
+    .clearCookie('refreshToken', { ...refreshTokenCookieOptions, maxAge: undefined })
+    .json({
+      success: true,
+      message: 'Logged out successfully'
+    });
 }));
 
 // Forgot password - Request password reset

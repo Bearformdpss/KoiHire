@@ -5,8 +5,7 @@ import { sessionManager } from '@/lib/sessionManager';
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
+  tokenExpiresAt: number | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -21,8 +20,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      accessToken: null,
-      refreshToken: null,
+      tokenExpiresAt: null,
       isAuthenticated: false,
       isLoading: false,
 
@@ -30,13 +28,12 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await authApi.login({ email, password });
-          const { user, accessToken, refreshToken } = response;
-          
-          storeAuth({ user, accessToken, refreshToken });
+          const { user, expiresAt } = response;
+
+          storeAuth({ user, expiresAt });
           set({
             user,
-            accessToken,
-            refreshToken,
+            tokenExpiresAt: expiresAt,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -50,13 +47,12 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await authApi.register(data);
-          const { user, accessToken, refreshToken } = response;
-          
-          storeAuth({ user, accessToken, refreshToken });
+          const { user, expiresAt } = response;
+
+          storeAuth({ user, expiresAt });
           set({
             user,
-            accessToken,
-            refreshToken,
+            tokenExpiresAt: expiresAt,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -67,19 +63,15 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        const { refreshToken } = get();
         try {
-          if (refreshToken) {
-            await authApi.logout(refreshToken);
-          }
+          await authApi.logout();
         } catch (error) {
           // Ignore logout errors
         } finally {
           clearAuth();
           set({
             user: null,
-            accessToken: null,
-            refreshToken: null,
+            tokenExpiresAt: null,
             isAuthenticated: false,
             isLoading: false,
           });
@@ -91,24 +83,21 @@ export const useAuthStore = create<AuthState>()(
           user: state.user ? { ...state.user, ...updates } : null
         }));
         const storedAuth = getStoredAuth();
-        if (storedAuth && storedAuth.user) {
-          storeAuth({ ...storedAuth, user: { ...storedAuth.user, ...updates } });
+        if (storedAuth && storedAuth.user && storedAuth.tokenExpiresAt) {
+          storeAuth({
+            user: { ...storedAuth.user, ...updates },
+            expiresAt: storedAuth.tokenExpiresAt
+          });
         }
       },
 
       refreshTokens: async () => {
-        const { refreshToken } = get();
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
         try {
-          const response = await authApi.refreshToken(refreshToken);
-          const { accessToken, refreshToken: newRefreshToken } = response;
+          const response = await authApi.refreshToken();
+          const { expiresAt } = response;
 
           // Update localStorage
-          localStorage.setItem('accessToken', accessToken);
-          localStorage.setItem('refreshToken', newRefreshToken);
+          localStorage.setItem('tokenExpiresAt', expiresAt.toString());
 
           // Notify session manager of token refresh
           if (sessionManager.isActive()) {
@@ -118,8 +107,7 @@ export const useAuthStore = create<AuthState>()(
           // Update store
           set((state) => ({
             ...state,
-            accessToken,
-            refreshToken: newRefreshToken,
+            tokenExpiresAt: expiresAt,
           }));
         } catch (error) {
           // Token refresh failed, logout
@@ -133,8 +121,7 @@ export const useAuthStore = create<AuthState>()(
         if (storedAuth) {
           set({
             user: storedAuth.user,
-            accessToken: storedAuth.accessToken,
-            refreshToken: storedAuth.refreshToken,
+            tokenExpiresAt: storedAuth.tokenExpiresAt,
             isAuthenticated: true,
           });
         }
@@ -142,11 +129,10 @@ export const useAuthStore = create<AuthState>()(
         // Listen for token refresh events
         if (typeof window !== 'undefined') {
           const handleTokenRefresh = (event: CustomEvent) => {
-            const { accessToken, refreshToken } = event.detail;
+            const { expiresAt } = event.detail;
             set((state) => ({
               ...state,
-              accessToken,
-              refreshToken,
+              tokenExpiresAt: expiresAt,
             }));
           };
 
@@ -154,8 +140,7 @@ export const useAuthStore = create<AuthState>()(
             clearAuth();
             set({
               user: null,
-              accessToken: null,
-              refreshToken: null,
+              tokenExpiresAt: null,
               isAuthenticated: false,
               isLoading: false,
             });
@@ -176,8 +161,7 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-store',
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
+        tokenExpiresAt: state.tokenExpiresAt,
         isAuthenticated: state.isAuthenticated,
       }),
     }

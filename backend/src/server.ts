@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import dotenv from 'dotenv';
@@ -109,6 +110,9 @@ app.use(limiter);
 
 // Body parsing middleware
 app.use(compression());
+
+// Cookie parser middleware - must be before routes that use cookies
+app.use(cookieParser());
 
 // Stripe webhook needs raw body, so we need to handle it before JSON parsing
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));

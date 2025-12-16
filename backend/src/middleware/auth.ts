@@ -19,8 +19,9 @@ export const authMiddleware = async (
   next: NextFunction
 ) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+    // Try to get token from cookie first (secure), then fallback to Authorization header (for gradual migration)
+    const token = req.cookies?.accessToken || req.header('Authorization')?.replace('Bearer ', '');
+
     if (!token) {
       throw new AppError('No token provided', 401);
     }
@@ -30,7 +31,7 @@ export const authMiddleware = async (
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
-    
+
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {

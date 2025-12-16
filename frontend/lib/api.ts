@@ -7,19 +7,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5003/api';
 
 export const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true, // Send cookies with requests (for httpOnly cookie auth)
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to add auth token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// Request interceptor removed - cookies are sent automatically with withCredentials: true
 
 // Response interceptor to handle token refresh with lock mechanism
 api.interceptors.response.use(
@@ -31,24 +25,21 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
         // Use token refresh manager to prevent concurrent refreshes
+        // Cookies are sent automatically with withCredentials: true
         const refreshResult = await tokenRefreshManager.refresh(async () => {
-          const response = await axios.post(`${API_URL}/auth/refresh`, {
-            refreshToken,
+          const response = await axios.post(`${API_URL}/auth/refresh`, {}, {
+            withCredentials: true, // Send refresh token cookie
           });
           return response.data;
         });
 
-        const { accessToken, refreshToken: newRefreshToken } = refreshResult;
+        const { expiresAt } = refreshResult;
 
-        // Update localStorage
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
+        // Store expiry time for session manager
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('tokenExpiresAt', expiresAt.toString());
+        }
 
         // Notify session manager of token refresh
         if (sessionManager.isActive()) {
@@ -59,20 +50,16 @@ api.interceptors.response.use(
         if (typeof window !== 'undefined') {
           // Trigger a custom event to notify the auth store
           window.dispatchEvent(new CustomEvent('token-refresh', {
-            detail: { accessToken, refreshToken: newRefreshToken }
+            detail: { expiresAt }
           }));
         }
 
-        // Update the original request with new token
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-
-        // Try the original request again
+        // Try the original request again (new cookie sent automatically)
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh failed, clear storage and redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
+        localStorage.removeItem('tokenExpiresAt');
 
         // Trigger logout event
         if (typeof window !== 'undefined') {

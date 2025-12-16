@@ -32,8 +32,7 @@ export interface AuthResponse {
   success: boolean;
   message: string;
   user: User;
-  accessToken: string;
-  refreshToken: string;
+  expiresAt: number; // Token expiry timestamp (for session management)
 }
 
 export interface LoginCredentials {
@@ -61,14 +60,12 @@ export const authApi = {
     return response;
   },
 
-  logout: async (refreshToken?: string): Promise<void> => {
-    await apiRequest.post('/auth/logout', { refreshToken });
+  logout: async (): Promise<void> => {
+    await apiRequest.post('/auth/logout', {});
   },
 
-  refreshToken: async (refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> => {
-    const response = await apiRequest.post<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
-      refreshToken,
-    });
+  refreshToken: async (): Promise<{ expiresAt: number }> => {
+    const response = await apiRequest.post<{ expiresAt: number }>('/auth/refresh', {});
     return response;
   },
 
@@ -119,31 +116,29 @@ export const authApi = {
 
 export const getStoredAuth = () => {
   if (typeof window === 'undefined') return null;
-  
-  const accessToken = localStorage.getItem('accessToken');
-  const refreshToken = localStorage.getItem('refreshToken');
+
   const userString = localStorage.getItem('user');
-  
-  if (!accessToken || !refreshToken || !userString) {
+  const tokenExpiresAtString = localStorage.getItem('tokenExpiresAt');
+
+  if (!userString) {
     return null;
   }
 
   try {
     const user = JSON.parse(userString);
-    return { accessToken, refreshToken, user };
+    const tokenExpiresAt = tokenExpiresAtString ? parseInt(tokenExpiresAtString, 10) : null;
+    return { user, tokenExpiresAt };
   } catch {
     return null;
   }
 };
 
-export const storeAuth = (data: { accessToken: string; refreshToken: string; user: User }) => {
-  localStorage.setItem('accessToken', data.accessToken);
-  localStorage.setItem('refreshToken', data.refreshToken);
+export const storeAuth = (data: { user: User; expiresAt: number }) => {
   localStorage.setItem('user', JSON.stringify(data.user));
+  localStorage.setItem('tokenExpiresAt', data.expiresAt.toString());
 };
 
 export const clearAuth = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
+  localStorage.removeItem('tokenExpiresAt');
 };
