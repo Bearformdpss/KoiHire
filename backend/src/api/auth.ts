@@ -14,7 +14,7 @@ const prisma = new PrismaClient();
 const getCookieOptions = (maxAge: number) => ({
   httpOnly: true, // Cannot be accessed via JavaScript (XSS protection)
   secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-  sameSite: 'lax' as const, // CSRF protection
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // 'none' required for cross-origin in production
   maxAge,
   domain: process.env.COOKIE_DOMAIN || undefined, // .koihire.com in production
   path: '/',
