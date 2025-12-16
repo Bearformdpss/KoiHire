@@ -1,33 +1,50 @@
 'use client'
 
-import React, { useState } from 'react'
-import { AlertCircle, CreditCard, Wallet, Settings } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { AlertCircle, CreditCard, Wallet } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { paymentsApi } from '@/lib/api/payments'
+import { authApi, PaymentSettings } from '@/lib/auth'
 
-interface StripeConnectAlertProps {
-  stripeConnectAccountId?: string | null
-  stripePayoutsEnabled?: boolean
-  payoutMethod?: 'STRIPE' | 'PAYPAL' | 'PAYONEER' | null
-  paypalEmail?: string | null
-  payoneerEmail?: string | null
-}
-
-export function StripeConnectAlert({
-  stripeConnectAccountId,
-  stripePayoutsEnabled,
-  payoutMethod,
-  paypalEmail,
-  payoneerEmail
-}: StripeConnectAlertProps) {
+export function StripeConnectAlert() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null)
+  const [checkingPayment, setCheckingPayment] = useState(true)
+
+  // Fetch payment settings on mount
+  useEffect(() => {
+    fetchPaymentSettings()
+  }, [])
+
+  const fetchPaymentSettings = async () => {
+    try {
+      const response = await authApi.getPaymentSettings()
+      if (response.success) {
+        setPaymentSettings(response.paymentSettings)
+      }
+    } catch (error) {
+      console.error('Failed to fetch payment settings:', error)
+    } finally {
+      setCheckingPayment(false)
+    }
+  }
 
   // Check if user has ANY valid payout method
-  const hasStripeConnect = stripeConnectAccountId && stripePayoutsEnabled
-  const hasPayPal = payoutMethod === 'PAYPAL' && paypalEmail
-  const hasPayoneer = payoutMethod === 'PAYONEER' && payoneerEmail
+  const hasStripeConnect = paymentSettings?.stripeConnectAccountId && paymentSettings?.stripePayoutsEnabled
+  const hasPayPal = paymentSettings?.payoutMethod === 'PAYPAL' && paymentSettings?.paypalEmail
+  const hasPayoneer = paymentSettings?.payoutMethod === 'PAYONEER' && paymentSettings?.payoneerEmail
   const hasValidPayoutMethod = hasStripeConnect || hasPayPal || hasPayoneer
+
+  // Don't show if still checking payment settings
+  if (checkingPayment) {
+    return null
+  }
+
+  // Don't show if user has a valid payout method
+  if (hasValidPayoutMethod) {
+    return null
+  }
 
   const handleSetupPayments = async () => {
     setIsLoading(true)
@@ -51,11 +68,6 @@ export function StripeConnectAlert({
 
   const handleGoToSettings = () => {
     router.push('/settings?tab=payments')
-  }
-
-  // Don't show if user has a valid payout method
-  if (hasValidPayoutMethod) {
-    return null
   }
 
   return (

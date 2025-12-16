@@ -69,13 +69,7 @@ export function FreelancerDashboard() {
           </button>
 
           {/* Payout Setup Alert */}
-          <StripeConnectAlert
-            stripeConnectAccountId={user?.stripeConnectAccountId}
-            stripePayoutsEnabled={user?.stripePayoutsEnabled}
-            payoutMethod={user?.payoutMethod}
-            paypalEmail={user?.paypalEmail}
-            payoneerEmail={user?.payoneerEmail}
-          />
+          <StripeConnectAlert />
 
           {/* Action Banner */}
           <ActionBanner />
