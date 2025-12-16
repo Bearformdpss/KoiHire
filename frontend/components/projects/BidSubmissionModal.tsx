@@ -7,6 +7,7 @@ import { applicationsApi } from '@/lib/api/applications'
 import { messagesApi } from '@/lib/api/messages'
 import { useAuthStore } from '@/lib/store/authStore'
 import { StripeConnectModal } from '@/components/stripe/StripeConnectModal'
+import { authApi, PaymentSettings } from '@/lib/auth'
 import toast from 'react-hot-toast'
 
 interface Project {
@@ -37,6 +38,8 @@ export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess
   const { user } = useAuthStore()
   const [isLoading, setIsLoading] = useState(false)
   const [showStripeModal, setShowStripeModal] = useState(false)
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null)
+  const [checkingPayment, setCheckingPayment] = useState(false)
   const [formData, setFormData] = useState({
     coverLetter: '',
     proposedBudget: '',
@@ -45,17 +48,32 @@ export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Check if user has a valid payout method (Stripe Connect, PayPal, or Payoneer)
-  const hasValidPayoutMethod = user?.stripePayoutsEnabled ||
-    (user?.payoutMethod === 'PAYPAL' && user?.paypalEmail) ||
-    (user?.payoutMethod === 'PAYONEER' && user?.payoneerEmail)
-
-  // Check payout status when modal opens
+  // Fetch payment settings when modal opens
   useEffect(() => {
-    if (isOpen && user && !hasValidPayoutMethod) {
-      setShowStripeModal(true)
+    if (isOpen && user) {
+      checkPayoutMethod()
     }
-  }, [isOpen, user, hasValidPayoutMethod])
+  }, [isOpen, user])
+
+  const checkPayoutMethod = async () => {
+    setCheckingPayment(true)
+    try {
+      const response = await authApi.getPaymentSettings()
+      if (response.success) {
+        setPaymentSettings(response.paymentSettings)
+        const hasValid = response.paymentSettings.stripePayoutsEnabled ||
+          (response.paymentSettings.payoutMethod === 'PAYPAL' && response.paymentSettings.paypalEmail) ||
+          (response.paymentSettings.payoutMethod === 'PAYONEER' && response.paymentSettings.payoneerEmail)
+        if (!hasValid) {
+          setShowStripeModal(true)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch payment settings:', error)
+    } finally {
+      setCheckingPayment(false)
+    }
+  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
