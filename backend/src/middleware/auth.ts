@@ -10,14 +10,6 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     role: string;
-    stripeConnectAccountId?: string | null;
-    stripeOnboardingComplete?: boolean;
-    stripePayoutsEnabled?: boolean;
-    stripeDetailsSubmitted?: boolean;
-    stripeChargesEnabled?: boolean;
-    payoutMethod?: string | null;
-    paypalEmail?: string | null;
-    payoneerEmail?: string | null;
   };
 }
 
@@ -44,15 +36,8 @@ export const authMiddleware = async (
       select: {
         id: true,
         email: true,
-        role: true,
-        stripeConnectAccountId: true,
-        stripeOnboardingComplete: true,
-        stripePayoutsEnabled: true,
-        stripeDetailsSubmitted: true,
-        stripeChargesEnabled: true,
-        payoutMethod: true,
-        paypalEmail: true,
-        payoneerEmail: true
+        role: true
+        // Sensitive payment data removed for security - fetch directly in endpoints when needed
       }
     });
 

@@ -532,19 +532,28 @@ router.post('/service-order/:orderId/refund', asyncHandler(async (req: AuthReque
 
 // Create or get Stripe Connect account for freelancer
 router.post('/connect/create-account', authMiddleware, requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
-  const user = req.user!;
+  const userId = req.user!.id;
+  const userEmail = req.user!.email;
+
+  // Fetch payment settings to check if already has Connect account
+  const userPaymentData = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      stripeConnectAccountId: true
+    }
+  });
 
   // Check if already has Connect account
-  if (user.stripeConnectAccountId) {
-    const status = await checkAccountStatus(user.stripeConnectAccountId);
+  if (userPaymentData?.stripeConnectAccountId) {
+    const status = await checkAccountStatus(userPaymentData.stripeConnectAccountId);
 
     if (status.requiresAction) {
       // Generate new onboarding link
-      const onboardingUrl = await createAccountLink(user.stripeConnectAccountId);
+      const onboardingUrl = await createAccountLink(userPaymentData.stripeConnectAccountId);
 
       return res.json({
         success: true,
-        accountId: user.stripeConnectAccountId,
+        accountId: userPaymentData.stripeConnectAccountId,
         onboardingUrl,
         status,
         message: 'Please complete your Stripe Connect onboarding'
@@ -553,14 +562,14 @@ router.post('/connect/create-account', authMiddleware, requireRole(['FREELANCER'
 
     return res.json({
       success: true,
-      accountId: user.stripeConnectAccountId,
+      accountId: userPaymentData.stripeConnectAccountId,
       status,
       message: 'Connect account already set up'
     });
   }
 
   // Create new Connect account
-  const result = await createConnectAccount(user.id, user.email);
+  const result = await createConnectAccount(userId, userEmail);
 
   res.json({
     success: true,
@@ -570,9 +579,17 @@ router.post('/connect/create-account', authMiddleware, requireRole(['FREELANCER'
 
 // Get Connect account status
 router.get('/connect/status', authMiddleware, requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
-  const user = req.user!;
+  const userId = req.user!.id;
 
-  if (!user.stripeConnectAccountId) {
+  // Fetch payment settings to check Connect account status
+  const userPaymentData = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      stripeConnectAccountId: true
+    }
+  });
+
+  if (!userPaymentData?.stripeConnectAccountId) {
     return res.json({
       success: true,
       connected: false,
@@ -580,12 +597,12 @@ router.get('/connect/status', authMiddleware, requireRole(['FREELANCER']), async
     });
   }
 
-  const status = await checkAccountStatus(user.stripeConnectAccountId);
+  const status = await checkAccountStatus(userPaymentData.stripeConnectAccountId);
 
   res.json({
     success: true,
     connected: true,
-    accountId: user.stripeConnectAccountId,
+    accountId: userPaymentData.stripeConnectAccountId,
     ...status
   });
 }));
