@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest, authMiddleware, requireRole } from '../middleware/auth';
 import { requireStripeConnect } from '../middleware/stripeConnect';
-import { validate, serviceSchema } from '../utils/validation';
+import { validate, serviceSchema, validateMonetaryAmount } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
 
 const router = express.Router();
@@ -583,6 +583,26 @@ router.post('/', authMiddleware, requireRole(['FREELANCER']), requireStripeConne
     featuredPrice
   } = req.body;
 
+  // Validate basePrice
+  const validatedBasePrice = validateMonetaryAmount(basePrice, {
+    min: 0.01,
+    max: 999999.99,
+    fieldName: 'Base price'
+  });
+
+  // Validate package prices
+  const validatedPackages = packages.map((pkg: any) => {
+    const validatedPrice = validateMonetaryAmount(pkg.price, {
+      min: 0.01,
+      max: 999999.99,
+      fieldName: `${pkg.tier} package price`
+    });
+    return {
+      ...pkg,
+      price: validatedPrice
+    };
+  });
+
   // Handle premium upgrade logic
   let premiumData = {};
   if (featured && featuredLevel && featuredLevel !== 'NONE') {
@@ -603,7 +623,7 @@ router.post('/', authMiddleware, requireRole(['FREELANCER']), requireStripeConne
       shortDescription,
       categoryId,
       subcategoryId,
-      basePrice,
+      basePrice: validatedBasePrice,
       deliveryTime,
       revisions,
       requirements,
@@ -614,7 +634,7 @@ router.post('/', authMiddleware, requireRole(['FREELANCER']), requireStripeConne
       freelancerId: req.user!.id,
       ...premiumData,
       packages: {
-        create: packages
+        create: validatedPackages
       },
       faqs: faqs ? {
         create: faqs.map((faq: any, index: number) => ({
@@ -682,13 +702,39 @@ router.put('/:serviceId', authMiddleware, asyncHandler(async (req: AuthRequest, 
     throw new AppError('Not authorized to update this service', 403);
   }
 
+  // Validate basePrice if provided
+  let validatedBasePrice = basePrice;
+  if (basePrice !== undefined) {
+    validatedBasePrice = validateMonetaryAmount(basePrice, {
+      min: 0.01,
+      max: 999999.99,
+      fieldName: 'Base price'
+    });
+  }
+
+  // Validate package prices if provided
+  let validatedPackages = packages;
+  if (packages) {
+    validatedPackages = packages.map((pkg: any) => {
+      const validatedPrice = validateMonetaryAmount(pkg.price, {
+        min: 0.01,
+        max: 999999.99,
+        fieldName: `${pkg.tier} package price`
+      });
+      return {
+        ...pkg,
+        price: validatedPrice
+      };
+    });
+  }
+
   const updatedService = await prisma.service.update({
     where: { id: serviceId },
     data: {
       title,
       description,
       shortDescription,
-      basePrice,
+      basePrice: validatedBasePrice,
       deliveryTime,
       revisions,
       requirements,
@@ -696,9 +742,9 @@ router.put('/:serviceId', authMiddleware, asyncHandler(async (req: AuthRequest, 
       galleryImages,
       videoUrl,
       tags,
-      packages: packages ? {
+      packages: validatedPackages ? {
         deleteMany: {},
-        create: packages
+        create: validatedPackages
       } : undefined,
       faqs: faqs ? {
         deleteMany: {},

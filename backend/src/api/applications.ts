@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest, requireRole } from '../middleware/auth';
 import { requireStripeConnect } from '../middleware/stripeConnect';
-import { validate, applicationSchema } from '../utils/validation';
+import { validate, applicationSchema, validateMonetaryAmount } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
 import { emailService } from '../services/emailService';
 
@@ -330,8 +330,14 @@ router.post('/:projectId', requireRole(['FREELANCER']), requireStripeConnect, va
   }
 
   // Validate proposed budget if provided
-  if (proposedBudget && (proposedBudget < project.minBudget || proposedBudget > project.maxBudget)) {
-    throw new AppError(`Proposed budget must be between $${project.minBudget} and $${project.maxBudget}`, 400);
+  if (proposedBudget) {
+    const validatedBudget = validateMonetaryAmount(proposedBudget, {
+      min: project.minBudget,
+      max: project.maxBudget,
+      fieldName: 'Proposed budget'
+    });
+    // Use the validated and normalized amount
+    req.body.proposedBudget = validatedBudget;
   }
 
   const application = await prisma.application.create({
@@ -435,8 +441,14 @@ router.put('/:applicationId', asyncHandler(async (req: AuthRequest, res) => {
   }
 
   // Validate proposed budget if provided
-  if (proposedBudget && (proposedBudget < application.project.minBudget || proposedBudget > application.project.maxBudget)) {
-    throw new AppError(`Proposed budget must be between $${application.project.minBudget} and $${application.project.maxBudget}`, 400);
+  if (proposedBudget) {
+    const validatedBudget = validateMonetaryAmount(proposedBudget, {
+      min: application.project.minBudget,
+      max: application.project.maxBudget,
+      fieldName: 'Proposed budget'
+    });
+    // Use the validated and normalized amount
+    req.body.proposedBudget = validatedBudget;
   }
 
   const updatedApplication = await prisma.application.update({

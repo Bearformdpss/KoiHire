@@ -200,7 +200,8 @@ export default function PackagesStep({
                       <Input
                         id={`${tierInfo.tier}-price`}
                         type="number"
-                        min="1"
+                        min="0"
+                        step="0.01"
                         value={pkg.price}
                         onChange={(e) => updatePackage(tierInfo.tier, { price: Number(e.target.value) })}
                         placeholder="0"

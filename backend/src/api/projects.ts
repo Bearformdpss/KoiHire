@@ -2,7 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest, authMiddleware, requireRole } from '../middleware/auth';
-import { validate, projectSchema } from '../utils/validation';
+import { validate, projectSchema, validateMonetaryAmount } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
 import { emailService } from '../services/emailService';
 import { calculateProjectPricing } from '../utils/pricing';
@@ -289,13 +289,26 @@ router.get('/:projectId', asyncHandler(async (req, res) => {
 router.post('/', authMiddleware, requireRole(['CLIENT']), validate(projectSchema), asyncHandler(async (req: AuthRequest, res) => {
   const { title, description, requirements, minBudget, maxBudget, timeline, categoryId, featured, featuredLevel, featuredPrice } = req.body;
 
+  // Validate budget amounts
+  const validatedMinBudget = validateMonetaryAmount(minBudget, {
+    min: 0.01,
+    max: 999999.99,
+    fieldName: 'Minimum budget'
+  });
+
+  const validatedMaxBudget = validateMonetaryAmount(maxBudget, {
+    min: validatedMinBudget,
+    max: 999999.99,
+    fieldName: 'Maximum budget'
+  });
+
   // Handle premium upgrade logic
   let premiumData = {};
   if (featured && featuredLevel && featuredLevel !== 'NONE') {
     // Set featured until 60 days from now (can be adjusted)
     const featuredUntil = new Date();
     featuredUntil.setDate(featuredUntil.getDate() + 60);
-    
+
     premiumData = {
       isFeatured: true,
       featuredLevel: featuredLevel,
@@ -314,8 +327,8 @@ router.post('/', authMiddleware, requireRole(['CLIENT']), validate(projectSchema
       title,
       description,
       requirements,
-      minBudget,
-      maxBudget,
+      minBudget: validatedMinBudget,
+      maxBudget: validatedMaxBudget,
       timeline,
       categoryId,
       clientId: req.user!.id,
@@ -362,14 +375,34 @@ router.put('/:projectId', authMiddleware, asyncHandler(async (req: AuthRequest, 
     throw new AppError('Cannot update project that is not open', 400);
   }
 
+  // Validate budget amounts if provided
+  let validatedMinBudget = minBudget;
+  let validatedMaxBudget = maxBudget;
+
+  if (minBudget !== undefined) {
+    validatedMinBudget = validateMonetaryAmount(minBudget, {
+      min: 0.01,
+      max: 999999.99,
+      fieldName: 'Minimum budget'
+    });
+  }
+
+  if (maxBudget !== undefined) {
+    validatedMaxBudget = validateMonetaryAmount(maxBudget, {
+      min: validatedMinBudget || 0.01,
+      max: 999999.99,
+      fieldName: 'Maximum budget'
+    });
+  }
+
   const updatedProject = await prisma.project.update({
     where: { id: projectId },
     data: {
       title,
       description,
       requirements,
-      minBudget,
-      maxBudget,
+      minBudget: validatedMinBudget,
+      maxBudget: validatedMaxBudget,
       timeline
     },
     include: {
@@ -477,7 +510,15 @@ router.post('/:projectId/accept/:applicationId', authMiddleware, asyncHandler(as
 
   // Calculate pricing with fees
   const agreedAmount = application.proposedBudget || project.maxBudget;
-  const pricing = calculateProjectPricing(agreedAmount);
+
+  // Validate the agreed amount
+  const validatedAgreedAmount = validateMonetaryAmount(agreedAmount, {
+    min: project.minBudget,
+    max: project.maxBudget,
+    fieldName: 'Agreed amount'
+  });
+
+  const pricing = calculateProjectPricing(validatedAgreedAmount);
 
   console.log('💰 Project pricing calculated:', {
     agreedAmount: pricing.agreedAmount,

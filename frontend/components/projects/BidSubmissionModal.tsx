@@ -86,8 +86,14 @@ export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess
       const budget = Number(formData.proposedBudget)
       if (isNaN(budget) || budget <= 0) {
         newErrors.proposedBudget = 'Please enter a valid budget'
-      } else if (budget < project.minBudget || budget > project.maxBudget) {
-        newErrors.proposedBudget = `Budget must be between $${project.minBudget} and $${project.maxBudget}`
+      } else {
+        // Check for more than 2 decimal places
+        const decimalPlaces = (formData.proposedBudget.split('.')[1] || '').length
+        if (decimalPlaces > 2) {
+          newErrors.proposedBudget = 'Budget cannot have more than 2 decimal places (cents)'
+        } else if (budget < project.minBudget || budget > project.maxBudget) {
+          newErrors.proposedBudget = `Budget must be between $${project.minBudget.toFixed(2)} and $${project.maxBudget.toFixed(2)}`
+        }
       }
     }
 
@@ -239,8 +245,8 @@ export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess
                 value={formData.proposedBudget}
                 onChange={(e) => setFormData(prev => ({ ...prev, proposedBudget: e.target.value }))}
                 placeholder={`Between ${project.minBudget} and ${project.maxBudget}`}
-                min={project.minBudget}
-                max={project.maxBudget}
+                step="0.01"
+                min="0"
                 className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>

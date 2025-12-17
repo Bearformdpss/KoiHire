@@ -168,6 +168,12 @@ export default function CreateServicePage() {
             toast.error(`${pkg.tier} package price must be greater than 0`)
             return false
           }
+          // Check for more than 2 decimal places
+          const decimalPlaces = (pkg.price.toString().split('.')[1] || '').length
+          if (decimalPlaces > 2) {
+            toast.error(`${pkg.tier} package price cannot have more than 2 decimal places (cents)`)
+            return false
+          }
           if (pkg.deliveryTime <= 0) {
             toast.error(`${pkg.tier} package delivery time must be greater than 0`)
             return false

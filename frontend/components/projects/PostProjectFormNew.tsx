@@ -147,10 +147,22 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
 
     if (!formData.minBudget || isNaN(Number(formData.minBudget)) || Number(formData.minBudget) <= 0) {
       newErrors.minBudget = 'Please enter a valid minimum budget'
+    } else {
+      // Check for more than 2 decimal places
+      const decimalPlaces = (formData.minBudget.split('.')[1] || '').length
+      if (decimalPlaces > 2) {
+        newErrors.minBudget = 'Budget cannot have more than 2 decimal places (cents)'
+      }
     }
 
     if (!formData.maxBudget || isNaN(Number(formData.maxBudget)) || Number(formData.maxBudget) <= 0) {
       newErrors.maxBudget = 'Please enter a valid maximum budget'
+    } else {
+      // Check for more than 2 decimal places
+      const decimalPlaces = (formData.maxBudget.split('.')[1] || '').length
+      if (decimalPlaces > 2) {
+        newErrors.maxBudget = 'Budget cannot have more than 2 decimal places (cents)'
+      }
     }
 
     if (Number(formData.maxBudget) < Number(formData.minBudget)) {
@@ -186,10 +198,22 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
 
       if (!formData.minBudget || isNaN(Number(formData.minBudget)) || Number(formData.minBudget) <= 0) {
         newErrors.minBudget = 'Please enter a valid minimum budget'
+      } else {
+        // Check for more than 2 decimal places
+        const decimalPlaces = (formData.minBudget.split('.')[1] || '').length
+        if (decimalPlaces > 2) {
+          newErrors.minBudget = 'Budget cannot have more than 2 decimal places (cents)'
+        }
       }
 
       if (!formData.maxBudget || isNaN(Number(formData.maxBudget)) || Number(formData.maxBudget) <= 0) {
         newErrors.maxBudget = 'Please enter a valid maximum budget'
+      } else {
+        // Check for more than 2 decimal places
+        const decimalPlaces = (formData.maxBudget.split('.')[1] || '').length
+        if (decimalPlaces > 2) {
+          newErrors.maxBudget = 'Budget cannot have more than 2 decimal places (cents)'
+        }
       }
 
       if (Number(formData.maxBudget) < Number(formData.minBudget)) {
@@ -389,7 +413,8 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
                 value={formData.minBudget}
                 onChange={(e) => setFormData(prev => ({ ...prev, minBudget: e.target.value }))}
                 placeholder="500"
-                min="1"
+                min="0"
+                step="0.01"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
               />
               {errors.minBudget && (
@@ -406,7 +431,8 @@ export default function PostProjectForm({ onClose, onSuccess }: PostProjectFormP
                 value={formData.maxBudget}
                 onChange={(e) => setFormData(prev => ({ ...prev, maxBudget: e.target.value }))}
                 placeholder="2000"
-                min="1"
+                min="0"
+                step="0.01"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
               />
               {errors.maxBudget && (
