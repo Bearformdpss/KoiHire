@@ -650,6 +650,13 @@ webhookRouter.post('/webhook', asyncHandler(async (req, res) => {
   let event: any;
   let verificationError: any;
 
+  // TODO: SECURITY - Before production launch, separate webhook endpoints
+  // ISSUE: Current fallback allows Connect secret to verify payment webhooks
+  // FIX: Create /api/payments/connect-webhook for Connect events only
+  // REQ: Schema migration to add WebhookEvent model for idempotency
+  // SEE: Security recommendation #3 in project docs
+  // PRIORITY: Must fix before processing >$10k/month in transactions
+
   // Try to verify with the primary webhook secret first
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
@@ -658,6 +665,8 @@ webhookRouter.post('/webhook', asyncHandler(async (req, res) => {
     verificationError = err;
 
     // If primary fails and we have a Connect webhook secret, try that
+    // SECURITY NOTE: This fallback is intentionally permissive for MVP phase
+    // Will be replaced with separate endpoints before production launch
     if (process.env.STRIPE_CONNECT_WEBHOOK_SECRET) {
       try {
         event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_CONNECT_WEBHOOK_SECRET);
