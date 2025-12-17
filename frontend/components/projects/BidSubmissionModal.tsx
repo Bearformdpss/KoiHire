@@ -59,11 +59,19 @@ export default function BidSubmissionModal({ project, isOpen, onClose, onSuccess
     setCheckingPayment(true)
     try {
       const response = await authApi.getPaymentSettings()
+      console.log('💳 Payment settings response:', response)
       if (response.success) {
         setPaymentSettings(response.paymentSettings)
+        console.log('💳 Payment settings:', response.paymentSettings)
         const hasValid = response.paymentSettings.stripePayoutsEnabled ||
           (response.paymentSettings.payoutMethod === 'PAYPAL' && response.paymentSettings.paypalEmail) ||
           (response.paymentSettings.payoutMethod === 'PAYONEER' && response.paymentSettings.payoneerEmail)
+        console.log('💳 Has valid payout method:', hasValid, {
+          stripePayoutsEnabled: response.paymentSettings.stripePayoutsEnabled,
+          payoutMethod: response.paymentSettings.payoutMethod,
+          paypalEmail: response.paymentSettings.paypalEmail,
+          payoneerEmail: response.paymentSettings.payoneerEmail
+        })
         if (!hasValid) {
           setShowStripeModal(true)
         }

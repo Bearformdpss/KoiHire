@@ -25,10 +25,33 @@ export const requireStripeConnect = (
     throw new AppError('Authentication required', 401);
   }
 
+  // DIAGNOSTIC LOGGING
+  console.log('🔍 requireStripeConnect middleware check:', {
+    userId: user.id,
+    userEmail: user.email,
+    userRole: user.role,
+    // These fields should be UNDEFINED because auth middleware doesn't fetch them
+    stripeConnectAccountId: (user as any).stripeConnectAccountId,
+    stripePayoutsEnabled: (user as any).stripePayoutsEnabled,
+    payoutMethod: (user as any).payoutMethod,
+    paypalEmail: (user as any).paypalEmail,
+    payoneerEmail: (user as any).payoneerEmail,
+    // Show what req.user actually contains
+    userObjectKeys: Object.keys(user),
+    diagnosis: 'Payment fields should be undefined - auth middleware does not fetch them for security'
+  });
+
   // Check if user has a valid payout method
-  const hasStripeConnect = user.stripeConnectAccountId && user.stripePayoutsEnabled;
-  const hasPayPal = user.payoutMethod === 'PAYPAL' && user.paypalEmail;
-  const hasPayoneer = user.payoutMethod === 'PAYONEER' && user.payoneerEmail;
+  const hasStripeConnect = (user as any).stripeConnectAccountId && (user as any).stripePayoutsEnabled;
+  const hasPayPal = (user as any).payoutMethod === 'PAYPAL' && (user as any).paypalEmail;
+  const hasPayoneer = (user as any).payoutMethod === 'PAYONEER' && (user as any).payoneerEmail;
+
+  console.log('🔍 Payout method checks:', {
+    hasStripeConnect,
+    hasPayPal,
+    hasPayoneer,
+    willPass: hasStripeConnect || hasPayPal || hasPayoneer
+  });
 
   if (!hasStripeConnect && !hasPayPal && !hasPayoneer) {
     throw new AppError(
