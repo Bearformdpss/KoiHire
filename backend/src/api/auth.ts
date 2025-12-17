@@ -235,10 +235,32 @@ router.post('/clear-cookies', asyncHandler(async (req, res) => {
   });
 }));
 
-// Verify cookies are present (for debugging cross-origin cookie issues)
-router.get('/verify-cookies', (req, res) => {
-  const hasAccessToken = !!req.cookies?.accessToken;
-  const hasRefreshToken = !!req.cookies?.refreshToken;
+// Verify cookies are present and valid (for debugging cross-origin cookie issues)
+router.get('/verify-cookies', asyncHandler(async (req, res) => {
+  const accessToken = req.cookies?.accessToken;
+  const refreshToken = req.cookies?.refreshToken;
+  const hasAccessToken = !!accessToken;
+  const hasRefreshToken = !!refreshToken;
+
+  // Check if tokens are invalid (null strings or malformed)
+  const isAccessTokenInvalid = accessToken === 'null' || accessToken === 'undefined' || (accessToken && accessToken.split('.').length !== 3);
+  const isRefreshTokenInvalid = refreshToken === 'null' || refreshToken === 'undefined' || (refreshToken && refreshToken.split('.').length !== 3);
+
+  // If cookies exist but contain invalid tokens, clear them
+  if ((hasAccessToken && isAccessTokenInvalid) || (hasRefreshToken && isRefreshTokenInvalid)) {
+    console.log('⚠️  Detected invalid/stale cookies, clearing them...');
+    clearAuthCookies(res);
+
+    return res.json({
+      success: true,
+      cookies: {
+        accessToken: false,
+        refreshToken: false,
+      },
+      cleared: true,
+      message: 'Stale cookies detected and cleared - please login again',
+    });
+  }
 
   res.json({
     success: true,
@@ -246,11 +268,12 @@ router.get('/verify-cookies', (req, res) => {
       accessToken: hasAccessToken,
       refreshToken: hasRefreshToken,
     },
+    cleared: false,
     message: hasAccessToken && hasRefreshToken
-      ? 'Cookies are present'
+      ? 'Cookies are present and valid'
       : 'Cookies are missing - check browser settings or cross-origin configuration',
   });
-});
+}));
 
 // Forgot password - Request password reset
 router.post('/forgot-password', asyncHandler(async (req, res) => {

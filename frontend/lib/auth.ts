@@ -69,6 +69,11 @@ export const authApi = {
     return response;
   },
 
+  verifyCookies: async (): Promise<{ success: boolean; cookies: { accessToken: boolean; refreshToken: boolean }; cleared: boolean; message: string }> => {
+    const response = await apiRequest.get<{ success: boolean; cookies: { accessToken: boolean; refreshToken: boolean }; cleared: boolean; message: string }>('/auth/verify-cookies');
+    return response;
+  },
+
   getProfile: async (): Promise<{ user: User }> => {
     const response = await apiRequest.get<{ user: User }>('/users/profile');
     return response;

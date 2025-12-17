@@ -37,6 +37,27 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
+
+          // Verify cookies were set correctly after login (proactive stale cookie detection)
+          try {
+            const cookieCheck = await authApi.verifyCookies();
+            if (cookieCheck.cleared) {
+              // Stale cookies were detected and cleared, force re-login
+              console.warn('[Auth] Stale cookies detected after login, forcing logout...');
+              await get().logout();
+              throw new Error('Session expired - please login again');
+            }
+            if (!cookieCheck.cookies.accessToken || !cookieCheck.cookies.refreshToken) {
+              console.error('[Auth] Cookies not set after login - cross-origin issue detected');
+              throw new Error('Authentication failed - cookies not set. Please check browser settings.');
+            }
+          } catch (verifyError: any) {
+            // If verification fails, logout and throw error
+            if (verifyError.message.includes('Session expired') || verifyError.message.includes('cookies not set')) {
+              throw verifyError;
+            }
+            console.error('[Auth] Cookie verification failed:', verifyError);
+          }
         } catch (error) {
           set({ isLoading: false });
           throw error;
