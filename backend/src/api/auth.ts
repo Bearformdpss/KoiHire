@@ -16,7 +16,8 @@ const getCookieOptions = (maxAge: number) => ({
   secure: process.env.NODE_ENV === 'production', // HTTPS only in production
   sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // 'none' required for cross-origin in production
   maxAge,
-  domain: process.env.COOKIE_DOMAIN || undefined, // .koihire.com in production
+  // Do NOT set domain for cross-origin cookies (Vercel frontend + Railway backend)
+  // Setting domain restricts where cookies can be set/read - omit for cross-domain scenarios
   path: '/',
 });
 
