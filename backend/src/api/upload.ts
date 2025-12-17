@@ -4,6 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { uploadImageToS3, uploadMultipleImagesToS3 } from '../utils/s3Upload'
+import { uploadLimiter } from '../middleware/rateLimiter'
 
 const router = express.Router()
 
@@ -83,7 +84,7 @@ const s3Upload = multer({
 })
 
 // POST /api/upload/portfolio-images - Upload portfolio images
-router.post('/portfolio-images', authMiddleware, upload.array('images', 10), async (req: AuthRequest, res) => {
+router.post('/portfolio-images', uploadLimiter, authMiddleware, upload.array('images', 10), async (req: AuthRequest, res) => {
   try {
     if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
       return res.status(400).json({
@@ -110,7 +111,7 @@ router.post('/portfolio-images', authMiddleware, upload.array('images', 10), asy
 })
 
 // POST /api/upload/portfolio-thumbnail - Upload single thumbnail
-router.post('/portfolio-thumbnail', authMiddleware, upload.single('thumbnail'), async (req: AuthRequest, res) => {
+router.post('/portfolio-thumbnail', uploadLimiter, authMiddleware, upload.single('thumbnail'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -136,7 +137,7 @@ router.post('/portfolio-thumbnail', authMiddleware, upload.single('thumbnail'), 
 })
 
 // POST /api/upload/avatar - Upload single avatar
-router.post('/avatar', authMiddleware, upload.single('avatar'), async (req: AuthRequest, res) => {
+router.post('/avatar', uploadLimiter, authMiddleware, upload.single('avatar'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -162,7 +163,7 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), async (req: Auth
 })
 
 // POST /api/upload/deliverables - Upload deliverable files (images, docs, etc.)
-router.post('/deliverables', authMiddleware, deliverableUpload.array('files', 10), async (req: AuthRequest, res) => {
+router.post('/deliverables', uploadLimiter, authMiddleware, deliverableUpload.array('files', 10), async (req: AuthRequest, res) => {
   try {
     if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
       return res.status(400).json({
@@ -242,7 +243,7 @@ router.delete('/:filename', authMiddleware, async (req: AuthRequest, res) => {
 // ============================================================================
 
 // POST /api/upload/service-cover - Upload service cover image to S3
-router.post('/service-cover', authMiddleware, s3Upload.single('image'), async (req: AuthRequest, res) => {
+router.post('/service-cover', uploadLimiter, authMiddleware, s3Upload.single('image'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -277,7 +278,7 @@ router.post('/service-cover', authMiddleware, s3Upload.single('image'), async (r
 })
 
 // POST /api/upload/service-gallery - Upload service gallery images to S3
-router.post('/service-gallery', authMiddleware, s3Upload.array('images', 10), async (req: AuthRequest, res) => {
+router.post('/service-gallery', uploadLimiter, authMiddleware, s3Upload.array('images', 10), async (req: AuthRequest, res) => {
   try {
     if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
       return res.status(400).json({
@@ -313,7 +314,7 @@ router.post('/service-gallery', authMiddleware, s3Upload.array('images', 10), as
 })
 
 // POST /api/upload/avatar-s3 - Upload avatar to S3
-router.post('/avatar-s3', authMiddleware, s3Upload.single('avatar'), async (req: AuthRequest, res) => {
+router.post('/avatar-s3', uploadLimiter, authMiddleware, s3Upload.single('avatar'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -348,7 +349,7 @@ router.post('/avatar-s3', authMiddleware, s3Upload.single('avatar'), async (req:
 })
 
 // POST /api/upload/portfolio-images-s3 - Upload portfolio images to S3
-router.post('/portfolio-images-s3', authMiddleware, s3Upload.array('images', 10), async (req: AuthRequest, res) => {
+router.post('/portfolio-images-s3', uploadLimiter, authMiddleware, s3Upload.array('images', 10), async (req: AuthRequest, res) => {
   try {
     if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
       return res.status(400).json({
@@ -384,7 +385,7 @@ router.post('/portfolio-images-s3', authMiddleware, s3Upload.array('images', 10)
 })
 
 // POST /api/upload/portfolio-thumbnail-s3 - Upload portfolio thumbnail to S3
-router.post('/portfolio-thumbnail-s3', authMiddleware, s3Upload.single('thumbnail'), async (req: AuthRequest, res) => {
+router.post('/portfolio-thumbnail-s3', uploadLimiter, authMiddleware, s3Upload.single('thumbnail'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({

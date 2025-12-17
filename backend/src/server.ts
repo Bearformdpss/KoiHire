@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -12,6 +11,7 @@ import path from 'path';
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
 import { setupSocketIO } from './services/socketService';
+import { globalLimiter } from './middleware/rateLimiter';
 
 // Import routes
 import authRoutes from './api/auth';
@@ -109,13 +109,9 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Higher limit in development
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use(limiter);
+// Global rate limiting (baseline protection for all endpoints)
+// Endpoint-specific limiters are applied in individual route files
+app.use(globalLimiter);
 
 // Body parsing middleware
 app.use(compression());

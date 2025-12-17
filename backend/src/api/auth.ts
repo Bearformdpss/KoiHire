@@ -6,6 +6,13 @@ import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { validate, registerSchema, loginSchema } from '../utils/validation';
 import { generateTokens, saveRefreshToken, verifyRefreshToken, revokeRefreshToken } from '../utils/jwt';
 import { emailService } from '../services/emailService';
+import {
+  authLimiter,
+  registerLimiter,
+  passwordResetLimiter,
+  passwordResetSubmitLimiter,
+  refreshTokenLimiter
+} from '../middleware/rateLimiter';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -46,7 +53,7 @@ const clearAuthCookies = (res: express.Response) => {
 };
 
 // Register
-router.post('/register', validate(registerSchema), asyncHandler(async (req, res) => {
+router.post('/register', registerLimiter, validate(registerSchema), asyncHandler(async (req, res) => {
   // Clear any existing stale cookies before creating new account
   clearAuthCookies(res);
 
@@ -125,7 +132,7 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
 }));
 
 // Login
-router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
+router.post('/login', authLimiter, validate(loginSchema), asyncHandler(async (req, res) => {
   // Clear any existing stale cookies before login
   clearAuthCookies(res);
 
@@ -175,7 +182,7 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
 }));
 
 // Refresh token
-router.post('/refresh', asyncHandler(async (req, res) => {
+router.post('/refresh', refreshTokenLimiter, asyncHandler(async (req, res) => {
   // Try to get refresh token from cookie first, then fallback to request body (for gradual migration)
   const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
@@ -276,7 +283,7 @@ router.get('/verify-cookies', asyncHandler(async (req, res) => {
 }));
 
 // Forgot password - Request password reset
-router.post('/forgot-password', asyncHandler(async (req, res) => {
+router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -377,7 +384,7 @@ router.get('/reset-password/:token', asyncHandler(async (req, res) => {
 }));
 
 // Reset password
-router.post('/reset-password', asyncHandler(async (req, res) => {
+router.post('/reset-password', passwordResetSubmitLimiter, asyncHandler(async (req, res) => {
   const { token, password, confirmPassword } = req.body;
 
   if (!token || !password || !confirmPassword) {

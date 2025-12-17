@@ -21,6 +21,7 @@ import {
   getPendingPayouts,
   processAccumulatedPayouts
 } from '../services/stripeConnectService';
+import { paymentLimiter } from '../middleware/rateLimiter';
 
 const router = express.Router();
 const webhookRouter = express.Router(); // Separate router for webhook (no auth)
@@ -29,7 +30,7 @@ const prisma = new PrismaClient();
 // ==================== PROJECT ESCROW PAYMENT ROUTES ====================
 
 // Create payment intent for project escrow (when client accepts application)
-router.post('/project/create-payment-intent', asyncHandler(async (req: AuthRequest, res) => {
+router.post('/project/create-payment-intent', paymentLimiter, asyncHandler(async (req: AuthRequest, res) => {
   const { projectId } = req.body;
 
   if (!projectId) {
@@ -348,7 +349,7 @@ router.get('/transactions', asyncHandler(async (req: AuthRequest, res) => {
 // ==================== SERVICE ORDER PAYMENT ROUTES ====================
 
 // Create payment intent for service order
-router.post('/service-order/create-payment-intent', asyncHandler(async (req: AuthRequest, res) => {
+router.post('/service-order/create-payment-intent', paymentLimiter, asyncHandler(async (req: AuthRequest, res) => {
   const { orderId } = req.body;
 
   if (!orderId) {
@@ -531,7 +532,7 @@ router.post('/service-order/:orderId/refund', asyncHandler(async (req: AuthReque
 // ==================== STRIPE CONNECT ROUTES ====================
 
 // Create or get Stripe Connect account for freelancer
-router.post('/connect/create-account', authMiddleware, requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/connect/create-account', paymentLimiter, authMiddleware, requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
   const userId = req.user!.id;
   const userEmail = req.user!.email;
 
