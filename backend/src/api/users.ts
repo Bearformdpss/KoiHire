@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, requireRole } from '../middleware/auth';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -464,9 +464,9 @@ router.get('/payout-preferences', asyncHandler(async (req: AuthRequest, res) => 
   });
 }));
 
-// Get all payment settings (authenticated users only - own data)
+// Get all payment settings (freelancers only - own data)
 // This endpoint provides sensitive payment data that was removed from auth/profile endpoints for security
-router.get('/payment-settings', asyncHandler(async (req: AuthRequest, res) => {
+router.get('/payment-settings', requireRole(['FREELANCER']), asyncHandler(async (req: AuthRequest, res) => {
   if (!req.user) {
     throw new AppError('Authentication required', 401);
   }
