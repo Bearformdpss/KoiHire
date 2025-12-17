@@ -1,6 +1,9 @@
 import { Response, NextFunction } from 'express';
+import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from './auth';
 import { AppError } from './errorHandler';
+
+const prisma = new PrismaClient();
 
 /**
  * Middleware to ensure freelancer has a valid payout method set up
@@ -13,52 +16,67 @@ import { AppError } from './errorHandler';
  *
  * This prevents freelancers from creating services/applications that cannot
  * be accepted due to missing payment setup.
+ *
+ * Note: We fetch payment fields from the database because auth middleware
+ * intentionally excludes them for security (see auth.ts line 41).
  */
-export const requireStripeConnect = (
+export const requireStripeConnect = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) => {
-  const user = req.user;
+  try {
+    const user = req.user;
 
-  if (!user) {
-    throw new AppError('Authentication required', 401);
+    if (!user) {
+      throw new AppError('Authentication required', 401);
+    }
+
+    // Fetch payment-related fields from database
+    // (auth middleware excludes these for security)
+    const userPaymentData = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        stripeConnectAccountId: true,
+        stripePayoutsEnabled: true,
+        payoutMethod: true,
+        paypalEmail: true,
+        payoneerEmail: true
+      }
+    });
+
+    if (!userPaymentData) {
+      throw new AppError('User not found', 404);
+    }
+
+    console.log('🔍 requireStripeConnect middleware check:', {
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      paymentData: userPaymentData
+    });
+
+    // Check if user has a valid payout method
+    const hasStripeConnect = userPaymentData.stripeConnectAccountId && userPaymentData.stripePayoutsEnabled;
+    const hasPayPal = userPaymentData.payoutMethod === 'PAYPAL' && userPaymentData.paypalEmail;
+    const hasPayoneer = userPaymentData.payoutMethod === 'PAYONEER' && userPaymentData.payoneerEmail;
+
+    console.log('🔍 Payout method checks:', {
+      hasStripeConnect,
+      hasPayPal,
+      hasPayoneer,
+      willPass: hasStripeConnect || hasPayPal || hasPayoneer
+    });
+
+    if (!hasStripeConnect && !hasPayPal && !hasPayoneer) {
+      throw new AppError(
+        'You must set up a payout method before performing this action. Go to Settings > Payments to set up PayPal, Payoneer, or Stripe Connect.',
+        403
+      );
+    }
+
+    next();
+  } catch (error) {
+    next(error);
   }
-
-  // DIAGNOSTIC LOGGING
-  console.log('🔍 requireStripeConnect middleware check:', {
-    userId: user.id,
-    userEmail: user.email,
-    userRole: user.role,
-    // These fields should be UNDEFINED because auth middleware doesn't fetch them
-    stripeConnectAccountId: (user as any).stripeConnectAccountId,
-    stripePayoutsEnabled: (user as any).stripePayoutsEnabled,
-    payoutMethod: (user as any).payoutMethod,
-    paypalEmail: (user as any).paypalEmail,
-    payoneerEmail: (user as any).payoneerEmail,
-    // Show what req.user actually contains
-    userObjectKeys: Object.keys(user),
-    diagnosis: 'Payment fields should be undefined - auth middleware does not fetch them for security'
-  });
-
-  // Check if user has a valid payout method
-  const hasStripeConnect = (user as any).stripeConnectAccountId && (user as any).stripePayoutsEnabled;
-  const hasPayPal = (user as any).payoutMethod === 'PAYPAL' && (user as any).paypalEmail;
-  const hasPayoneer = (user as any).payoutMethod === 'PAYONEER' && (user as any).payoneerEmail;
-
-  console.log('🔍 Payout method checks:', {
-    hasStripeConnect,
-    hasPayPal,
-    hasPayoneer,
-    willPass: hasStripeConnect || hasPayPal || hasPayoneer
-  });
-
-  if (!hasStripeConnect && !hasPayPal && !hasPayoneer) {
-    throw new AppError(
-      'You must set up a payout method before performing this action. Go to Settings > Payments to set up PayPal, Payoneer, or Stripe Connect.',
-      403
-    );
-  }
-
-  next();
 };
