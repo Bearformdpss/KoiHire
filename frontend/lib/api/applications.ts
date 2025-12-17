@@ -9,6 +9,23 @@ export const applicationsApi = {
     return response.data
   },
 
+  // Get applications for a project with filters (clients only) - uses secure cookie-based auth
+  getProjectApplicationsWithFilters: async (projectId: string, filters: Record<string, any> = {}) => {
+    const searchParams = new URLSearchParams()
+
+    // Only include non-empty filter values
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        searchParams.append(key, value.toString())
+      }
+    })
+
+    const queryString = searchParams.toString()
+    const url = `/applications/project/${projectId}${queryString ? `?${queryString}` : ''}`
+    const response = await api.get(url)
+    return response.data
+  },
+
   // Get freelancer's applications (freelancers only)
   getMyApplications: async (params: {
     status?: string

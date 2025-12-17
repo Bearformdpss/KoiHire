@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { projectsApi } from '@/lib/api/projects'
+import { applicationsApi } from '@/lib/api/applications'
 import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
 
 interface Application {
@@ -87,7 +88,7 @@ export default function ApplicationsPage() {
   const fetchApplications = async () => {
     try {
       setLoading(true)
-      
+
       // Build filter params, excluding empty values
       const filterParams: Record<string, any> = {}
       Object.entries(filters).forEach(([key, value]) => {
@@ -96,18 +97,9 @@ export default function ApplicationsPage() {
         }
       })
 
-      const response = await fetch(`/api/applications/project/${projectId}?${new URLSearchParams(filterParams)}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        }
-      })
+      // Use secure cookie-based authentication via applicationsApi
+      const data = await applicationsApi.getProjectApplicationsWithFilters(projectId, filterParams)
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch applications')
-      }
-
-      const data = await response.json()
-      
       if (data.success) {
         setApplications(data.applications || [])
       } else {
