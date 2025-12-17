@@ -1,15 +1,4 @@
-import axios from 'axios'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
-
-// Configure axios instance with cookie-based authentication
-const apiClient = axios.create({
-  baseURL: API_URL,
-  timeout: 30000,
-  withCredentials: true, // Send httpOnly cookies with requests
-})
-
-// No need for Authorization header interceptor - cookies are sent automatically
+import { api } from '../api'
 
 export interface RecommendedProject {
   id: string
@@ -46,7 +35,7 @@ export const recommendationsApi = {
    * @param limit - Number of projects to return (default: 6)
    */
   async getRecommendedProjects(limit: number = 6): Promise<RecommendationsResponse> {
-    const response = await apiClient.get(`/recommendations/projects?limit=${limit}`)
+    const response = await api.get(`/recommendations/projects?limit=${limit}`)
     return response.data
   }
 }

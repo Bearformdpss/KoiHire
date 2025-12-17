@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { api } from '../api';
 
 export interface WorkItem {
   id: string;
@@ -54,9 +52,7 @@ export const freelancerWorkApi = {
    * Get all active work (projects and services)
    */
   getActiveWork: async (type: 'all' | 'projects' | 'services' = 'all'): Promise<ActiveWorkResponse> => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await axios.get(`${API_URL}/freelancer/active-work?type=${type}`, { withCredentials: true }
-    });
+    const response = await api.get(`/freelancer/active-work?type=${type}`);
     return response.data;
   },
 
@@ -64,9 +60,7 @@ export const freelancerWorkApi = {
    * Get note for a work item
    */
   getNote: async (itemType: 'project' | 'service', itemId: string): Promise<WorkNoteResponse> => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await axios.get(`${API_URL}/work-notes/${itemType}/${itemId}`, { withCredentials: true }
-    });
+    const response = await api.get(`/work-notes/${itemType}/${itemId}`);
     return response.data;
   },
 
@@ -74,9 +68,7 @@ export const freelancerWorkApi = {
    * Create or update note for a work item
    */
   saveNote: async (itemType: 'project' | 'service', itemId: string, note: string): Promise<WorkNoteResponse> => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await axios.post(`${API_URL}/work-notes/${itemType}/${itemId}`, { note }, { withCredentials: true }
-    });
+    const response = await api.post(`/work-notes/${itemType}/${itemId}`, { note });
     return response.data;
   },
 
@@ -84,9 +76,7 @@ export const freelancerWorkApi = {
    * Delete note for a work item
    */
   deleteNote: async (itemType: 'project' | 'service', itemId: string): Promise<{ success: boolean; message: string }> => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await axios.delete(`${API_URL}/work-notes/${itemType}/${itemId}`, { withCredentials: true }
-    });
+    const response = await api.delete(`/work-notes/${itemType}/${itemId}`);
     return response.data;
   }
 };

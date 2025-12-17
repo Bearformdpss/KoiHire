@@ -1,6 +1,4 @@
-import axios from 'axios'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+import { api } from '../api'
 
 // Reviews API calls
 export const reviewsApi = {
@@ -15,8 +13,7 @@ export const reviewsApi = {
     timeliness: number
     professionalism: number
   }) => {
-    const response = await axios.post(`${API_URL}/reviews`, reviewData, { withCredentials: true }
-    })
+    const response = await api.post('/reviews', reviewData)
     return response.data
   },
 
@@ -27,54 +24,38 @@ export const reviewsApi = {
     limit?: number
   } = {}) => {
     const searchParams = new URLSearchParams()
-    
+
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         searchParams.append(key, value.toString())
       }
     })
 
-    const response = await axios.get(
-      `${API_URL}/reviews/user/${userId}?${searchParams}`,
-      {
-      }
-    )
+    const response = await api.get(`/reviews/user/${userId}?${searchParams}`)
     return response.data
   },
 
   // Get review statistics for a user
   getUserReviewStats: async (userId: string) => {
-    const response = await axios.get(`${API_URL}/reviews/user/${userId}/stats`, { withCredentials: true }
-    })
+    const response = await api.get(`/reviews/user/${userId}/stats`)
     return response.data
   },
 
   // Get pending reviews for current user
   getPendingReviews: async () => {
-    const response = await axios.get(`${API_URL}/reviews/pending`, { withCredentials: true }
-    })
+    const response = await api.get('/reviews/pending')
     return response.data
   },
 
   // Mark a review as helpful
   markHelpful: async (reviewId: string) => {
-    const response = await axios.post(
-      `${API_URL}/reviews/${reviewId}/helpful`,
-      {},
-      {
-      }
-    )
+    const response = await api.post(`/reviews/${reviewId}/helpful`, {})
     return response.data
   },
 
   // Report a review
   reportReview: async (reviewId: string, reason: string) => {
-    const response = await axios.post(
-      `${API_URL}/reviews/${reviewId}/report`,
-      { reason },
-      {
-      }
-    )
+    const response = await api.post(`/reviews/${reviewId}/report`, { reason })
     return response.data
   }
 }

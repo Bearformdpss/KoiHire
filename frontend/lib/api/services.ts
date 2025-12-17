@@ -1,17 +1,5 @@
-import axios from 'axios'
+import { api } from '../api'
 import { apiCall, withRetry } from '@/lib/utils/apiErrorHandler'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
-
-// Configure axios instance with cookie-based authentication
-const apiClient = axios.create({
-  baseURL: API_URL,
-  timeout: 30000, // 30 second timeout
-  withCredentials: true, // Send httpOnly cookies with requests
-})
-
-// No need for Authorization header interceptor - cookies are sent automatically
-// No need for 401 interceptor - main api.ts handles token refresh
 
 export interface ServicePackage {
   tier: 'BASIC' | 'STANDARD' | 'PREMIUM'
@@ -137,7 +125,7 @@ export const servicesApi = {
       }
     })
 
-    return apiClient.get(`/services?${params.toString()}`)
+    return api.get(`/services?${params.toString()}`)
   },
 
   async getFeaturedServices(featuredLevel?: string, limit?: number) {
@@ -145,11 +133,11 @@ export const servicesApi = {
     if (featuredLevel) params.append('featuredLevel', featuredLevel)
     if (limit) params.append('limit', limit.toString())
 
-    return apiClient.get(`/services/featured?${params.toString()}`)
+    return api.get(`/services/featured?${params.toString()}`)
   },
 
   async getService(serviceId: string) {
-    return apiClient.get(`/services/${serviceId}`)
+    return api.get(`/services/${serviceId}`)
   },
 
   async getUserServices(userId: string, filters: {
@@ -166,7 +154,7 @@ export const servicesApi = {
       }
     })
 
-    return apiClient.get(`/services/user/${userId}?${params.toString()}`)
+    return api.get(`/services/user/${userId}?${params.toString()}`)
   },
 
   async getServiceReviews(serviceId: string, filters: {
@@ -184,7 +172,7 @@ export const servicesApi = {
       }
     })
 
-    return apiClient.get(`/services/${serviceId}/reviews?${params.toString()}`)
+    return api.get(`/services/${serviceId}/reviews?${params.toString()}`)
   },
 
   // Freelancer management
@@ -204,30 +192,30 @@ export const servicesApi = {
       }
     })
 
-    return apiClient.get(`/services/my-services?${params.toString()}`)
+    return api.get(`/services/my-services?${params.toString()}`)
   },
 
   async createService(data: CreateServiceData) {
-    return apiClient.post('/services', data)
+    return api.post('/services', data)
   },
 
   async updateService(serviceId: string, data: Partial<CreateServiceData>) {
-    return apiClient.put(`/services/${serviceId}`, data)
+    return api.put(`/services/${serviceId}`, data)
   },
 
   async toggleServiceStatus(serviceId: string) {
-    return apiClient.patch(`/services/${serviceId}/toggle-status`)
+    return api.patch(`/services/${serviceId}/toggle-status`)
   },
 
   async featureService(serviceId: string, data: {
     featuredLevel: 'BASIC' | 'PREMIUM' | 'SPOTLIGHT'
     duration?: number
   }) {
-    return apiClient.post(`/services/${serviceId}/feature`, data)
+    return api.post(`/services/${serviceId}/feature`, data)
   },
 
   async deleteService(serviceId: string) {
-    return apiClient.delete(`/services/${serviceId}`)
+    return api.delete(`/services/${serviceId}`)
   }
 }
 

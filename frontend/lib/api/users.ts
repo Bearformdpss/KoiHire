@@ -1,20 +1,16 @@
-import axios from 'axios'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+import { api } from '../api'
 
 // Users API calls
 export const usersApi = {
   // Get current user profile
   getProfile: async () => {
-    const response = await axios.get(`${API_URL}/users/profile`, { withCredentials: true }
-    })
+    const response = await api.get('/users/profile')
     return response.data
   },
 
   // Get dashboard statistics
   getDashboardStats: async () => {
-    const response = await axios.get(`${API_URL}/users/dashboard/stats`, { withCredentials: true }
-    })
+    const response = await api.get('/users/dashboard/stats')
     return response.data
   },
 
@@ -27,20 +23,19 @@ export const usersApi = {
     website?: string
     phone?: string
   }) => {
-    const response = await axios.put(`${API_URL}/users/profile`, profileData, { withCredentials: true }
-    })
+    const response = await api.put('/users/profile', profileData)
     return response.data
   },
 
   // Get user by ID (public profile)
   getUser: async (userId: string) => {
-    const response = await axios.get(`${API_URL}/users/public/${userId}`, { withCredentials: true })
+    const response = await api.get(`/users/public/${userId}`)
     return response.data
   },
 
   // Get user by username (public profile)
   getUserByUsername: async (username: string) => {
-    const response = await axios.get(`${API_URL}/users/public/username/${username}`, { withCredentials: true })
+    const response = await api.get(`/users/public/username/${username}`)
     return response.data
   },
 
@@ -50,45 +45,37 @@ export const usersApi = {
     level?: string
     yearsExp?: number
   }>) => {
-    const response = await axios.post(`${API_URL}/users/skills`, { skills }, { withCredentials: true }
-    })
+    const response = await api.post('/users/skills', { skills })
     return response.data
   },
 
   // Get user statistics
   getUserStats: async (userId: string) => {
-    const response = await axios.get(`${API_URL}/users/public/${userId}/stats`, { withCredentials: true })
+    const response = await api.get(`/users/public/${userId}/stats`)
     return response.data
   },
 
   // Get monthly stats (freelancer only)
   getMonthlyStats: async () => {
-    const response = await axios.get(`${API_URL}/users/stats/monthly`, { withCredentials: true }
-    })
+    const response = await api.get('/users/stats/monthly')
     return response.data
   },
 
   // Get level progress (freelancer only)
   getLevelProgress: async () => {
-    const response = await axios.get(`${API_URL}/users/level-progress`, { withCredentials: true }
-    })
+    const response = await api.get('/users/level-progress')
     return response.data
   },
 
   // Update availability status
   updateAvailability: async (isAvailable: boolean) => {
-    const response = await axios.patch(`${API_URL}/users/availability`,
-      { isAvailable },
-      {
-      }
-    )
+    const response = await api.patch('/users/availability', { isAvailable })
     return response.data
   },
 
   // Get payout preferences (freelancers only)
   getPayoutPreferences: async () => {
-    const response = await axios.get(`${API_URL}/users/payout-preferences`, { withCredentials: true }
-    })
+    const response = await api.get('/users/payout-preferences')
     return response.data
   },
 
@@ -98,8 +85,7 @@ export const usersApi = {
     paypalEmail?: string | null
     payoneerEmail?: string | null
   }) => {
-    const response = await axios.put(`${API_URL}/users/payout-preferences`, data, { withCredentials: true }
-    })
+    const response = await api.put('/users/payout-preferences', data)
     return response.data
   }
 }

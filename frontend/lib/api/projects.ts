@@ -1,17 +1,5 @@
-import axios from 'axios'
+import { api } from '../api'
 import { apiCall, withRetry } from '@/lib/utils/apiErrorHandler'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
-
-// Configure axios instance with cookie-based authentication
-const apiClient = axios.create({
-  baseURL: API_URL,
-  timeout: 30000, // 30 second timeout
-  withCredentials: true, // Send httpOnly cookies with requests
-})
-
-// No need for Authorization header interceptor - cookies are sent automatically
-// No need for 401 interceptor - main api.ts handles token refresh
 
 // Project API calls
 export const projectsApi = {
@@ -47,7 +35,7 @@ export const projectsApi = {
           }
         })
 
-        const response = await apiClient.get(`/projects?${searchParams}`)
+        const response = await api.get(`/projects?${searchParams}`)
         return response.data
       },
       { 
@@ -61,7 +49,7 @@ export const projectsApi = {
   getProject: async (projectId: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.get(`/projects/${projectId}`)
+        const response = await api.get(`/projects/${projectId}`)
         return response.data
       },
       { retry: { maxRetries: 2, retryDelay: 500 } }
@@ -80,7 +68,7 @@ export const projectsApi = {
   }) => {
     return apiCall(
       async () => {
-        const response = await apiClient.post('/projects', projectData)
+        const response = await api.post('/projects', projectData)
         return response.data
       },
       { retry: false } // Don't retry write operations
@@ -98,7 +86,7 @@ export const projectsApi = {
   }) => {
     return apiCall(
       async () => {
-        const response = await apiClient.put(`/projects/${projectId}`, projectData)
+        const response = await api.put(`/projects/${projectId}`, projectData)
         return response.data
       },
       { retry: false }
@@ -109,7 +97,7 @@ export const projectsApi = {
   acceptApplication: async (projectId: string, applicationId: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.post(`/projects/${projectId}/accept/${applicationId}`, {})
+        const response = await api.post(`/projects/${projectId}/accept/${applicationId}`, {})
         return response.data
       },
       { retry: false }
@@ -120,7 +108,7 @@ export const projectsApi = {
   completeProject: async (projectId: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.post(`/projects/${projectId}/complete`, {})
+        const response = await api.post(`/projects/${projectId}/complete`, {})
         return response.data
       },
       { retry: false }
@@ -131,7 +119,7 @@ export const projectsApi = {
   deleteProject: async (projectId: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.delete(`/projects/${projectId}`)
+        const response = await api.delete(`/projects/${projectId}`)
         return response.data
       },
       { retry: false }
@@ -150,7 +138,7 @@ export const projectsApi = {
           }
         })
 
-        const response = await apiClient.get(`/projects/my-projects?${searchParams}`)
+        const response = await api.get(`/projects/my-projects?${searchParams}`)
         return response.data
       },
       { retry: { maxRetries: 2, retryDelay: 1000 } }
@@ -161,7 +149,7 @@ export const projectsApi = {
   getProjectApplications: async (projectId: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.get(`/projects/${projectId}/applications`)
+        const response = await api.get(`/projects/${projectId}/applications`)
         return response.data
       },
       { retry: { maxRetries: 2, retryDelay: 500 } }
@@ -183,7 +171,7 @@ export const projectsApi = {
   }) => {
     return apiCall(
       async () => {
-        const response = await apiClient.post('/projects/search', filters)
+        const response = await api.post('/projects/search', filters)
         return response.data
       },
       { 
@@ -197,7 +185,7 @@ export const projectsApi = {
   pauseResumeProject: async (projectId: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.post(`/projects/${projectId}/pause`)
+        const response = await api.post(`/projects/${projectId}/pause`)
         return response.data
       },
       { retry: false }
@@ -207,7 +195,7 @@ export const projectsApi = {
   cancelProject: async (projectId: string, reason?: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.post(`/projects/${projectId}/cancel`, { reason })
+        const response = await api.post(`/projects/${projectId}/cancel`, { reason })
         return response.data
       },
       { retry: false }
@@ -217,7 +205,7 @@ export const projectsApi = {
   updateTimeline: async (projectId: string, timeline: string, reason?: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.put(`/projects/${projectId}/timeline`, { timeline, reason })
+        const response = await api.put(`/projects/${projectId}/timeline`, { timeline, reason })
         return response.data
       },
       { retry: false }
@@ -227,7 +215,7 @@ export const projectsApi = {
   updateBudget: async (projectId: string, minBudget: number, maxBudget: number, reason?: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.put(`/projects/${projectId}/budget`, { minBudget, maxBudget, reason })
+        const response = await api.put(`/projects/${projectId}/budget`, { minBudget, maxBudget, reason })
         return response.data
       },
       { retry: false }
@@ -237,7 +225,7 @@ export const projectsApi = {
   submitForReview: async (projectId: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.put(`/projects/${projectId}/submit-for-review`)
+        const response = await api.put(`/projects/${projectId}/submit-for-review`)
         return response.data
       },
       { retry: false }
@@ -248,7 +236,7 @@ export const projectsApi = {
   submitWork: async (projectId: string, data: { title: string; description?: string; files?: string[] }) => {
     return apiCall(
       async () => {
-        const response = await apiClient.put(`/projects/${projectId}/submit-work`, data)
+        const response = await api.put(`/projects/${projectId}/submit-work`, data)
         return response.data
       },
       { retry: false }
@@ -259,7 +247,7 @@ export const projectsApi = {
   getCurrentSubmission: async (projectId: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.get(`/projects/${projectId}/submission/current`)
+        const response = await api.get(`/projects/${projectId}/submission/current`)
         return response.data
       },
       { retry: { maxRetries: 2, retryDelay: 500 } }
@@ -270,7 +258,7 @@ export const projectsApi = {
   approveProject: async (projectId: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.post(`/projects/${projectId}/approve`)
+        const response = await api.post(`/projects/${projectId}/approve`)
         return response.data
       },
       { retry: false }
@@ -281,7 +269,7 @@ export const projectsApi = {
   requestChanges: async (projectId: string, message: string) => {
     return apiCall(
       async () => {
-        const response = await apiClient.post(`/projects/${projectId}/request-changes`, { message })
+        const response = await api.post(`/projects/${projectId}/request-changes`, { message })
         return response.data
       },
       { retry: false }
