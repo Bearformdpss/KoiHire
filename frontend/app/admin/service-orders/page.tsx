@@ -12,6 +12,7 @@ export default function AdminServiceOrdersPage() {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [processingOrderId, setProcessingOrderId] = useState<string | null>(null)
   const [filters, setFilters] = useState({
     status: '',
     paymentStatus: '',
@@ -42,12 +43,18 @@ export default function AdminServiceOrdersPage() {
   }
 
   const handleReleasePayment = async (orderId: string) => {
+    // Prevent double-click
+    if (processingOrderId === orderId) {
+      return
+    }
+
     if (!confirm('Are you sure you want to release this payment to the freelancer?')) {
       return
     }
 
     const reason = prompt('Enter reason for release (optional):')
 
+    setProcessingOrderId(orderId)
     try {
       const response = await adminApi.releaseServiceOrderPayment(orderId, reason || undefined)
       if (response.success) {
@@ -57,10 +64,17 @@ export default function AdminServiceOrdersPage() {
     } catch (error: any) {
       console.error('Failed to release payment:', error)
       toast.error(error.message || 'Failed to release payment')
+    } finally {
+      setProcessingOrderId(null)
     }
   }
 
   const handleRefund = async (orderId: string) => {
+    // Prevent double-click
+    if (processingOrderId === orderId) {
+      return
+    }
+
     const reason = prompt('Enter reason for refund (required):')
     if (!reason) {
       toast.error('Refund reason is required')
@@ -71,6 +85,7 @@ export default function AdminServiceOrdersPage() {
       return
     }
 
+    setProcessingOrderId(orderId)
     try {
       const response = await adminApi.refundServiceOrder(orderId, reason)
       if (response.success) {
@@ -80,6 +95,8 @@ export default function AdminServiceOrdersPage() {
     } catch (error: any) {
       console.error('Failed to refund order:', error)
       toast.error(error.message || 'Failed to refund order')
+    } finally {
+      setProcessingOrderId(null)
     }
   }
 
@@ -296,19 +313,39 @@ export default function AdminServiceOrdersPage() {
                         <Button
                           size="sm"
                           onClick={() => handleReleasePayment(order.id)}
-                          className="bg-green-600 hover:bg-green-700"
+                          disabled={processingOrderId === order.id}
+                          className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Release Payment
+                          {processingOrderId === order.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Releasing...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Release Payment
+                            </>
+                          )}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleRefund(order.id)}
-                          className="text-red-600 border-red-600 hover:bg-red-50"
+                          disabled={processingOrderId === order.id}
+                          className="text-red-600 border-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <XCircle className="w-4 h-4 mr-2" />
-                          Refund
+                          {processingOrderId === order.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Refunding...
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-4 h-4 mr-2" />
+                              Refund
+                            </>
+                          )}
                         </Button>
                       </div>
                     )}

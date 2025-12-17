@@ -61,7 +61,9 @@
       "Bash(grep:*)",
       "Bash(git diff:*)",
       "Bash(for file in users.ts applications.ts freelancer-work.ts messages.ts reviews.ts)",
-      "Bash(do echo \"=== $file ===\" grep -n \"localStorage.getItem\" $file)"
+      "Bash(do echo \"=== $file ===\" grep -n \"localStorage.getItem\" $file)",
+      "Bash(git check-ignore:*)",
+      "Bash(del:*)"
     ],
     "deny": [],
     "ask": []

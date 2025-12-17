@@ -22,6 +22,7 @@ export default function AdminPaymentsPage() {
   const [escrows, setEscrows] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [processingEscrowId, setProcessingEscrowId] = useState<string | null>(null)
   const [filters, setFilters] = useState({
     type: '',
     status: '',
@@ -75,12 +76,18 @@ export default function AdminPaymentsPage() {
   }
 
   const handleReleaseEscrow = async (escrowId: string) => {
+    // Prevent double-click
+    if (processingEscrowId === escrowId) {
+      return
+    }
+
     if (!confirm('Are you sure you want to release this escrow payment to the freelancer?')) {
       return
     }
 
     const reason = prompt('Enter reason for release (optional):')
 
+    setProcessingEscrowId(escrowId)
     try {
       const response = await adminApi.releaseEscrow(escrowId, reason || undefined)
       if (response.success) {
@@ -90,10 +97,17 @@ export default function AdminPaymentsPage() {
     } catch (error: any) {
       console.error('Failed to release escrow:', error)
       toast.error(error.message || 'Failed to release escrow')
+    } finally {
+      setProcessingEscrowId(null)
     }
   }
 
   const handleRefundEscrow = async (escrowId: string) => {
+    // Prevent double-click
+    if (processingEscrowId === escrowId) {
+      return
+    }
+
     const reason = prompt('Enter reason for refund (required):')
     if (!reason) {
       toast.error('Refund reason is required')
@@ -104,6 +118,7 @@ export default function AdminPaymentsPage() {
       return
     }
 
+    setProcessingEscrowId(escrowId)
     try {
       const response = await adminApi.refundEscrow(escrowId, reason)
       if (response.success) {
@@ -113,6 +128,8 @@ export default function AdminPaymentsPage() {
     } catch (error: any) {
       console.error('Failed to refund escrow:', error)
       toast.error(error.message || 'Failed to refund escrow')
+    } finally {
+      setProcessingEscrowId(null)
     }
   }
 
@@ -408,19 +425,39 @@ export default function AdminPaymentsPage() {
                             <Button
                               size="sm"
                               onClick={() => handleReleaseEscrow(escrow.id)}
-                              className="bg-green-600 hover:bg-green-700"
+                              disabled={processingEscrowId === escrow.id}
+                              className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Release
+                              {processingEscrowId === escrow.id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Releasing...
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Release
+                                </>
+                              )}
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleRefundEscrow(escrow.id)}
-                              className="text-red-600 border-red-600 hover:bg-red-50"
+                              disabled={processingEscrowId === escrow.id}
+                              className="text-red-600 border-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <XCircle className="w-4 h-4 mr-2" />
-                              Refund
+                              {processingEscrowId === escrow.id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Refunding...
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Refund
+                                </>
+                              )}
                             </Button>
                           </div>
                         )}
