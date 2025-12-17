@@ -11,21 +11,45 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Cookie configuration for secure token storage
-const getCookieOptions = (maxAge: number) => ({
-  httpOnly: true, // Cannot be accessed via JavaScript (XSS protection)
-  secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // 'none' required for cross-origin in production
-  maxAge,
-  // Do NOT set domain for cross-origin cookies (Vercel frontend + Railway backend)
-  // Setting domain restricts where cookies can be set/read - omit for cross-domain scenarios
-  path: '/',
-});
+const getCookieOptions = (maxAge: number) => {
+  // Detect production environment: Railway sets RAILWAY_ENVIRONMENT, Vercel sets VERCEL
+  // This ensures secure: true even if NODE_ENV isn't explicitly set
+  const isProduction = !!(process.env.RAILWAY_ENVIRONMENT || process.env.VERCEL || process.env.NODE_ENV === 'production');
+
+  return {
+    httpOnly: true, // Cannot be accessed via JavaScript (XSS protection)
+    secure: isProduction, // HTTPS only in production (Railway/Vercel)
+    sameSite: isProduction ? 'none' as const : 'lax' as const, // 'none' required for cross-origin in production
+    maxAge,
+    // Do NOT set domain for cross-origin cookies (Vercel frontend + Railway backend)
+    // Setting domain restricts where cookies can be set/read - omit for cross-domain scenarios
+    path: '/',
+  };
+};
 
 const accessTokenCookieOptions = getCookieOptions(15 * 60 * 1000); // 15 minutes
 const refreshTokenCookieOptions = getCookieOptions(7 * 24 * 60 * 60 * 1000); // 7 days
 
+// Helper function to clear cookies (for stale cookie cleanup)
+const clearAuthCookies = (res: express.Response) => {
+  const isProduction = !!(process.env.RAILWAY_ENVIRONMENT || process.env.VERCEL || process.env.NODE_ENV === 'production');
+
+  const clearOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' as const : 'lax' as const,
+    path: '/',
+  };
+
+  res.clearCookie('accessToken', clearOptions);
+  res.clearCookie('refreshToken', clearOptions);
+};
+
 // Register
 router.post('/register', validate(registerSchema), asyncHandler(async (req, res) => {
+  // Clear any existing stale cookies before creating new account
+  clearAuthCookies(res);
+
   const { email, username, firstName, lastName, password, role } = req.body;
 
   // Check if user already exists
@@ -102,6 +126,9 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
 
 // Login
 router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
+  // Clear any existing stale cookies before login
+  clearAuthCookies(res);
+
   const { email, password } = req.body;
 
   // Find user
@@ -200,24 +227,30 @@ router.post('/logout', asyncHandler(async (req, res) => {
 // Clear stale cookies - utility endpoint for fixing cookie migration issues
 router.post('/clear-cookies', asyncHandler(async (req, res) => {
   // Force clear all auth cookies regardless of their current state
-  res
-    .clearCookie('accessToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
-      path: '/',
-    })
-    .clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
-      path: '/',
-    })
-    .json({
-      success: true,
-      message: 'All cookies cleared successfully'
-    });
+  clearAuthCookies(res);
+
+  res.json({
+    success: true,
+    message: 'All cookies cleared successfully'
+  });
 }));
+
+// Verify cookies are present (for debugging cross-origin cookie issues)
+router.get('/verify-cookies', (req, res) => {
+  const hasAccessToken = !!req.cookies?.accessToken;
+  const hasRefreshToken = !!req.cookies?.refreshToken;
+
+  res.json({
+    success: true,
+    cookies: {
+      accessToken: hasAccessToken,
+      refreshToken: hasRefreshToken,
+    },
+    message: hasAccessToken && hasRefreshToken
+      ? 'Cookies are present'
+      : 'Cookies are missing - check browser settings or cross-origin configuration',
+  });
+});
 
 // Forgot password - Request password reset
 router.post('/forgot-password', asyncHandler(async (req, res) => {

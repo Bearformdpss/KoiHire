@@ -41,6 +41,15 @@ import workNotesRoutes from './api/work-notes';
 // Load environment variables
 dotenv.config();
 
+// Validate environment configuration at startup (for cookie security diagnostics)
+const isProduction = !!(process.env.RAILWAY_ENVIRONMENT || process.env.VERCEL || process.env.NODE_ENV === 'production');
+console.log('🔍 Environment Configuration:');
+console.log('  NODE_ENV:', process.env.NODE_ENV || 'not set');
+console.log('  RAILWAY_ENVIRONMENT:', process.env.RAILWAY_ENVIRONMENT || 'not set');
+console.log('  VERCEL:', process.env.VERCEL || 'not set');
+console.log('  Cookie secure flag:', isProduction);
+console.log('  Cookie sameSite:', isProduction ? 'none' : 'lax');
+
 const app = express();
 
 // Enable trust proxy for Railway deployment

@@ -24,6 +24,19 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
+      // First, try clearing stale cookies (for migration from old cookie format)
+      if (!originalRequest._cookiesCleared) {
+        originalRequest._cookiesCleared = true;
+        try {
+          await axios.post(`${API_URL}/auth/clear-cookies`, {}, {
+            withCredentials: true,
+          });
+          console.log('[Auth] Cleared stale cookies, attempting token refresh...');
+        } catch (clearError) {
+          console.error('[Auth] Failed to clear cookies:', clearError);
+        }
+      }
+
       try {
         // Use token refresh manager to prevent concurrent refreshes
         // Cookies are sent automatically with withCredentials: true
