@@ -197,6 +197,28 @@ router.post('/logout', asyncHandler(async (req, res) => {
     });
 }));
 
+// Clear stale cookies - utility endpoint for fixing cookie migration issues
+router.post('/clear-cookies', asyncHandler(async (req, res) => {
+  // Force clear all auth cookies regardless of their current state
+  res
+    .clearCookie('accessToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
+      path: '/',
+    })
+    .clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
+      path: '/',
+    })
+    .json({
+      success: true,
+      message: 'All cookies cleared successfully'
+    });
+}));
+
 // Forgot password - Request password reset
 router.post('/forgot-password', asyncHandler(async (req, res) => {
   const { email } = req.body;
