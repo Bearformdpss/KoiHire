@@ -22,6 +22,14 @@ export const authMiddleware = async (
     // Try to get token from cookie first (secure), then fallback to Authorization header (for gradual migration)
     const token = req.cookies?.accessToken || req.header('Authorization')?.replace('Bearer ', '');
 
+    // Debug logging
+    console.log('🔐 Auth Debug:', {
+      hasCookies: !!req.cookies,
+      hasAccessToken: !!req.cookies?.accessToken,
+      tokenLength: token?.length,
+      tokenPrefix: token?.substring(0, 20) + '...',
+    });
+
     if (!token) {
       throw new AppError('No token provided', 401);
     }
