@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest, authMiddleware, requireRole } from '../middleware/auth';
+import { validateMonetaryAmount } from '../utils/validation';
 import {
   createProjectEscrowPayment,
   confirmProjectEscrowPayment,
@@ -111,10 +112,11 @@ router.post('/project/create-payment-intent', paymentLimiter, asyncHandler(async
 // Update agreed amount for project (before funding escrow)
 router.put('/project/:projectId/agreed-amount', asyncHandler(async (req: AuthRequest, res) => {
   const { projectId } = req.params;
-  const { agreedAmount } = req.body;
+  let { agreedAmount } = req.body;
 
-  if (!agreedAmount || agreedAmount <= 0) {
-    throw new AppError('Valid agreed amount is required', 400);
+  // Basic validation
+  if (agreedAmount === undefined || agreedAmount === null) {
+    throw new AppError('Agreed amount is required', 400);
   }
 
   const project = await prisma.project.findUnique({
@@ -140,11 +142,6 @@ router.put('/project/:projectId/agreed-amount', asyncHandler(async (req: AuthReq
     throw new AppError('Can only modify agreed amount for projects in progress', 400);
   }
 
-  // Validate that agreed amount is within budget range
-  if (agreedAmount < project.minBudget || agreedAmount > project.maxBudget) {
-    throw new AppError(`Agreed amount must be between $${project.minBudget} and $${project.maxBudget}`, 400);
-  }
-
   // Check if escrow already funded (can't change after funding)
   const existingEscrow = await prisma.escrow.findUnique({
     where: { projectId }
@@ -152,6 +149,17 @@ router.put('/project/:projectId/agreed-amount', asyncHandler(async (req: AuthReq
 
   if (existingEscrow && existingEscrow.status === 'FUNDED') {
     throw new AppError('Cannot modify agreed amount after escrow has been funded', 400);
+  }
+
+  // Comprehensive amount validation
+  try {
+    agreedAmount = validateMonetaryAmount(agreedAmount, {
+      min: project.minBudget,
+      max: project.maxBudget,
+      fieldName: 'Agreed amount'
+    });
+  } catch (error: any) {
+    throw new AppError(error.message, 400);
   }
 
   await prisma.project.update({

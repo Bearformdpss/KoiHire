@@ -1,4 +1,84 @@
 import Joi from 'joi';
+import { AppError } from '../middleware/errorHandler';
+
+export interface AmountValidationOptions {
+  min?: number;
+  max?: number;
+  allowZero?: boolean;
+  fieldName?: string;
+}
+
+/**
+ * Comprehensive monetary amount validation utility
+ * Protects against: type errors, precision issues, overflow, Stripe API limits
+ *
+ * @param amount - The amount to validate (can be any type, will be coerced if string)
+ * @param options - Validation options (min, max, allowZero, fieldName)
+ * @returns Validated and normalized amount (rounded to 2 decimal places)
+ * @throws AppError if validation fails
+ */
+export function validateMonetaryAmount(
+  amount: any,
+  options: AmountValidationOptions = {}
+): number {
+  const {
+    min = 0.01,
+    max = 999999.99, // Stripe's maximum per transaction
+    allowZero = false,
+    fieldName = 'Amount'
+  } = options;
+
+  // 1. Type validation
+  if (typeof amount !== 'number') {
+    if (typeof amount === 'string') {
+      const parsed = parseFloat(amount);
+      if (isNaN(parsed)) {
+        throw new AppError(`${fieldName} must be a valid number`, 400);
+      }
+      amount = parsed;
+    } else {
+      throw new AppError(`${fieldName} must be a number`, 400);
+    }
+  }
+
+  // 2. Check for NaN, Infinity
+  if (!Number.isFinite(amount)) {
+    throw new AppError(`${fieldName} must be a finite number`, 400);
+  }
+
+  // 3. Check for negative or zero
+  if (amount < 0) {
+    throw new AppError(`${fieldName} cannot be negative`, 400);
+  }
+
+  if (amount === 0 && !allowZero) {
+    throw new AppError(`${fieldName} must be greater than zero`, 400);
+  }
+
+  // 4. Check decimal precision (max 2 decimal places for USD)
+  const decimalPlaces = (amount.toString().split('.')[1] || '').length;
+  if (decimalPlaces > 2) {
+    throw new AppError(`${fieldName} cannot have more than 2 decimal places`, 400);
+  }
+
+  // 5. Check safe integer range (when converted to cents)
+  const amountInCents = Math.round(amount * 100);
+  if (!Number.isSafeInteger(amountInCents)) {
+    throw new AppError(`${fieldName} exceeds safe integer range`, 400);
+  }
+
+  // 6. Check min/max bounds
+  if (amount < min) {
+    throw new AppError(`${fieldName} must be at least $${min.toFixed(2)}`, 400);
+  }
+
+  if (amount > max) {
+    throw new AppError(`${fieldName} cannot exceed $${max.toFixed(2)}`, 400);
+  }
+
+  // 7. Round to 2 decimal places to prevent floating point issues
+  return Math.round(amount * 100) / 100;
+}
 
 export const registerSchema = Joi.object({
   email: Joi.string().email().required(),
