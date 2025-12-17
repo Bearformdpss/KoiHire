@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import { CheckoutModal } from './CheckoutModal'
-import axios from 'axios'
+import { paymentsApi } from '@/lib/api/payments'
 import toast from 'react-hot-toast'
 import { Loader2 } from 'lucide-react'
 
@@ -48,32 +48,19 @@ export function CheckoutWrapper({
   const fetchPaymentIntent = async () => {
     setLoading(true)
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
-
-      // Determine which endpoint to use based on whether it's a service order or project
+      // Use secure cookie-based authentication via paymentsApi
       const isProject = !!projectId
-      const endpoint = isProject
-        ? `${process.env.NEXT_PUBLIC_API_URL}/payments/project/create-payment-intent`
-        : `${process.env.NEXT_PUBLIC_API_URL}/payments/service-order/create-payment-intent`
 
-      const payload = isProject ? { projectId } : { orderId }
+      console.log('🔍 Fetching payment intent:', { isProject, projectId, orderId })
 
-      console.log('🔍 Fetching payment intent:', { isProject, endpoint, payload })
-      console.log('🔑 Token exists:', !!token)
+      const response = isProject
+        ? await paymentsApi.createProjectPaymentIntent(projectId!)
+        : await paymentsApi.createServiceOrderPaymentIntent(orderId!)
 
-      const response = await axios.post(
-        endpoint,
-        payload,
-        {
-          headers: {
-          }
-        }
-      )
+      console.log('✅ Payment intent response:', response)
 
-      console.log('✅ Payment intent response:', response.data)
-
-      if (response.data.success && response.data.clientSecret) {
-        setClientSecret(response.data.clientSecret)
+      if (response.success && response.clientSecret) {
+        setClientSecret(response.clientSecret)
       } else {
         throw new Error('Failed to create payment intent')
       }
