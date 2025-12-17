@@ -137,14 +137,38 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      initialize: () => {
+      initialize: async () => {
         const storedAuth = getStoredAuth();
         if (storedAuth) {
-          set({
-            user: storedAuth.user,
-            tokenExpiresAt: storedAuth.tokenExpiresAt,
-            isAuthenticated: true,
-          });
+          // User has stored auth data, but we need to verify cookies are valid
+          try {
+            const cookieCheck = await authApi.verifyCookies();
+
+            if (cookieCheck.cleared || !cookieCheck.cookies.accessToken || !cookieCheck.cookies.refreshToken) {
+              // Stale cookies detected and cleared, or cookies missing - force logout
+              console.warn('[Auth] Invalid session detected on initialization, logging out...');
+              await get().logout();
+              if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+              }
+              return;
+            }
+
+            // Cookies are valid, restore session
+            set({
+              user: storedAuth.user,
+              tokenExpiresAt: storedAuth.tokenExpiresAt,
+              isAuthenticated: true,
+            });
+          } catch (error) {
+            // Cookie verification failed, logout
+            console.error('[Auth] Cookie verification failed on initialization:', error);
+            await get().logout();
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+            return;
+          }
         }
 
         // Listen for token refresh events

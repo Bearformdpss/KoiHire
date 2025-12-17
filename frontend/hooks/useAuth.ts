@@ -7,8 +7,11 @@ export function useAuth() {
   const store = useAuthStore();
 
   useEffect(() => {
-    // Initialize auth state from localStorage on mount
-    store.initialize();
+    // Initialize auth state from localStorage on mount and verify cookies
+    // This will auto-logout users with invalid/stale cookies
+    store.initialize().catch((error) => {
+      console.error('[useAuth] Initialization failed:', error);
+    });
   }, [store]);
 
   return {
