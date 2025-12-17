@@ -309,8 +309,8 @@ export default function AdminPayoutsPage() {
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(payout.status)}`}>
                           {payout.status}
                         </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getMethodBadge(payout.payoutMethod)}`}>
-                          {payout.payoutMethod}
+                        <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${getMethodBadge(payout.payoutMethod)}`}>
+                          {payout.payoutMethod === 'PAYPAL' ? '💳 PayPal' : payout.payoutMethod === 'PAYONEER' ? '💼 Payoneer' : payout.payoutMethod}
                         </span>
                         <span className="text-2xl font-bold text-green-600">
                           {formatCurrency(payout.amount)}
@@ -325,13 +325,16 @@ export default function AdminPayoutsPage() {
                           <p className="text-xs text-gray-500">@{payout.user.username}</p>
                         </div>
                         <div>
-                          <p className="text-gray-600">Payout Email</p>
+                          <p className="text-gray-600">
+                            {payout.payoutMethod === 'PAYPAL' ? 'PayPal Email' : payout.payoutMethod === 'PAYONEER' ? 'Payoneer Email' : 'Payout Email'}
+                          </p>
                           <div className="flex items-center gap-1">
                             <p className="font-medium text-blue-600">{payout.payoutEmail || 'N/A'}</p>
                             {payout.payoutEmail && (
                               <button
                                 onClick={() => copyToClipboard(payout.payoutEmail)}
                                 className="p-1 hover:bg-gray-100 rounded"
+                                title="Copy email to clipboard"
                               >
                                 <Copy className="w-3 h-3 text-gray-400" />
                               </button>
