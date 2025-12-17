@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
+import { actionsApi } from '@/lib/api/actions';
 
 export function ActionBanner() {
   const [actionCount, setActionCount] = useState<number | null>(null);
@@ -14,41 +15,16 @@ export function ActionBanner() {
 
   const fetchActionCount = async () => {
     try {
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/actions`;
-      console.log('[ActionBanner] Fetching from URL:', apiUrl);
-      console.log('[ActionBanner] Environment check:', {
-        apiUrl: process.env.NEXT_PUBLIC_API_URL,
-        socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL,
-        hasToken: !!localStorage.getItem('accessToken')
-      });
-
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-
-      console.log('[ActionBanner] Response status:', response.status);
-      console.log('[ActionBanner] Response ok:', response.ok);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[ActionBanner] Actions data:', data);
-        console.log('[ActionBanner] Total count:', data.totalCount);
-        setActionCount(data.totalCount);
-      } else {
-        const errorText = await response.text();
-        console.error('[ActionBanner] Response not ok. Status:', response.status, 'Error:', errorText);
-        setActionCount(0);
-      }
+      // Use secure cookie-based authentication via actionsApi
+      const data = await actionsApi.getActions();
+      console.log('[ActionBanner] Actions data:', data);
+      console.log('[ActionBanner] Total count:', data.totalCount);
+      setActionCount(data.totalCount);
     } catch (error) {
       console.error('[ActionBanner] Error fetching action count:', error);
       setActionCount(0);
     } finally {
       setLoading(false);
-      console.log('[ActionBanner] Final actionCount:', actionCount);
     }
   };
 

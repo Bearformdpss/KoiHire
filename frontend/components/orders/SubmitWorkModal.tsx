@@ -4,10 +4,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X, Upload, FileText, Image as ImageIcon, File, Loader2 } from 'lucide-react'
-import axios from 'axios'
+import { uploadApi } from '@/lib/api/upload'
 import toast from 'react-hot-toast'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 interface SubmitWorkModalProps {
   isOpen: boolean
@@ -41,22 +39,11 @@ export function SubmitWorkModal({ isOpen, onClose, onSubmit, orderTitle }: Submi
 
     setUploading(true)
     try {
-      const formData = new FormData()
-      selectedFiles.forEach((file) => {
-        formData.append('files', file)
-      })
+      // Use secure cookie-based authentication via uploadApi
+      const response = await uploadApi.uploadDeliverables(selectedFiles)
 
-      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
-
-      const response = await axios.post(`${API_URL}/upload/deliverables`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': token ? `Bearer ${token}` : ''
-        }
-      })
-
-      if (response.data?.success && response.data.data?.fileUrls) {
-        const urls = response.data.data.fileUrls
+      if (response?.success && response.data?.fileUrls) {
+        const urls = response.data.fileUrls
         setUploadedFileUrls(urls)
         toast.success(`${selectedFiles.length} file(s) uploaded successfully`)
         return urls

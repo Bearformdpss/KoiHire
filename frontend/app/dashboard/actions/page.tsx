@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { actionsApi } from '@/lib/api/actions';
 
 interface Action {
   id: string;
@@ -44,19 +45,8 @@ export default function ActionsPage() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/actions`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch actions');
-      }
-
-      const data = await response.json();
+      // Use secure cookie-based authentication via actionsApi
+      const data = await actionsApi.getActions();
       setActions(data);
     } catch (err) {
       console.error('Error fetching actions:', err);

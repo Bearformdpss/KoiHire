@@ -29,6 +29,7 @@ import {
 import { projectsApi } from '@/lib/api/projects'
 import { messagesApi } from '@/lib/api/messages'
 import { applicationsApi } from '@/lib/api/applications'
+import { escrowApi } from '@/lib/api/escrow'
 import { useAuthStore } from '@/lib/store/authStore'
 import BidSubmissionModal from '@/components/projects/BidSubmissionModal'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
@@ -37,7 +38,6 @@ import { PaymentRequiredModal } from '@/components/projects/PaymentRequiredModal
 import { ProjectSubmitWorkModal } from '@/components/projects/ProjectSubmitWorkModal'
 import ProjectTimeline from '@/components/ProjectTimeline'
 import toast from 'react-hot-toast'
-import axios from 'axios'
 
 interface Project {
   id: string
@@ -209,16 +209,10 @@ export default function ProjectDetailPage() {
   const checkEscrowStatus = async () => {
     setCheckingEscrow(true)
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/escrow/project/${projectId}`,
-        {
-          headers: {
-          }
-        }
-      )
-      if (response.data.success && response.data.escrow) {
-        setEscrowStatus(response.data.escrow.status)
+      // Use secure cookie-based authentication via escrowApi
+      const response = await escrowApi.getProjectEscrowStatus(projectId)
+      if (response.success && response.escrow) {
+        setEscrowStatus(response.escrow.status)
       } else {
         setEscrowStatus(null)
       }
