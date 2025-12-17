@@ -1,17 +1,13 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5003';
 
-// API client with auth headers
+// API client with cookie-based authentication
 const apiClient = async (url: string, options: RequestInit = {}) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-
-  const headers = {
-    ...options.headers,
-    ...(token && { 'Authorization': `Bearer ${token}` }),
-  };
-
   return fetch(url, {
     ...options,
-    headers,
+    credentials: 'include', // Send httpOnly cookies with requests
+    headers: {
+      ...options.headers,
+    },
   });
 };
 

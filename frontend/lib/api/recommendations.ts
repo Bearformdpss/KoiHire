@@ -2,25 +2,14 @@ import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-// Configure axios instance
+// Configure axios instance with cookie-based authentication
 const apiClient = axios.create({
   baseURL: API_URL,
   timeout: 30000,
+  withCredentials: true, // Send httpOnly cookies with requests
 })
 
-// Request interceptor to add auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
+// No need for Authorization header interceptor - cookies are sent automatically
 
 export interface RecommendedProject {
   id: string

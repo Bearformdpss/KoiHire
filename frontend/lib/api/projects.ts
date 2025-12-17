@@ -3,60 +3,15 @@ import { apiCall, withRetry } from '@/lib/utils/apiErrorHandler'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-// Configure axios instance with interceptors
+// Configure axios instance with cookie-based authentication
 const apiClient = axios.create({
   baseURL: API_URL,
   timeout: 30000, // 30 second timeout
+  withCredentials: true, // Send httpOnly cookies with requests
 })
 
-// Request interceptor to add auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
-
-// Response interceptor for token refresh
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      // Token expired, try to refresh
-      try {
-        const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null
-        if (refreshToken) {
-          const response = await axios.post(`${API_URL}/auth/refresh`, {
-            refreshToken
-          })
-          
-          const { accessToken } = response.data
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('accessToken', accessToken)
-          }
-          
-          // Retry the original request
-          error.config.headers.Authorization = `Bearer ${accessToken}`
-          return apiClient.request(error.config)
-        }
-      } catch (refreshError) {
-        // Refresh failed, redirect to login
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken')
-          localStorage.removeItem('refreshToken')
-          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
-        }
-      }
-    }
-    return Promise.reject(error)
-  }
-)
+// No need for Authorization header interceptor - cookies are sent automatically
+// No need for 401 interceptor - main api.ts handles token refresh
 
 // Project API calls
 export const projectsApi = {

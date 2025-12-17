@@ -6,23 +6,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 export const messagesApi = {
   // Get user conversations
   getConversations: async (filter?: 'all' | 'unread' | 'archived' | 'pinned') => {
-    const token = localStorage.getItem('accessToken')
     const params = filter ? `?filter=${filter}` : ''
-    const response = await axios.get(`${API_URL}/messages/conversations${params}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.get(`${API_URL}/messages/conversations${params}`, { withCredentials: true }
     })
     return response.data
   },
 
   // Get conversation by ID
   getConversation: async (conversationId: string) => {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.get(`${API_URL}/messages/conversations/${conversationId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.get(`${API_URL}/messages/conversations/${conversationId}`, { withCredentials: true }
     })
     return response.data
   },
@@ -32,7 +24,6 @@ export const messagesApi = {
     page?: number
     limit?: number
   } = {}) => {
-    const token = localStorage.getItem('accessToken')
     const searchParams = new URLSearchParams()
     
     Object.entries(params).forEach(([key, value]) => {
@@ -44,9 +35,6 @@ export const messagesApi = {
     const response = await axios.get(
       `${API_URL}/messages/conversations/${conversationId}/messages?${searchParams}`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       }
     )
     return response.data
@@ -54,7 +42,6 @@ export const messagesApi = {
 
   // Create conversation for project
   createConversation: async (projectId: string, participantId?: string) => {
-    const token = localStorage.getItem('accessToken')
     const response = await axios.post(
       `${API_URL}/messages/conversations`,
       { 
@@ -62,9 +49,6 @@ export const messagesApi = {
         ...(participantId && { participantId })
       },
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       }
     )
     return response.data
@@ -72,7 +56,6 @@ export const messagesApi = {
 
   // Create direct conversation (for portfolio contacts, etc.)
   createDirectConversation: async (participantId: string, context?: any) => {
-    const token = localStorage.getItem('accessToken')
     const response = await axios.post(
       `${API_URL}/messages/conversations/direct`,
       { 
@@ -80,9 +63,6 @@ export const messagesApi = {
         ...(context && { context })
       },
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       }
     )
     return response.data
@@ -94,14 +74,10 @@ export const messagesApi = {
     type?: string
     attachments?: string[]
   }) => {
-    const token = localStorage.getItem('accessToken')
     const response = await axios.post(
       `${API_URL}/messages/conversations/${conversationId}/messages`,
       data,
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       }
     )
     return response.data
@@ -109,14 +85,10 @@ export const messagesApi = {
 
   // Archive/Unarchive conversation
   archiveConversation: async (conversationId: string, isArchived: boolean) => {
-    const token = localStorage.getItem('accessToken')
     const response = await axios.patch(
       `${API_URL}/messages/conversations/${conversationId}/archive`,
       { isArchived },
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       }
     )
     return response.data
@@ -124,14 +96,10 @@ export const messagesApi = {
 
   // Pin/Unpin conversation
   pinConversation: async (conversationId: string, isPinned: boolean) => {
-    const token = localStorage.getItem('accessToken')
     const response = await axios.patch(
       `${API_URL}/messages/conversations/${conversationId}/pin`,
       { isPinned },
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       }
     )
     return response.data
@@ -139,7 +107,6 @@ export const messagesApi = {
 
   // Upload files
   uploadFiles: async (files: File[], onProgress?: (progress: number) => void) => {
-    const token = localStorage.getItem('accessToken')
     const formData = new FormData()
 
     files.forEach(file => {
@@ -150,15 +117,6 @@ export const messagesApi = {
       `${API_URL}/messages/upload`,
       formData,
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-          // Don't set Content-Type - axios will set it automatically with correct boundary
-        },
-        onUploadProgress: (progressEvent) => {
-          if (onProgress && progressEvent.total) {
-            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-            onProgress(progress)
-          }
         }
       }
     )

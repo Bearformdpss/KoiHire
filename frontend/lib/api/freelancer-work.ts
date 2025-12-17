@@ -55,10 +55,7 @@ export const freelancerWorkApi = {
    */
   getActiveWork: async (type: 'all' | 'projects' | 'services' = 'all'): Promise<ActiveWorkResponse> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await axios.get(`${API_URL}/freelancer/active-work?type=${type}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.get(`${API_URL}/freelancer/active-work?type=${type}`, { withCredentials: true }
     });
     return response.data;
   },
@@ -68,10 +65,7 @@ export const freelancerWorkApi = {
    */
   getNote: async (itemType: 'project' | 'service', itemId: string): Promise<WorkNoteResponse> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await axios.get(`${API_URL}/work-notes/${itemType}/${itemId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.get(`${API_URL}/work-notes/${itemType}/${itemId}`, { withCredentials: true }
     });
     return response.data;
   },
@@ -81,10 +75,7 @@ export const freelancerWorkApi = {
    */
   saveNote: async (itemType: 'project' | 'service', itemId: string, note: string): Promise<WorkNoteResponse> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await axios.post(`${API_URL}/work-notes/${itemType}/${itemId}`, { note }, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.post(`${API_URL}/work-notes/${itemType}/${itemId}`, { note }, { withCredentials: true }
     });
     return response.data;
   },
@@ -94,10 +85,7 @@ export const freelancerWorkApi = {
    */
   deleteNote: async (itemType: 'project' | 'service', itemId: string): Promise<{ success: boolean; message: string }> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await axios.delete(`${API_URL}/work-notes/${itemType}/${itemId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.delete(`${API_URL}/work-notes/${itemType}/${itemId}`, { withCredentials: true }
     });
     return response.data;
   }

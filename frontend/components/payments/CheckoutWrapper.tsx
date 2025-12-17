@@ -66,7 +66,6 @@ export function CheckoutWrapper({
         payload,
         {
           headers: {
-            Authorization: `Bearer ${token}`
           }
         }
       )

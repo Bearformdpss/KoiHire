@@ -6,22 +6,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 export const usersApi = {
   // Get current user profile
   getProfile: async () => {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.get(`${API_URL}/users/profile`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.get(`${API_URL}/users/profile`, { withCredentials: true }
     })
     return response.data
   },
 
   // Get dashboard statistics
   getDashboardStats: async () => {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.get(`${API_URL}/users/dashboard/stats`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.get(`${API_URL}/users/dashboard/stats`, { withCredentials: true }
     })
     return response.data
   },
@@ -35,24 +27,20 @@ export const usersApi = {
     website?: string
     phone?: string
   }) => {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.put(`${API_URL}/users/profile`, profileData, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.put(`${API_URL}/users/profile`, profileData, { withCredentials: true }
     })
     return response.data
   },
 
   // Get user by ID (public profile)
   getUser: async (userId: string) => {
-    const response = await axios.get(`${API_URL}/users/public/${userId}`)
+    const response = await axios.get(`${API_URL}/users/public/${userId}`, { withCredentials: true })
     return response.data
   },
 
   // Get user by username (public profile)
   getUserByUsername: async (username: string) => {
-    const response = await axios.get(`${API_URL}/users/public/username/${username}`)
+    const response = await axios.get(`${API_URL}/users/public/username/${username}`, { withCredentials: true })
     return response.data
   },
 
@@ -62,52 +50,36 @@ export const usersApi = {
     level?: string
     yearsExp?: number
   }>) => {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.post(`${API_URL}/users/skills`, { skills }, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.post(`${API_URL}/users/skills`, { skills }, { withCredentials: true }
     })
     return response.data
   },
 
   // Get user statistics
   getUserStats: async (userId: string) => {
-    const response = await axios.get(`${API_URL}/users/public/${userId}/stats`)
+    const response = await axios.get(`${API_URL}/users/public/${userId}/stats`, { withCredentials: true })
     return response.data
   },
 
   // Get monthly stats (freelancer only)
   getMonthlyStats: async () => {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.get(`${API_URL}/users/stats/monthly`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.get(`${API_URL}/users/stats/monthly`, { withCredentials: true }
     })
     return response.data
   },
 
   // Get level progress (freelancer only)
   getLevelProgress: async () => {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.get(`${API_URL}/users/level-progress`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.get(`${API_URL}/users/level-progress`, { withCredentials: true }
     })
     return response.data
   },
 
   // Update availability status
   updateAvailability: async (isAvailable: boolean) => {
-    const token = localStorage.getItem('accessToken')
     const response = await axios.patch(`${API_URL}/users/availability`,
       { isAvailable },
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       }
     )
     return response.data
@@ -115,11 +87,7 @@ export const usersApi = {
 
   // Get payout preferences (freelancers only)
   getPayoutPreferences: async () => {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.get(`${API_URL}/users/payout-preferences`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.get(`${API_URL}/users/payout-preferences`, { withCredentials: true }
     })
     return response.data
   },
@@ -130,11 +98,7 @@ export const usersApi = {
     paypalEmail?: string | null
     payoneerEmail?: string | null
   }) => {
-    const token = localStorage.getItem('accessToken')
-    const response = await axios.put(`${API_URL}/users/payout-preferences`, data, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.put(`${API_URL}/users/payout-preferences`, data, { withCredentials: true }
     })
     return response.data
   }

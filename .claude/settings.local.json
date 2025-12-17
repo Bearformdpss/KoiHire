@@ -59,7 +59,9 @@
       "Bash(claude --version:*)",
       "Bash(npm update:*)",
       "Bash(grep:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(for file in users.ts applications.ts freelancer-work.ts messages.ts reviews.ts)",
+      "Bash(do echo \"=== $file ===\" grep -n \"localStorage.getItem\" $file)"
     ],
     "deny": [],
     "ask": []

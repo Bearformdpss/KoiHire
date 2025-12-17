@@ -214,7 +214,6 @@ export default function ProjectDetailPage() {
         `${process.env.NEXT_PUBLIC_API_URL}/escrow/project/${projectId}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`
           }
         }
       )
