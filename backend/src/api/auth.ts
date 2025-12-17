@@ -123,14 +123,6 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
   const { accessToken, refreshToken } = generateTokens(user.id);
   await saveRefreshToken(user.id, refreshToken);
 
-  // Debug: Log cookie configuration
-  console.log('🍪 Setting cookies with options:', {
-    accessTokenOptions: accessTokenCookieOptions,
-    refreshTokenOptions: refreshTokenCookieOptions,
-    nodeEnv: process.env.NODE_ENV,
-    cookieDomain: process.env.COOKIE_DOMAIN,
-  });
-
   // Set httpOnly cookies for tokens (secure, XSS-protected)
   res
     .cookie('accessToken', accessToken, accessTokenCookieOptions)
