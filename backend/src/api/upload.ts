@@ -173,12 +173,17 @@ router.post('/deliverables', uploadLimiter, authMiddleware, deliverableUpload.ar
     }
 
     const files = req.files as Express.Multer.File[]
-    const fileUrls = files.map(file => `/uploads/${file.filename}`)
+    const filesMetadata = files.map(file => ({
+      url: `/uploads/${file.filename}`,
+      originalName: file.originalname,
+      size: file.size,
+      mimeType: file.mimetype
+    }))
 
     res.json({
       success: true,
       data: {
-        fileUrls
+        files: filesMetadata
       },
       message: `Successfully uploaded ${files.length} file${files.length > 1 ? 's' : ''}`
     })

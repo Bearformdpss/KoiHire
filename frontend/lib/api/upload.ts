@@ -1,5 +1,12 @@
 import { api } from '../api'
 
+export interface FileMetadata {
+  url: string
+  originalName: string
+  size: number
+  mimeType: string
+}
+
 // Upload API calls - uses secure cookie-based auth
 export const uploadApi = {
   // Upload deliverable files (for project and service order submissions)

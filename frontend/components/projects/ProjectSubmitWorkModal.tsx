@@ -4,13 +4,13 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X, Upload, FileText, Image as ImageIcon, File, Loader2 } from 'lucide-react'
-import { uploadApi } from '@/lib/api/upload'
+import { uploadApi, FileMetadata } from '@/lib/api/upload'
 import toast from 'react-hot-toast'
 
 interface ProjectSubmitWorkModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { title: string; description: string; files: string[] }) => Promise<void>
+  onSubmit: (data: { title: string; description: string; files: FileMetadata[] }) => Promise<void>
   projectTitle: string
   submissionNumber: number
 }
@@ -25,7 +25,7 @@ export function ProjectSubmitWorkModal({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([])
+  const [uploadedFiles, setUploadedFiles] = useState<FileMetadata[]>([])
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -42,7 +42,7 @@ export function ProjectSubmitWorkModal({
 
   const handleRemoveFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index))
-    setUploadedFileUrls(prev => prev.filter((_, i) => i !== index))
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleUploadFiles = async () => {
@@ -53,11 +53,11 @@ export function ProjectSubmitWorkModal({
       // Use secure cookie-based authentication via uploadApi
       const response = await uploadApi.uploadDeliverables(selectedFiles)
 
-      if (response?.success && response.data?.fileUrls) {
-        const urls = response.data.fileUrls
-        setUploadedFileUrls(urls)
+      if (response?.success && response.data?.files) {
+        const filesMetadata = response.data.files
+        setUploadedFiles(filesMetadata)
         toast.success(`${selectedFiles.length} file(s) uploaded successfully`)
-        return urls
+        return filesMetadata
       } else {
         toast.error('Failed to upload files')
         return []
@@ -80,10 +80,10 @@ export function ProjectSubmitWorkModal({
     setSubmitting(true)
     try {
       // Upload files first if any
-      let fileUrls = uploadedFileUrls
-      if (selectedFiles.length > 0 && uploadedFileUrls.length === 0) {
-        fileUrls = await handleUploadFiles()
-        if (fileUrls.length === 0 && selectedFiles.length > 0) {
+      let files = uploadedFiles
+      if (selectedFiles.length > 0 && uploadedFiles.length === 0) {
+        files = await handleUploadFiles()
+        if (files.length === 0 && selectedFiles.length > 0) {
           // Upload failed
           setSubmitting(false)
           return
@@ -94,14 +94,14 @@ export function ProjectSubmitWorkModal({
       await onSubmit({
         title: title.trim(),
         description: description.trim(),
-        files: fileUrls
+        files
       })
 
       // Reset form
       setTitle('')
       setDescription('')
       setSelectedFiles([])
-      setUploadedFileUrls([])
+      setUploadedFiles([])
       onClose()
     } catch (error) {
       console.error('Submit work error:', error)

@@ -580,18 +580,15 @@ router.post('/:orderId/deliver', authMiddleware, requireRole(['FREELANCER']), as
   if (files && files.length > 0) {
     try {
       await Promise.all(
-        files.map((fileUrl: string) => {
-          // Extract filename from S3 URL
-          const fileName = fileUrl.split('/').pop() || 'file';
-
+        files.map((fileMetadata: any) => {
           return prisma.serviceOrderFile.create({
             data: {
               orderId,
-              fileName,
-              originalName: fileName,
-              fileSize: 0, // Size not available from deliverable
-              mimeType: 'application/octet-stream', // Type not available from deliverable
-              filePath: fileUrl,
+              fileName: fileMetadata.originalName,
+              originalName: fileMetadata.originalName,
+              fileSize: fileMetadata.size,
+              mimeType: fileMetadata.mimeType,
+              filePath: fileMetadata.url,
               uploadedById: req.user!.id
             }
           });

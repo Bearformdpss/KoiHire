@@ -942,18 +942,15 @@ router.put('/:projectId/submit-work', authMiddleware, asyncHandler(async (req: A
   if (files && files.length > 0) {
     try {
       await Promise.all(
-        files.map((fileUrl: string) => {
-          // Extract filename from URL (S3 URL format: https://bucket.s3.region.amazonaws.com/path/filename)
-          const fileName = fileUrl.split('/').pop() || 'file';
-
+        files.map((fileMetadata: any) => {
           return prisma.projectFile.create({
             data: {
               projectId,
-              fileName,
-              originalName: fileName,
-              fileSize: 0, // Size not available from deliverable submission
-              mimeType: 'application/octet-stream', // Type not available from URL
-              filePath: fileUrl,
+              fileName: fileMetadata.originalName,
+              originalName: fileMetadata.originalName,
+              fileSize: fileMetadata.size,
+              mimeType: fileMetadata.mimeType,
+              filePath: fileMetadata.url,
               uploadedById: req.user!.id
             }
           });
