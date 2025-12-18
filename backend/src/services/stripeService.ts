@@ -258,7 +258,7 @@ export const releaseProjectEscrowPayment = async (projectId: string) => {
       // Use SELECT FOR UPDATE to lock the escrow row and prevent concurrent modifications
       // This ensures only one request can process the release at a time
       const escrowRows = await tx.$queryRaw<Array<any>>`
-        SELECT * FROM "Escrow"
+        SELECT * FROM "escrow"
         WHERE "projectId" = ${projectId}
         FOR UPDATE
       `;
@@ -477,7 +477,7 @@ export const refundProjectEscrowPayment = async (projectId: string, reason?: str
     async (tx) => {
       // Use SELECT FOR UPDATE to lock the escrow row and prevent concurrent modifications
       const escrowRows = await tx.$queryRaw<Array<any>>`
-        SELECT * FROM "Escrow"
+        SELECT * FROM "escrow"
         WHERE "projectId" = ${projectId}
         FOR UPDATE
       `;
@@ -776,7 +776,7 @@ export const releaseServiceOrderPayment = async (orderId: string) => {
     async (tx) => {
       // Use SELECT FOR UPDATE to lock the service order row and prevent concurrent modifications
       const orderRows = await tx.$queryRaw<Array<any>>`
-        SELECT * FROM "ServiceOrder"
+        SELECT * FROM "service_orders"
         WHERE "id" = ${orderId}
         FOR UPDATE
       `;
@@ -988,7 +988,7 @@ export const refundServiceOrderPayment = async (orderId: string, reason?: string
     async (tx) => {
       // Use SELECT FOR UPDATE to lock the service order row and prevent concurrent modifications
       const orderRows = await tx.$queryRaw<Array<any>>`
-        SELECT * FROM "ServiceOrder"
+        SELECT * FROM "service_orders"
         WHERE "id" = ${orderId}
         FOR UPDATE
       `;
