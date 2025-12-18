@@ -792,7 +792,7 @@ router.post('/:orderId/revision', authMiddleware, requireRole(['CLIENT']), async
   const { orderId } = req.params;
   const { revisionNote } = req.body;
 
-  if (!revisionNote || revisionNote.trim().length === 0) {
+  if (!revisionNote || typeof revisionNote !== 'string' || revisionNote.trim().length === 0) {
     throw new AppError('Revision note is required', 400);
   }
 

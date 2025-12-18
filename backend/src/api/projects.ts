@@ -1272,7 +1272,7 @@ router.post('/:projectId/request-changes', authMiddleware, asyncHandler(async (r
   const { projectId } = req.params;
   const { message } = req.body;
 
-  if (!message || message.trim().length === 0) {
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
     throw new AppError('Change request message is required', 400);
   }
 
