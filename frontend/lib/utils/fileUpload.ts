@@ -14,22 +14,24 @@ export interface UploadedFile {
 
 /**
  * Validate file before upload
+ * IMPORTANT: Must match backend validation in backend/src/utils/fileValidation.ts
+ * SVG, ZIP, RAR removed for security (XSS and zip bomb risks)
  */
 export function validateFile(file: File): { valid: boolean; error?: string } {
   const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+
+  // Only types that pass backend magic byte validation
+  // Removed: image/svg+xml, image/webp, application/zip, application/x-rar-compressed
+  // Removed: Excel/CSV (not in backend allowed list)
   const ALLOWED_TYPES = [
     'image/jpeg',
     'image/jpg',
     'image/png',
     'image/gif',
-    'image/webp',
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/plain',
-    'text/csv'
+    'text/plain'
   ]
 
   if (file.size > MAX_FILE_SIZE) {
@@ -42,7 +44,7 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   if (!ALLOWED_TYPES.includes(file.type)) {
     return {
       valid: false,
-      error: 'File type not allowed. Allowed: images, PDFs, documents, spreadsheets, text files'
+      error: 'File type not allowed. Allowed: JPEG, PNG, GIF images, PDF, Word documents (.doc/.docx), and text files (.txt)'
     }
   }
 

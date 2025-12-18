@@ -8,27 +8,28 @@ import {
   getServiceOrderFileDownloadUrl,
   deleteServiceOrderFileFromS3
 } from '../utils/s3ServiceOrderFiles'
+import { validateFile } from '../utils/fileValidation'
 
 const prisma = new PrismaClient()
 
 const router = Router()
 
 // Configure multer for memory storage (files uploaded to S3, not disk)
+// Basic validation here; comprehensive validation happens after upload
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 10 // Max 10 files per upload
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|svg|pdf|doc|docx|txt|zip|rar/
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase())
-    const mimetype = allowedTypes.test(file.mimetype)
-
-    if (mimetype && extname) {
-      return cb(null, true)
-    } else {
-      cb(new Error('Invalid file type. Only images, PDFs, and documents are allowed.'))
+    // Basic file size check from headers
+    const fileSize = parseInt(req.headers['content-length'] || '0');
+    if (fileSize > 10 * 1024 * 1024) {
+      return cb(new Error('File too large'));
     }
+    // Allow all files through - comprehensive validation happens after upload
+    cb(null, true);
   }
 })
 
@@ -69,22 +70,46 @@ router.post('/:orderId/files', authMiddleware, upload.array('files', 10), async 
       })
     }
 
-    // Upload files to S3
-    const s3UploadPromises = files.map(file =>
-      uploadServiceOrderFileToS3(file, { orderId, userId })
+    // Validate each file with magic byte verification
+    const validationResults = await Promise.all(
+      files.map(file => validateFile(file.buffer, file.originalname))
     )
+
+    // Check for validation errors
+    const errors = validationResults.filter(r => !r.isValid)
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'File validation failed',
+        errors: errors.map(e => e.error)
+      })
+    }
+
+    // Upload validated files to S3
+    const s3UploadPromises = files.map((file, index) => {
+      const validation = validationResults[index]
+      // Create a new file object with validated MIME type
+      return uploadServiceOrderFileToS3(
+        {
+          ...file,
+          mimetype: validation.detectedMimeType! // Use detected MIME type from magic bytes
+        },
+        { orderId, userId }
+      )
+    })
     const s3Urls = await Promise.all(s3UploadPromises)
 
     // Create database records for uploaded files
     const uploadedFiles = await Promise.all(
-      files.map((file, index) =>
-        prisma.serviceOrderFile.create({
+      files.map((file, index) => {
+        const validation = validationResults[index]
+        return prisma.serviceOrderFile.create({
           data: {
             orderId,
             fileName: path.basename(s3Urls[index]), // Extract filename from S3 URL
             originalName: file.originalname,
             fileSize: file.size,
-            mimeType: file.mimetype,
+            mimeType: validation.detectedMimeType!, // Use validated MIME type
             filePath: s3Urls[index], // Store S3 URL
             uploadedById: userId
           },
@@ -99,7 +124,7 @@ router.post('/:orderId/files', authMiddleware, upload.array('files', 10), async 
             }
           }
         })
-      )
+      })
     )
 
     res.json({

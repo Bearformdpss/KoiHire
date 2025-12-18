@@ -42,6 +42,10 @@ export async function uploadServiceOrderFileToS3(
       ContentType: file.mimetype,
       // Private ACL - files not publicly accessible
       ACL: 'private',
+      // Force download instead of inline display (prevents script execution)
+      ContentDisposition: 'attachment',
+      // Server-side encryption
+      ServerSideEncryption: 'AES256',
       Metadata: {
         uploadedBy: userId,
         originalName: file.originalname,
