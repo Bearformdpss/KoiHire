@@ -30,6 +30,7 @@ export default function ServiceDetailPage() {
   const [service, setService] = useState<Service | null>(null)
   const [relatedServices, setRelatedServices] = useState<Service[]>([])
   const [freelancerReviews, setFreelancerReviews] = useState<any[]>([])
+  const [totalReviewCount, setTotalReviewCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [selectedPackage, setSelectedPackage] = useState<'BASIC' | 'STANDARD' | 'PREMIUM'>('BASIC')
 
@@ -91,6 +92,10 @@ export default function ServiceDetailPage() {
 
       if (data.success && data.reviews) {
         setFreelancerReviews(data.reviews)
+        // Store the total count from API stats
+        if (data.stats?.totalReviews !== undefined) {
+          setTotalReviewCount(data.stats.totalReviews)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch freelancer reviews:', error)
@@ -239,7 +244,7 @@ export default function ServiceDetailPage() {
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                 <span className="font-semibold">{service.rating.toFixed(1)}</span>
-                <span className="text-gray-600">({freelancerReviews.length} {freelancerReviews.length === 1 ? 'review' : 'reviews'})</span>
+                <span className="text-gray-600">({totalReviewCount} {totalReviewCount === 1 ? 'review' : 'reviews'})</span>
               </div>
             )}
 
@@ -295,7 +300,7 @@ export default function ServiceDetailPage() {
                 ...service.freelancer!,
                 totalOrders: service._count?.serviceOrders || 0
               }}
-              reviewCount={freelancerReviews.length}
+              reviewCount={totalReviewCount}
             />
 
             {/* FAQ */}
