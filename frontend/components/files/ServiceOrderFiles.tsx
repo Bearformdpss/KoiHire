@@ -17,6 +17,7 @@ import {
 import { useAuthStore } from '@/lib/store/authStore'
 import toast from 'react-hot-toast'
 import { serviceOrderFilesApi } from '@/services/service-order-files.api'
+import { validateFile } from '@/lib/utils/fileUpload'
 
 interface ServiceOrderFile {
   id: string
@@ -67,6 +68,20 @@ export function ServiceOrderFiles({ orderId, canUpload = true }: ServiceOrderFil
   const handleFileUpload = async () => {
     if (selectedFiles.length === 0) {
       toast.error('Please select files to upload')
+      return
+    }
+
+    // Validate all files before upload
+    const invalidFiles: string[] = []
+    selectedFiles.forEach(file => {
+      const validation = validateFile(file)
+      if (!validation.valid) {
+        invalidFiles.push(`${file.name}: ${validation.error}`)
+      }
+    })
+
+    if (invalidFiles.length > 0) {
+      toast.error(`Invalid files:\n${invalidFiles.join('\n')}`)
       return
     }
 
@@ -270,7 +285,7 @@ export function ServiceOrderFiles({ orderId, canUpload = true }: ServiceOrderFil
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.svg,image/*,application/pdf"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.txt,image/jpeg,image/png,image/gif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                   onChange={(e) => {
                     if (e.target.files && e.target.files.length > 0) {
                       setSelectedFiles(Array.from(e.target.files))
