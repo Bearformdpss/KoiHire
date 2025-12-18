@@ -93,8 +93,6 @@ app.use(cors({
           'https://www.koihire.com' // Custom domain with www
         ];
 
-        console.log('🔒 CORS Check:', { origin, allowedOrigins, frontendUrl: process.env.FRONTEND_URL });
-
         // Also allow any vercel.app subdomain for the project
         const isVercelDomain = origin && origin.includes('vercel.app');
         const isAllowedOrigin = !origin || allowedOrigins.includes(origin) || isVercelDomain;
@@ -102,6 +100,7 @@ app.use(cors({
         if (isAllowedOrigin) {
           callback(null, true);
         } else {
+          // Only log rejections (actual security events)
           console.error('❌ CORS Rejected:', origin);
           callback(new Error('Not allowed by CORS'));
         }

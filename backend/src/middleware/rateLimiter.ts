@@ -22,7 +22,7 @@ const isDevelopment = process.env.NODE_ENV === 'development';
  */
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isDevelopment ? 1000 : 100, // Higher limit in development
+  max: isDevelopment ? 1000 : 300, // Increased to 300 for modern SPA usage patterns
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
