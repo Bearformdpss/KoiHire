@@ -147,7 +147,7 @@ app.use('/api/applications', authMiddleware, applicationRoutes);
 app.use('/api/messages', authMiddleware, messageRoutes);
 app.use('/api/payments', webhookRouter); // Webhook router (no auth) - handles /api/payments/webhook
 app.use('/api/payments', authMiddleware, paymentRoutes); // All other payment routes require auth
-app.use('/api/reviews', authMiddleware, reviewRoutes);
+app.use('/api/reviews', reviewRoutes); // Auth applied per-route (public endpoints exist)
 app.use('/api/categories', categoryRoutes);
 app.use('/api/notifications', authMiddleware, notificationRoutes);
 app.use('/api/portfolios', portfolioRoutes);

@@ -86,7 +86,7 @@ export default function ServiceDetailPage() {
 
   const fetchFreelancerReviews = async (freelancerId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reviews/user/${freelancerId}?type=received&limit=10`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews/user/${freelancerId}?type=received&limit=10`)
       const data = await response.json()
 
       if (data.success && data.reviews) {

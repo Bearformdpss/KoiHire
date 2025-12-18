@@ -1,15 +1,15 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authMiddleware } from '../middleware/auth';
 import { validate, reviewSchema } from '../utils/validation';
 import { notificationService } from '../services/notificationService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Create review for completed project
-router.post('/', validate(reviewSchema), asyncHandler(async (req: AuthRequest, res) => {
+// Create review for completed project (requires auth)
+router.post('/', authMiddleware, validate(reviewSchema), asyncHandler(async (req: AuthRequest, res) => {
   const { projectId, revieweeId, rating, comment, communication, quality, timeliness, professionalism } = req.body;
 
   let project = null;
@@ -104,7 +104,7 @@ router.post('/', validate(reviewSchema), asyncHandler(async (req: AuthRequest, r
   });
 }));
 
-// Get reviews for a user
+// Get reviews for a user (public endpoint - no auth required)
 router.get('/user/:userId', asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { type = 'received', page = 1, limit = 20 } = req.query;
@@ -192,7 +192,7 @@ router.get('/user/:userId', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get review statistics for a user
+// Get review statistics for a user (public endpoint - no auth required)
 router.get('/user/:userId/stats', asyncHandler(async (req, res) => {
   const { userId } = req.params;
 
@@ -256,8 +256,8 @@ router.get('/user/:userId/stats', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get pending reviews for current user
-router.get('/pending', asyncHandler(async (req: AuthRequest, res) => {
+// Get pending reviews for current user (requires auth)
+router.get('/pending', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   // Find completed projects where user hasn't left a review yet
   const completedProjects = await prisma.project.findMany({
     where: {
@@ -327,8 +327,8 @@ router.get('/pending', asyncHandler(async (req: AuthRequest, res) => {
   });
 }));
 
-// Get review for specific project
-router.get('/project/:projectId', asyncHandler(async (req: AuthRequest, res) => {
+// Get review for specific project (requires auth)
+router.get('/project/:projectId', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const { projectId } = req.params;
 
   const project = await prisma.project.findUnique({
@@ -384,8 +384,8 @@ router.get('/project/:projectId', asyncHandler(async (req: AuthRequest, res) => 
   });
 }));
 
-// Update review (reviewer only, within 7 days)
-router.put('/:reviewId', validate(reviewSchema), asyncHandler(async (req: AuthRequest, res) => {
+// Update review (reviewer only, within 7 days, requires auth)
+router.put('/:reviewId', authMiddleware, validate(reviewSchema), asyncHandler(async (req: AuthRequest, res) => {
   const { reviewId } = req.params;
   const { rating, comment } = req.body;
 
@@ -447,8 +447,8 @@ router.put('/:reviewId', validate(reviewSchema), asyncHandler(async (req: AuthRe
   });
 }));
 
-// Delete review (reviewer only, within 24 hours)
-router.delete('/:reviewId', asyncHandler(async (req: AuthRequest, res) => {
+// Delete review (reviewer only, within 24 hours, requires auth)
+router.delete('/:reviewId', authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const { reviewId } = req.params;
 
   const review = await prisma.review.findUnique({
