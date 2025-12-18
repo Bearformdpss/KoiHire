@@ -161,7 +161,7 @@ export default function OrderDetailPage() {
 
     setActionLoading(true)
     try {
-      const response = await serviceOrdersApi.requestRevision(orderId, { reason: reason.trim() })
+      const response = await serviceOrdersApi.requestRevision(orderId, reason.trim())
       if (response.data?.success) {
         toast.success('Revision requested. The freelancer will be notified.')
         fetchOrder()
