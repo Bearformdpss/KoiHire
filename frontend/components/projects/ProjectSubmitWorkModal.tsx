@@ -4,8 +4,17 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X, Upload, FileText, Image as ImageIcon, File, Loader2 } from 'lucide-react'
-import { uploadApi, FileMetadata } from '@/lib/api/upload'
+import { filesApi } from '@/services/files.api'
+import { validateFile } from '@/lib/utils/fileUpload'
 import toast from 'react-hot-toast'
+
+// File metadata interface matching backend submit-work endpoint expectations
+interface FileMetadata {
+  url: string
+  originalName: string
+  size: number
+  mimeType: string
+}
 
 interface ProjectSubmitWorkModalProps {
   isOpen: boolean
@@ -13,6 +22,7 @@ interface ProjectSubmitWorkModalProps {
   onSubmit: (data: { title: string; description: string; files: FileMetadata[] }) => Promise<void>
   projectTitle: string
   submissionNumber: number
+  projectId: string
 }
 
 export function ProjectSubmitWorkModal({
@@ -20,7 +30,8 @@ export function ProjectSubmitWorkModal({
   onClose,
   onSubmit,
   projectTitle,
-  submissionNumber
+  submissionNumber,
+  projectId
 }: ProjectSubmitWorkModalProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -33,11 +44,32 @@ export function ProjectSubmitWorkModal({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
+
     if (selectedFiles.length + files.length > 10) {
       toast.error('Maximum 10 files allowed')
       return
     }
-    setSelectedFiles(prev => [...prev, ...files])
+
+    // Validate each file before adding
+    const invalidFiles: string[] = []
+    const validFiles: File[] = []
+
+    files.forEach(file => {
+      const validation = validateFile(file)
+      if (!validation.valid) {
+        invalidFiles.push(`${file.name}: ${validation.error}`)
+      } else {
+        validFiles.push(file)
+      }
+    })
+
+    if (invalidFiles.length > 0) {
+      toast.error(`Invalid files:\n${invalidFiles.join('\n')}`)
+    }
+
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles])
+    }
   }
 
   const handleRemoveFile = (index: number) => {
@@ -45,16 +77,28 @@ export function ProjectSubmitWorkModal({
     setUploadedFiles(prev => prev.filter((_, i) => i !== index))
   }
 
-  const handleUploadFiles = async () => {
+  const handleUploadFiles = async (): Promise<FileMetadata[]> => {
     if (selectedFiles.length === 0) return []
 
     setUploading(true)
     try {
-      // Use secure cookie-based authentication via uploadApi
-      const response = await uploadApi.uploadDeliverables(selectedFiles)
+      // Upload to project files using the secure validated API (same as ProjectFiles component)
+      const formData = new FormData()
+      selectedFiles.forEach(file => {
+        formData.append('files', file)
+      })
+
+      const response = await filesApi.uploadFiles(projectId, formData)
 
       if (response?.success && response.data?.files) {
-        const filesMetadata = response.data.files
+        // Convert uploaded project files to the format expected by submit-work endpoint
+        const filesMetadata: FileMetadata[] = response.data.files.map((file: any) => ({
+          url: file.filePath,
+          originalName: file.originalName,
+          size: file.fileSize,
+          mimeType: file.mimeType
+        }))
+
         setUploadedFiles(filesMetadata)
         toast.success(`${selectedFiles.length} file(s) uploaded successfully`)
         return filesMetadata
@@ -64,7 +108,8 @@ export function ProjectSubmitWorkModal({
       }
     } catch (error: any) {
       console.error('File upload error:', error)
-      toast.error(error.response?.data?.message || 'Failed to upload files')
+      const errorMsg = error.response?.data?.errors?.[0] || error.response?.data?.message || 'Failed to upload files'
+      toast.error(errorMsg)
       return []
     } finally {
       setUploading(false)
@@ -195,7 +240,7 @@ export function ProjectSubmitWorkModal({
               Files (Optional)
             </label>
             <p className="text-xs text-gray-500 mb-3">
-              Upload deliverable files, screenshots, or documentation. Maximum 10 files. Files will also appear in the Project Files section.
+              Upload deliverable files, screenshots, or documentation. Maximum 10 files, 10MB each. Files will also appear in the Project Files section.
             </p>
 
             {/* Upload Button */}
@@ -206,7 +251,7 @@ export function ProjectSubmitWorkModal({
                 onChange={handleFileSelect}
                 className="hidden"
                 id="project-file-upload"
-                accept="image/*,.pdf,.doc,.docx,.zip,.rar"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.txt,image/jpeg,image/png,image/gif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                 disabled={submitting || uploading || selectedFiles.length >= 10}
               />
               <label
@@ -220,7 +265,7 @@ export function ProjectSubmitWorkModal({
                   Click to upload files
                 </span>
                 <span className="text-xs text-gray-500 mt-1">
-                  PNG, JPG, PDF, DOC, ZIP up to 10MB each
+                  JPEG, PNG, GIF, PDF, Word documents, text files up to 10MB each
                 </span>
               </label>
             </div>

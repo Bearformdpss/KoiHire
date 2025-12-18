@@ -1433,6 +1433,7 @@ export default function ProjectDetailPage() {
             onSubmit={handleSubmitWork}
             projectTitle={project.title}
             submissionNumber={submissionNumber}
+            projectId={projectId}
           />
         )}
 
