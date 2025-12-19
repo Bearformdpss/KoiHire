@@ -34,6 +34,9 @@ export async function uploadServiceOrderFileToS3(
     const fileExtension = path.extname(file.originalname).toLowerCase();
     const fileName = `service-order-files/${orderId}/${uuidv4()}${fileExtension}`;
 
+    // Sanitize metadata values to ASCII only (S3 metadata must be US-ASCII)
+    const sanitizedOriginalName = file.originalname.replace(/[^\x00-\x7F]/g, '_');
+
     // Upload to S3 (no processing - upload raw file)
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
@@ -48,7 +51,7 @@ export async function uploadServiceOrderFileToS3(
       ServerSideEncryption: 'AES256',
       Metadata: {
         uploadedBy: userId,
-        originalName: file.originalname,
+        originalName: sanitizedOriginalName,
       },
     });
 
