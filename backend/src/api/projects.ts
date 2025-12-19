@@ -938,29 +938,8 @@ router.put('/:projectId/submit-work', authMiddleware, asyncHandler(async (req: A
     }
   });
 
-  // Create ProjectFile records for each submitted file so they appear in Project Files section
-  if (files && files.length > 0) {
-    try {
-      await Promise.all(
-        files.map((fileMetadata: any) => {
-          return prisma.projectFile.create({
-            data: {
-              projectId,
-              fileName: fileMetadata.originalName,
-              originalName: fileMetadata.originalName,
-              fileSize: fileMetadata.size,
-              mimeType: fileMetadata.mimeType,
-              filePath: fileMetadata.url,
-              uploadedById: req.user!.id
-            }
-          });
-        })
-      );
-    } catch (error) {
-      console.error('Error creating ProjectFile records for submission:', error);
-      // Don't fail the whole submission if this fails
-    }
-  }
+  // Note: Files are already uploaded to ProjectFile table via filesApi.uploadFiles() in the modal
+  // No need to create duplicate ProjectFile records here
 
   // Update project status to PENDING_REVIEW
   await prisma.project.update({
