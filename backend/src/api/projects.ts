@@ -932,7 +932,7 @@ router.put('/:projectId/submit-work', authMiddleware, asyncHandler(async (req: A
       projectId,
       title: title.trim(),
       description: description?.trim() || null,
-      files: files || [],
+      files: files?.map((f: any) => f.url) || [],
       submissionNumber,
       status: 'SUBMITTED'
     }
