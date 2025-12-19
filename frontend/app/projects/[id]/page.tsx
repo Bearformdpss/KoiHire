@@ -1404,6 +1404,7 @@ export default function ProjectDetailPage() {
                   projectId={project.id}
                   revieweeId={project.freelancer.id}
                   revieweeName={`${project.freelancer.firstName} ${project.freelancer.lastName}`}
+                  hasSubmittedReview={hasSubmittedReview}
                   onSuccess={handleReviewSuccess}
                   onCancel={() => setShowReviewModal(false)}
                 />

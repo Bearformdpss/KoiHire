@@ -11,6 +11,7 @@ interface ReviewFormProps {
   projectId: string
   revieweeId: string
   revieweeName: string
+  hasSubmittedReview?: boolean
   onSuccess?: () => void
   onCancel?: () => void
 }
@@ -24,12 +25,13 @@ interface ReviewData {
   professionalism: number
 }
 
-export function ReviewForm({ 
-  projectId, 
-  revieweeId, 
-  revieweeName, 
-  onSuccess, 
-  onCancel 
+export function ReviewForm({
+  projectId,
+  revieweeId,
+  revieweeName,
+  hasSubmittedReview = false,
+  onSuccess,
+  onCancel
 }: ReviewFormProps) {
   const { user } = useAuthStore()
   const [reviewData, setReviewData] = useState<ReviewData>({
@@ -93,8 +95,8 @@ export function ReviewForm({
   }
 
   const renderStarRating = (
-    label: string, 
-    field: keyof ReviewData, 
+    label: string,
+    field: keyof ReviewData,
     value: number,
     description?: string
   ) => (
@@ -110,13 +112,14 @@ export function ReviewForm({
             type="button"
             onClick={() => handleStarClick(field, star)}
             className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+            disabled={hasSubmittedReview}
           >
             <Star
               className={`w-6 h-6 transition-colors ${
                 star <= value
                   ? 'text-yellow-400 fill-current'
                   : 'text-gray-300 hover:text-yellow-200'
-              }`}
+              } ${hasSubmittedReview ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
           </button>
         ))}
@@ -184,6 +187,7 @@ export function ReviewForm({
             rows={4}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             maxLength={1000}
+            disabled={hasSubmittedReview}
           />
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs text-gray-500">
@@ -196,35 +200,47 @@ export function ReviewForm({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-          {onCancel && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-          )}
-          <Button
-            type="submit"
-            disabled={submitting}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4 mr-2" />
-                Submit Review
-              </>
+        {!hasSubmittedReview && (
+          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
+            {onCancel && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
             )}
-          </Button>
-        </div>
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Submit Review
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {hasSubmittedReview && (
+          <div className="flex items-center justify-center space-x-2 text-green-600 pt-4 border-t border-gray-200">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm font-medium">Review submitted successfully!</span>
+          </div>
+        )}
       </form>
     </div>
   )
