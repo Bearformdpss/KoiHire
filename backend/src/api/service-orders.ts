@@ -567,12 +567,15 @@ router.post('/:orderId/deliver', authMiddleware, requireRole(['FREELANCER']), as
   }
 
   // Create deliverable
+  // Extract just the URLs from file metadata for storage (files field expects string[])
+  const fileUrls = files ? files.map((f: any) => f.url) : [];
+
   const deliverable = await prisma.orderDeliverable.create({
     data: {
       orderId,
       title,
       description,
-      files: files || []
+      files: fileUrls
     }
   });
 
