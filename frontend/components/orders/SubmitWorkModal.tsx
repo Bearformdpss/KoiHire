@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X, Upload, FileText, Image as ImageIcon, File, Loader2 } from 'lucide-react'
 import { uploadApi, FileMetadata } from '@/lib/api/upload'
+import { validateFile } from '@/lib/utils/fileUpload'
 import toast from 'react-hot-toast'
 
 interface SubmitWorkModalProps {
@@ -26,7 +27,32 @@ export function SubmitWorkModal({ isOpen, onClose, onSubmit, orderTitle }: Submi
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    setSelectedFiles(prev => [...prev, ...files])
+
+    if (selectedFiles.length + files.length > 10) {
+      toast.error('Maximum 10 files allowed')
+      return
+    }
+
+    // Validate each file before adding
+    const invalidFiles: string[] = []
+    const validFiles: File[] = []
+
+    files.forEach(file => {
+      const validation = validateFile(file)
+      if (!validation.valid) {
+        invalidFiles.push(`${file.name}: ${validation.error}`)
+      } else {
+        validFiles.push(file)
+      }
+    })
+
+    if (invalidFiles.length > 0) {
+      toast.error(`Invalid files:\n${invalidFiles.join('\n')}`)
+    }
+
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles])
+    }
   }
 
   const handleRemoveFile = (index: number) => {
@@ -139,10 +165,14 @@ export function SubmitWorkModal({ isOpen, onClose, onSubmit, orderTitle }: Submi
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Final website design, Logo variations, etc."
+              placeholder="e.g., Final deliverable, Logo design complete, Website ready for review"
               className="w-full"
               disabled={submitting}
+              maxLength={200}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              {title.length}/200 characters
+            </p>
           </div>
 
           {/* Description */}
@@ -153,11 +183,15 @@ export function SubmitWorkModal({ isOpen, onClose, onSubmit, orderTitle }: Submi
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Provide details about your delivery, explain any decisions, or add usage instructions..."
-              rows={4}
+              placeholder="Provide details about your delivery, explain what you've completed, list any changes made, or add usage instructions..."
+              rows={5}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               disabled={submitting}
+              maxLength={2000}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              {description.length}/2000 characters
+            </p>
           </div>
 
           {/* File Upload */}
@@ -166,7 +200,7 @@ export function SubmitWorkModal({ isOpen, onClose, onSubmit, orderTitle }: Submi
               Files (Optional)
             </label>
             <p className="text-xs text-gray-500 mb-3">
-              Upload images, documents, or any files related to your delivery. Maximum 10 files.
+              Upload deliverable files, screenshots, or documentation. Maximum 10 files, 10MB each.
             </p>
 
             {/* Upload Button */}
@@ -177,19 +211,21 @@ export function SubmitWorkModal({ isOpen, onClose, onSubmit, orderTitle }: Submi
                 onChange={handleFileSelect}
                 className="hidden"
                 id="file-upload"
-                accept="image/*,.pdf,.doc,.docx,.zip,.rar"
-                disabled={submitting || selectedFiles.length >= 10}
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.txt,image/jpeg,image/png,image/gif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                disabled={submitting || uploading || selectedFiles.length >= 10}
               />
               <label
                 htmlFor="file-upload"
-                className="cursor-pointer flex flex-col items-center"
+                className={`cursor-pointer flex flex-col items-center ${
+                  selectedFiles.length >= 10 ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 <Upload className="w-10 h-10 text-gray-400 mb-2" />
                 <span className="text-sm font-medium text-gray-700">
                   Click to upload files
                 </span>
                 <span className="text-xs text-gray-500 mt-1">
-                  PNG, JPG, PDF, DOC, ZIP up to 10MB each
+                  JPEG, PNG, GIF, PDF, Word documents, text files up to 10MB each
                 </span>
               </label>
             </div>
@@ -198,7 +234,7 @@ export function SubmitWorkModal({ isOpen, onClose, onSubmit, orderTitle }: Submi
             {selectedFiles.length > 0 && (
               <div className="mt-4 space-y-2">
                 <p className="text-sm font-medium text-gray-700">
-                  Selected Files ({selectedFiles.length})
+                  Selected Files ({selectedFiles.length}/10)
                 </p>
                 {selectedFiles.map((file, index) => (
                   <div
@@ -219,7 +255,7 @@ export function SubmitWorkModal({ isOpen, onClose, onSubmit, orderTitle }: Submi
                     <button
                       onClick={() => handleRemoveFile(index)}
                       className="text-red-600 hover:text-red-700 p-1"
-                      disabled={submitting}
+                      disabled={submitting || uploading}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -232,8 +268,8 @@ export function SubmitWorkModal({ isOpen, onClose, onSubmit, orderTitle }: Submi
           {/* Info Message */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
-              💡 <strong>Tip:</strong> Make sure your delivery meets all the requirements specified by the client.
-              Include all necessary files and clear instructions if needed.
+              <strong>Tip:</strong> Make sure your delivery meets all requirements specified by the client.
+              Include all necessary files and clear instructions.
             </p>
           </div>
         </div>
