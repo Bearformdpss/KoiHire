@@ -216,6 +216,11 @@ export const serviceOrdersApi = {
   // Submit review (client only)
   async submitReview(orderId: string, data: ReviewData) {
     return api.post(`/service-orders/${orderId}/review`, data)
+  },
+
+  // Get order timeline events
+  async getOrderEvents(orderId: string) {
+    return api.get(`/service-orders/${orderId}/events`)
   }
 }
 
