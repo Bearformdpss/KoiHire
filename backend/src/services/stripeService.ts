@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { createProjectEvent, createServiceEvent, PROJECT_EVENT_TYPES, SERVICE_EVENT_TYPES } from './eventService';
 import { emailService } from './emailService';
+import { withPaymentIdempotency, withSimpleIdempotency } from '../utils/webhookIdempotency';
 
 const prisma = new PrismaClient();
 
@@ -132,6 +133,31 @@ export const createProjectEscrowPayment = async (
  */
 export const confirmProjectEscrowPayment = async (projectId: string, paymentIntentId: string) => {
   console.log(`🔍 confirmProjectEscrowPayment called for projectId: ${projectId}, paymentIntentId: ${paymentIntentId}`);
+
+  // IDEMPOTENCY CHECK: Prevent duplicate processing if webhook is retried
+  // Check if we've already created a Transaction for this PaymentIntent
+  const existingTransaction = await prisma.transaction.findFirst({
+    where: {
+      stripeId: paymentIntentId,
+      type: 'DEPOSIT',
+      status: 'COMPLETED'
+    }
+  });
+
+  if (existingTransaction) {
+    console.log(`⏭️ Payment ${paymentIntentId} already processed (duplicate webhook detected)`);
+
+    // Return existing escrow instead of creating duplicates
+    const escrow = await prisma.escrow.findUnique({
+      where: { projectId }
+    });
+
+    if (!escrow) {
+      throw new Error('Transaction exists but escrow not found - data inconsistency');
+    }
+
+    return escrow; // Return early - idempotent
+  }
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -688,6 +714,31 @@ export const createServiceOrderPayment = async (
 export const confirmServiceOrderPayment = async (orderId: string, paymentIntentId: string) => {
   console.log(`🔍 confirmServiceOrderPayment called for orderId: ${orderId}, paymentIntentId: ${paymentIntentId}`);
 
+  // IDEMPOTENCY CHECK: Prevent duplicate processing if webhook is retried
+  // Check if we've already created a Transaction for this PaymentIntent
+  const existingTransaction = await prisma.transaction.findFirst({
+    where: {
+      stripeId: paymentIntentId,
+      type: 'DEPOSIT',
+      status: 'COMPLETED'
+    }
+  });
+
+  if (existingTransaction) {
+    console.log(`⏭️ Payment ${paymentIntentId} already processed (duplicate webhook detected)`);
+
+    // Return existing order instead of creating duplicates
+    const order = await prisma.serviceOrder.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!order) {
+      throw new Error('Transaction exists but order not found - data inconsistency');
+    }
+
+    return order; // Return early - idempotent
+  }
+
   const order = await prisma.serviceOrder.findUnique({
     where: { id: orderId },
     include: {
@@ -1083,32 +1134,45 @@ export const refundServiceOrderPayment = async (orderId: string, reason?: string
 // ==================== WEBHOOK HANDLER ====================
 
 export const handleStripeWebhook = async (event: Stripe.Event) => {
-  console.log(`🔔 Webhook received: ${event.type}`);
+  console.log(`🔔 Webhook received: ${event.type} (ID: ${event.id})`);
 
-  switch (event.type) {
-    case 'payment_intent.amount_capturable_updated':
-      // This event fires when a payment with manual capture is authorized (funds held)
-      const capturablePayment = event.data.object as Stripe.PaymentIntent;
-      const { orderId: capturableOrderId, projectId: capturableProjectId, type: capturableType } = capturablePayment.metadata;
+  try {
+    switch (event.type) {
+      case 'payment_intent.amount_capturable_updated': {
+        // This event fires when a payment with manual capture is authorized (funds held)
+        const capturablePayment = event.data.object as Stripe.PaymentIntent;
+        const { orderId: capturableOrderId, projectId: capturableProjectId, type: capturableType } = capturablePayment.metadata;
 
-      console.log(`💰 Payment authorized (requires_capture):`, {
-        id: capturablePayment.id,
-        status: capturablePayment.status,
-        orderId: capturableOrderId,
-        projectId: capturableProjectId,
-        type: capturableType
-      });
+        // Use payment idempotency wrapper to prevent duplicate processing
+        const { duplicate } = await withPaymentIdempotency(
+          event,
+          capturablePayment.id,
+          async () => {
+            console.log(`💰 Payment authorized (requires_capture):`, {
+              id: capturablePayment.id,
+              status: capturablePayment.status,
+              orderId: capturableOrderId,
+              projectId: capturableProjectId,
+              type: capturableType
+            });
 
-      if (capturableType === 'service_order' && capturableOrderId) {
-        // Service order payment authorized - funds are held in escrow
-        await confirmServiceOrderPayment(capturableOrderId, capturablePayment.id);
-        console.log(`✅ Service order ${capturableOrderId} payment confirmed (funds held in escrow)`);
-      } else if (capturableType === 'project_escrow' && capturableProjectId) {
-        // Project escrow payment authorized - funds are held
-        await confirmProjectEscrowPayment(capturableProjectId, capturablePayment.id);
-        console.log(`✅ Project ${capturableProjectId} escrow payment confirmed (funds held)`);
+            if (capturableType === 'service_order' && capturableOrderId) {
+              // Service order payment authorized - funds are held in escrow
+              await confirmServiceOrderPayment(capturableOrderId, capturablePayment.id);
+              console.log(`✅ Service order ${capturableOrderId} payment confirmed (funds held in escrow)`);
+            } else if (capturableType === 'project_escrow' && capturableProjectId) {
+              // Project escrow payment authorized - funds are held
+              await confirmProjectEscrowPayment(capturableProjectId, capturablePayment.id);
+              console.log(`✅ Project ${capturableProjectId} escrow payment confirmed (funds held)`);
+            }
+          }
+        );
+
+        if (duplicate) {
+          console.log(`⏭️ Duplicate payment webhook skipped for ${capturablePayment.id}`);
+        }
+        break;
       }
-      break;
 
     case 'payment_intent.succeeded':
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
@@ -1143,29 +1207,44 @@ export const handleStripeWebhook = async (event: Stripe.Event) => {
       console.log(`🔄 Payment canceled: ${canceledPayment.id}`);
       break;
 
-    case 'account.updated':
-      // Stripe Connect account status updated
-      const account = event.data.object as Stripe.Account;
-      const userId = account.metadata?.userId;
+      case 'account.updated': {
+        // Stripe Connect account status updated
+        const account = event.data.object as Stripe.Account;
+        const userId = account.metadata?.userId;
 
-      if (userId) {
-        console.log(`👤 Updating Connect account status for user ${userId}`);
+        if (!userId) {
+          console.log('⚠️ Account updated event missing userId metadata');
+          break;
+        }
 
-        await prisma.user.update({
-          where: { id: userId },
-          data: {
-            stripePayoutsEnabled: account.payouts_enabled || false,
-            stripeChargesEnabled: account.charges_enabled || false,
-            stripeDetailsSubmitted: account.details_submitted || false,
-            stripeOnboardingComplete: (account.details_submitted && account.payouts_enabled) || false
-          }
+        // Use simple idempotency wrapper (in-memory only for non-payment events)
+        const { duplicate } = await withSimpleIdempotency(event, async () => {
+          console.log(`👤 Updating Connect account status for user ${userId}`);
+
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              stripePayoutsEnabled: account.payouts_enabled || false,
+              stripeChargesEnabled: account.charges_enabled || false,
+              stripeDetailsSubmitted: account.details_submitted || false,
+              stripeOnboardingComplete: (account.details_submitted && account.payouts_enabled) || false
+            }
+          });
+
+          console.log(`✅ User ${userId} Connect status updated`);
         });
 
-        console.log(`✅ User ${userId} Connect status updated`);
+        if (duplicate) {
+          console.log(`⏭️ Duplicate account.updated webhook skipped`);
+        }
+        break;
       }
-      break;
 
-    default:
-      console.log(`ℹ️ Unhandled event type: ${event.type}`);
+      default:
+        console.log(`ℹ️ Unhandled event type: ${event.type}`);
+    }
+  } catch (error: any) {
+    console.error(`❌ Error processing webhook ${event.id}:`, error);
+    throw error; // Re-throw to return 500 to Stripe (will retry)
   }
 };
