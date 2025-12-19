@@ -37,6 +37,7 @@ import { CheckoutWrapper } from '@/components/payments/CheckoutWrapper'
 import { PaymentRequiredModal } from '@/components/projects/PaymentRequiredModal'
 import { ProjectSubmitWorkModal } from '@/components/projects/ProjectSubmitWorkModal'
 import ProjectTimeline from '@/components/ProjectTimeline'
+import { ProjectFilesWidget } from '@/components/files/ProjectFilesWidget'
 import toast from 'react-hot-toast'
 
 interface Project {
@@ -1059,6 +1060,14 @@ export default function ProjectDetailPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Project Files Widget */}
+              {(isProjectOwner || (project.freelancer?.id && project.freelancer.id === user?.id)) && (
+                <ProjectFilesWidget
+                  projectId={project.id}
+                  canUpload={isProjectOwner || (project.freelancer?.id && project.freelancer.id === user?.id)}
+                />
+              )}
             </div>
           </div>
         </div>
