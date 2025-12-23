@@ -233,43 +233,35 @@ router.get('/:userId/stats', asyncHandler(async (req, res) => {
       completedProjects,
       activeProjects,
       averageRating,
-      totalEarnings,
       totalReviews
     ] = await Promise.all([
       prisma.project.count({
-        where: { 
+        where: {
           freelancerId: userId,
           status: { in: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'] }
         }
       }),
       prisma.project.count({
-        where: { 
+        where: {
           freelancerId: userId,
           status: 'COMPLETED'
         }
       }),
       prisma.project.count({
-        where: { 
+        where: {
           freelancerId: userId,
           status: 'IN_PROGRESS'
         }
       }),
       prisma.review.aggregate({
-        where: { 
+        where: {
           freelancerId: userId,
           isPublic: true
         },
         _avg: { rating: true }
       }),
-      prisma.payment.aggregate({
-        where: {
-          project: { freelancerId: userId },
-          status: 'COMPLETED'
-        },
-        _sum: { amount: true }
-      }),
       prisma.review.count({
-        where: { 
+        where: {
           freelancerId: userId,
           isPublic: true
         }
@@ -281,47 +273,39 @@ router.get('/:userId/stats', asyncHandler(async (req, res) => {
       completedProjects,
       activeProjects,
       averageRating: averageRating._avg.rating || 0,
-      totalEarnings: totalEarnings._sum.amount || 0,
       totalReviews,
       successRate: totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0
+      // totalEarnings removed for privacy - not shown on public profiles
     };
   } else if (user.role === 'CLIENT') {
     // Get client stats
     const [
       totalProjects,
       activeProjects,
-      completedProjects,
-      totalSpent
+      completedProjects
     ] = await Promise.all([
       prisma.project.count({
         where: { clientId: userId }
       }),
       prisma.project.count({
-        where: { 
+        where: {
           clientId: userId,
           status: 'IN_PROGRESS'
         }
       }),
       prisma.project.count({
-        where: { 
+        where: {
           clientId: userId,
           status: 'COMPLETED'
         }
-      }),
-      prisma.payment.aggregate({
-        where: {
-          project: { clientId: userId },
-          status: 'COMPLETED'
-        },
-        _sum: { amount: true }
       })
     ]);
 
     stats.client = {
       totalProjects,
       activeProjects,
-      completedProjects,
-      totalSpent: totalSpent._sum.amount || 0
+      completedProjects
+      // totalSpent removed for privacy - not shown on public profiles
     };
   }
 
