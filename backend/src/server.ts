@@ -12,6 +12,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
 import { setupSocketIO } from './services/socketService';
 import { globalLimiter } from './middleware/rateLimiter';
+import { corsOptions, socketCorsOptions } from './config/cors';
 
 // Import routes
 import authRoutes from './api/auth';
@@ -57,56 +58,14 @@ app.set('trust proxy', 1);
 
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
-  cors: {
-    origin: process.env.NODE_ENV === 'development'
-      ? 'http://localhost:3000'
-      : ['https://koihire.com', 'https://www.koihire.com', 'https://koi-hire.vercel.app', 'https://koihire-production.vercel.app'],
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
+  cors: socketCorsOptions
 });
 
 const PORT = process.env.PORT || 5000;
 
 // Security middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.NODE_ENV === 'development'
-    ? (origin, callback) => {
-        // Allow any localhost origin during development
-        if (!origin || origin.startsWith('http://localhost:')) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      }
-    : (origin, callback) => {
-        // In production, allow the configured frontend URL and its www variant
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        const allowedOrigins = [
-          frontendUrl,
-          frontendUrl.replace('https://', 'https://www.'),
-          frontendUrl.replace('https://www.', 'https://'),
-          'https://koi-hire.vercel.app', // Old Vercel URL
-          'https://koihire-production.vercel.app', // Production Vercel URL
-          'https://koihire.com', // Custom domain
-          'https://www.koihire.com' // Custom domain with www
-        ];
-
-        // Also allow any vercel.app subdomain for the project
-        const isVercelDomain = origin && origin.includes('vercel.app');
-        const isAllowedOrigin = !origin || allowedOrigins.includes(origin) || isVercelDomain;
-
-        if (isAllowedOrigin) {
-          callback(null, true);
-        } else {
-          // Only log rejections (actual security events)
-          console.error('❌ CORS Rejected:', origin);
-          callback(new Error('Not allowed by CORS'));
-        }
-      },
-  credentials: true
-}));
+app.use(cors(corsOptions));
 
 // Global rate limiting (baseline protection for all endpoints)
 // Endpoint-specific limiters are applied in individual route files
