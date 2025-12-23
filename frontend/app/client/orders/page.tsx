@@ -90,23 +90,23 @@ export default function ClientOrdersPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return 'bg-orange-100 text-orange-800 border border-orange-200'
+        return 'bg-orange-200 text-orange-900 border border-orange-400'
       case 'ACCEPTED':
-        return 'bg-blue-100 text-blue-800 border border-blue-200'
+        return 'bg-blue-200 text-blue-900 border border-blue-400'
       case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800 border border-blue-200'
+        return 'bg-blue-200 text-blue-900 border border-blue-400'
       case 'DELIVERED':
-        return 'bg-purple-100 text-purple-800 border border-purple-200'
+        return 'bg-purple-200 text-purple-900 border border-purple-400'
       case 'REVISION_REQUESTED':
-        return 'bg-orange-100 text-orange-800 border border-orange-200'
+        return 'bg-orange-200 text-orange-900 border border-orange-400'
       case 'COMPLETED':
-        return 'bg-green-100 text-green-800 border border-green-200'
+        return 'bg-green-200 text-green-900 border border-green-400'
       case 'CANCELLED':
-        return 'bg-red-100 text-red-800 border border-red-200'
+        return 'bg-red-200 text-red-900 border border-red-400'
       case 'DISPUTED':
-        return 'bg-red-100 text-red-800 border border-red-200'
+        return 'bg-red-200 text-red-900 border border-red-400'
       default:
-        return 'bg-gray-100 text-gray-800 border border-gray-200'
+        return 'bg-gray-300 text-gray-900 border border-gray-500'
     }
   }
 

@@ -186,23 +186,23 @@ export default function FreelancerOrdersPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-yellow-200 text-yellow-900'
       case 'ACCEPTED':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-blue-200 text-blue-900'
       case 'IN_PROGRESS':
-        return 'bg-orange-100 text-orange-800'
+        return 'bg-orange-200 text-orange-900'
       case 'DELIVERED':
-        return 'bg-purple-100 text-purple-800'
+        return 'bg-purple-200 text-purple-900'
       case 'REVISION_REQUESTED':
-        return 'bg-orange-100 text-orange-800'
+        return 'bg-orange-200 text-orange-900'
       case 'COMPLETED':
-        return 'bg-green-100 text-green-800'
+        return 'bg-green-200 text-green-900'
       case 'CANCELLED':
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-200 text-red-900'
       case 'DISPUTED':
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-200 text-red-900'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-300 text-gray-900'
     }
   }
 
@@ -276,7 +276,7 @@ export default function FreelancerOrdersPage() {
               <p className="text-gray-600">Manage your service orders and deliverables</p>
               {filteredService && orders.length > 0 && (
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="bg-orange-100 text-orange-800 border-orange-300">
+                  <Badge className="bg-orange-200 text-orange-900 border-orange-400">
                     Filtered by: {orders[0]?.service?.title || 'Service'}
                   </Badge>
                   <button

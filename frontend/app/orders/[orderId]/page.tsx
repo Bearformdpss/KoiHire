@@ -69,14 +69,14 @@ export default function OrderDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-      ACCEPTED: { label: 'Accepted', className: 'bg-blue-100 text-blue-800 border-blue-200' },
-      IN_PROGRESS: { label: 'In Progress', className: 'bg-purple-100 text-purple-800 border-purple-200' },
-      DELIVERED: { label: 'Delivered', className: 'bg-cyan-100 text-cyan-800 border-cyan-200' },
-      REVISION_REQUESTED: { label: 'Revision Requested', className: 'bg-orange-100 text-orange-800 border-orange-200' },
-      COMPLETED: { label: 'Completed', className: 'bg-green-100 text-green-800 border-green-200' },
-      CANCELLED: { label: 'Cancelled', className: 'bg-red-100 text-red-800 border-red-200' },
-      DISPUTED: { label: 'Disputed', className: 'bg-gray-100 text-gray-800 border-gray-200' }
+      PENDING: { label: 'Pending', className: 'bg-yellow-200 text-yellow-900 border-yellow-400' },
+      ACCEPTED: { label: 'Accepted', className: 'bg-blue-200 text-blue-900 border-blue-400' },
+      IN_PROGRESS: { label: 'In Progress', className: 'bg-purple-200 text-purple-900 border-purple-400' },
+      DELIVERED: { label: 'Delivered', className: 'bg-cyan-200 text-cyan-900 border-cyan-400' },
+      REVISION_REQUESTED: { label: 'Revision Requested', className: 'bg-orange-200 text-orange-900 border-orange-400' },
+      COMPLETED: { label: 'Completed', className: 'bg-green-200 text-green-900 border-green-400' },
+      CANCELLED: { label: 'Cancelled', className: 'bg-red-200 text-red-900 border-red-400' },
+      DISPUTED: { label: 'Disputed', className: 'bg-gray-300 text-gray-900 border-gray-500' }
     }
 
     const config = statusConfig[status] || statusConfig.PENDING
@@ -85,10 +85,10 @@ export default function OrderDetailPage() {
 
   const getPaymentStatusBadge = (paymentStatus: string) => {
     const statusConfig: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Payment Pending', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-      PAID: { label: 'Paid (In Escrow)', className: 'bg-blue-100 text-blue-800 border-blue-200' },
-      RELEASED: { label: 'Payment Released', className: 'bg-green-100 text-green-800 border-green-200' },
-      REFUNDED: { label: 'Refunded', className: 'bg-gray-100 text-gray-800 border-gray-200' }
+      PENDING: { label: 'Payment Pending', className: 'bg-yellow-200 text-yellow-900 border-yellow-400' },
+      PAID: { label: 'Paid (In Escrow)', className: 'bg-blue-200 text-blue-900 border-blue-400' },
+      RELEASED: { label: 'Payment Released', className: 'bg-green-200 text-green-900 border-green-400' },
+      REFUNDED: { label: 'Refunded', className: 'bg-gray-300 text-gray-900 border-gray-500' }
     }
 
     const config = statusConfig[paymentStatus] || statusConfig.PENDING
