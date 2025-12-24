@@ -83,8 +83,8 @@ function authenticatedFlow() {
 
   // Login
   const users = [
-    { email: 'john.client@example.com', password: 'password123' },
-    { email: 'mike.dev@example.com', password: 'password123' },
+    { email: 'john.client@example.com', password: 'Password123' },
+    { email: 'mike.dev@example.com', password: 'Password123' },
   ];
   const user = users[Math.floor(Math.random() * users.length)];
 

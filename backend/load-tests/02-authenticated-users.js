@@ -29,8 +29,8 @@ const BASE_URL = __ENV.API_URL || 'http://localhost:5003/api';
 
 // Test credentials from your seed data
 const TEST_USERS = [
-  { email: 'john.client@example.com', password: 'password123', type: 'client' },
-  { email: 'mike.dev@example.com', password: 'password123', type: 'freelancer' },
+  { email: 'john.client@example.com', password: 'Password123', type: 'client' },
+  { email: 'mike.dev@example.com', password: 'Password123', type: 'freelancer' },
 ];
 
 export default function () {
