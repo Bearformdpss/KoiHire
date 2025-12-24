@@ -25,18 +25,28 @@ interface AuthenticatedRequest extends Request {
 // Development mode detection
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+// Load testing mode - ONLY use this when performing load tests
+// Set DISABLE_RATE_LIMIT=true in Railway environment variables temporarily
+const isLoadTesting = process.env.DISABLE_RATE_LIMIT === 'true';
+
+if (isLoadTesting) {
+  console.warn('⚠️  RATE LIMITING DISABLED - Load testing mode active');
+  console.warn('⚠️  Remember to remove DISABLE_RATE_LIMIT environment variable after testing!');
+}
+
 /**
  * Global rate limiter - applies to all endpoints as a baseline
  * Generous limits to allow normal usage while preventing extreme abuse
  */
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isDevelopment ? 1000 : 300, // Increased to 300 for modern SPA usage patterns
+  max: isLoadTesting ? 999999 : (isDevelopment ? 1000 : 300), // Unlimited during load testing
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
   // Skip rate limiting for whitelisted IPs (e.g., health checks, internal services)
   skip: (req: Request) => {
+    if (isLoadTesting) return true; // Skip all rate limiting during load tests
     const whitelist = ['127.0.0.1', '::1'];
     return whitelist.includes(req.ip || '');
   }
