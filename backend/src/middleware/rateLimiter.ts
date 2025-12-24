@@ -40,7 +40,7 @@ if (isLoadTesting) {
  */
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isLoadTesting ? 999999 : (isDevelopment ? 1000 : 300), // Unlimited during load testing
+  max: isLoadTesting ? 999999 : (isDevelopment ? 1000 : 1000), // Increased to 1000 for production (was 300)
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
