@@ -1,6 +1,6 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, MessageType } from '@prisma/client';
 import { notificationService } from './notificationService';
 
 const prisma = new PrismaClient();
@@ -114,11 +114,11 @@ export const setupSocketIO = (io: SocketIOServer) => {
     socket.on('send_message', async (data: {
       conversationId: string;
       content: string;
-      type?: string;
+      type?: MessageType;
       attachments?: string[];
     }) => {
       try {
-        const { conversationId, content, type = 'TEXT', attachments = [] } = data;
+        const { conversationId, content, type = MessageType.TEXT, attachments = [] } = data;
 
         // Verify user is participant
         const participant = await prisma.conversationParticipant.findUnique({

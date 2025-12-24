@@ -326,11 +326,13 @@ async function seedFeaturedProjects() {
       { projectId: premiumProject3.id, skillId: skills.find(s => s.name === 'Figma')!.id },
     ];
 
-    await Promise.all(
-      projectSkills.map(ps => 
-        prisma.projectSkill.create({ data: ps })
-      )
-    );
+    // Note: ProjectSkill model has been removed from schema
+    // Skipping project skill associations for MVP
+    // await Promise.all(
+    //   projectSkills.map(ps =>
+    //     prisma.projectSkill.create({ data: ps })
+    //   )
+    // );
 
     console.log('✅ Featured projects seeded successfully!');
     console.log(`📊 Created:`);

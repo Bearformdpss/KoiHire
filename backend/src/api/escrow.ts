@@ -59,10 +59,10 @@ router.get('/service-order/:orderId', asyncHandler(async (req: AuthRequest, res)
   const order = await prisma.serviceOrder.findUnique({
     where: { id: orderId },
     select: {
-      buyerId: true,
+      clientId: true,
       service: {
         select: {
-          userId: true
+          freelancerId: true
         }
       }
     }
@@ -73,32 +73,16 @@ router.get('/service-order/:orderId', asyncHandler(async (req: AuthRequest, res)
   }
 
   // Only buyer or seller can check escrow status
-  if (order.buyerId !== req.user!.id && order.service.userId !== req.user!.id) {
+  if (order.clientId !== req.user!.id && order.service.freelancerId !== req.user!.id) {
     throw new AppError('Not authorized to view escrow for this order', 403);
   }
 
-  const escrow = await prisma.escrow.findUnique({
-    where: { serviceOrderId: orderId }
-  });
-
-  if (!escrow) {
-    return res.json({
-      success: true,
-      escrow: null,
-      message: 'No escrow found for this order'
-    });
-  }
-
-  res.json({
+  // Note: Escrow is only for projects, not service orders
+  // Service orders use direct payment, not escrow
+  return res.json({
     success: true,
-    escrow: {
-      id: escrow.id,
-      serviceOrderId: escrow.serviceOrderId,
-      amount: escrow.amount,
-      status: escrow.status,
-      createdAt: escrow.createdAt,
-      releasedAt: escrow.releasedAt
-    }
+    escrow: null,
+    message: 'Service orders do not use escrow - they use direct payment'
   });
 }));
 

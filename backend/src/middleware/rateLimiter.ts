@@ -1,6 +1,15 @@
 import rateLimit from 'express-rate-limit';
 import { Request } from 'express';
 
+// Extend Request to include user property
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 /**
  * Rate Limiter Middleware
  *
@@ -114,7 +123,8 @@ export const paymentLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
     // Rate limit by user ID if authenticated, otherwise by IP
-    return req.user?.id ? `payment:user:${req.user.id}` : `payment:ip:${req.ip}`;
+    const authReq = req as AuthenticatedRequest;
+    return authReq.user?.id ? `payment:user:${authReq.user.id}` : `payment:ip:${req.ip}`;
   }
 });
 
@@ -130,7 +140,8 @@ export const uploadLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
     // Rate limit by user ID if authenticated, otherwise by IP
-    return req.user?.id ? `upload:user:${req.user.id}` : `upload:ip:${req.ip}`;
+    const authReq = req as AuthenticatedRequest;
+    return authReq.user?.id ? `upload:user:${authReq.user.id}` : `upload:ip:${req.ip}`;
   }
 });
 

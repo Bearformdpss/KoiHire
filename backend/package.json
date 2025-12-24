@@ -5,8 +5,8 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "echo 'Skipping build'",
-    "start": "tsx src/server.ts",
+    "build": "npx prisma generate && tsc",
+    "start": "node dist/server.js",
     "start:railway": "npx prisma migrate deploy && npm start",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",

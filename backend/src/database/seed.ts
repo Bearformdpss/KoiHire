@@ -8,7 +8,6 @@ async function main() {
 
   // Clear existing data
   await prisma.userSkill.deleteMany();
-  await prisma.projectSkill.deleteMany();
   await prisma.application.deleteMany();
   await prisma.message.deleteMany();
   await prisma.conversationParticipant.deleteMany();
@@ -398,14 +397,7 @@ async function main() {
         timeline: '6-8 weeks',
         status: 'OPEN',
         categoryId: categories[0].id,
-        clientId: users[0].id,
-        skills: {
-          create: [
-            { skillId: webSkills[0].id },
-            { skillId: webSkills[1].id },
-            { skillId: webSkills[2].id }
-          ]
-        }
+        clientId: users[0].id
       }
     }),
     prisma.project.create({
@@ -418,13 +410,7 @@ async function main() {
         timeline: '3-4 weeks',
         status: 'OPEN',
         categoryId: categories[2].id,
-        clientId: users[1].id,
-        skills: {
-          create: [
-            { skillId: designSkills[0].id },
-            { skillId: designSkills[1].id }
-          ]
-        }
+        clientId: users[1].id
       }
     }),
     prisma.project.create({
@@ -438,12 +424,7 @@ async function main() {
         status: 'IN_PROGRESS',
         categoryId: categories[1].id,
         clientId: users[0].id,
-        freelancerId: users[4].id,
-        skills: {
-          create: [
-            { skillId: mobileSkills[0].id }
-          ]
-        }
+        freelancerId: users[4].id
       }
     })
   ]);

@@ -255,14 +255,14 @@ router.get('/:userId/stats', asyncHandler(async (req, res) => {
       }),
       prisma.review.aggregate({
         where: {
-          freelancerId: userId,
+          revieweeId: userId,
           isPublic: true
         },
         _avg: { rating: true }
       }),
       prisma.review.count({
         where: {
-          freelancerId: userId,
+          revieweeId: userId,
           isPublic: true
         }
       })

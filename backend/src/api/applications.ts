@@ -533,12 +533,7 @@ router.get('/:applicationId', asyncHandler(async (req: AuthRequest, res) => {
               rating: true
             }
           },
-          category: true,
-          skills: {
-            include: {
-              skill: true
-            }
-          }
+          category: true
         }
       },
       freelancer: {
@@ -559,14 +554,7 @@ router.get('/:applicationId', asyncHandler(async (req: AuthRequest, res) => {
           freelancerReviews: {
             where: { isPublic: true },
             take: 5,
-            orderBy: { createdAt: 'desc' },
-            include: {
-              reviewer: {
-                select: {
-                  username: true
-                }
-              }
-            }
+            orderBy: { createdAt: 'desc' }
           }
         }
       }
@@ -578,8 +566,16 @@ router.get('/:applicationId', asyncHandler(async (req: AuthRequest, res) => {
   }
 
   // Only project owner or applicant can view
-  if (application.project.clientId !== req.user!.id && application.freelancerId !== req.user!.id) {
-    throw new AppError('Not authorized to view this application', 403);
+  if (application.projectId && application.freelancerId !== req.user!.id) {
+    // Need to fetch project separately to check clientId
+    const project = await prisma.project.findUnique({
+      where: { id: application.projectId },
+      select: { clientId: true }
+    });
+
+    if (!project || (project.clientId !== req.user!.id && application.freelancerId !== req.user!.id)) {
+      throw new AppError('Not authorized to view this application', 403);
+    }
   }
 
   res.json({

@@ -767,7 +767,7 @@ router.get('/service-orders/:id', asyncHandler(async (req: AuthRequest, res) => 
         orderBy: { createdAt: 'desc' }
       },
       deliverables: {
-        orderBy: { createdAt: 'desc' }
+        orderBy: { submittedAt: 'desc' }
       },
       conversation: {
         include: {
@@ -787,7 +787,13 @@ router.get('/service-orders/:id', asyncHandler(async (req: AuthRequest, res) => 
       },
       reviews: {
         include: {
-          reviewer: {
+          client: {
+            select: {
+              id: true,
+              username: true
+            }
+          },
+          freelancer: {
             select: {
               id: true,
               username: true
