@@ -15,6 +15,10 @@
     "db:seed": "tsx src/database/seed.ts",
     "test": "jest",
     "test:watch": "jest --watch",
+    "load-test:local": "k6 run load-tests/03-realistic-mixed.js",
+    "load-test:prod": "k6 run load-tests/03-realistic-mixed.js -e API_URL=${PROD_API_URL}",
+    "load-test:browsing": "k6 run load-tests/01-basic-browsing.js",
+    "load-test:auth": "k6 run load-tests/02-authenticated-users.js",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"
   },
