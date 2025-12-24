@@ -91,7 +91,7 @@ export default function () {
     // CLIENT-SPECIFIC ACTIONS
 
     // 4. Browse freelancers
-    response = http.get(`${BASE_URL}/users-public?role=FREELANCER&limit=20`, authHeaders);
+    response = http.get(`${BASE_URL}/users/public?role=FREELANCER&limit=20`, authHeaders);
     success = check(response, {
       'freelancers browsed': (r) => r.status === 200,
     });

@@ -52,7 +52,7 @@ export default function () {
 
   // Test 5: Public users endpoint
   console.log('\n5. Testing public users endpoint...');
-  response = http.get(`${BASE_URL}/users-public?role=FREELANCER&limit=5`);
+  response = http.get(`${BASE_URL}/users/public?role=FREELANCER&limit=5`);
   console.log(`   Status: ${response.status}`);
   console.log(`   Body: ${response.body.substring(0, 500)}`);
   check(response, { 'users OK': (r) => r.status === 200 });

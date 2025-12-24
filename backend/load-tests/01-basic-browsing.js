@@ -78,7 +78,7 @@ export default function () {
   sleep(1);
 
   // 6. Load public freelancer profiles
-  response = http.get(`${BASE_URL}/users-public?role=FREELANCER&limit=10&sortBy=rating`);
+  response = http.get(`${BASE_URL}/users/public?role=FREELANCER&limit=10&sortBy=rating`);
   success = check(response, {
     'freelancers loaded': (r) => r.status === 200,
   });

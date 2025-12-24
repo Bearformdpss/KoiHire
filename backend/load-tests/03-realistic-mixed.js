@@ -71,7 +71,7 @@ function browsingFlow() {
   sleep(Math.random() * 2 + 1);
 
   // Browse freelancers
-  response = http.get(`${BASE_URL}/users-public?role=FREELANCER&limit=10`);
+  response = http.get(`${BASE_URL}/users/public?role=FREELANCER&limit=10`);
   success = check(response, { 'freelancers loaded': (r) => r.status === 200 });
   errorRate.add(!success);
 
