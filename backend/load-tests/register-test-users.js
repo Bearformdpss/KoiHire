@@ -47,8 +47,32 @@ export default function () {
     console.log('   ❌ Failed to register John Client');
   }
 
+  // Register Mike Developer (Freelancer)
+  console.log('\n2. Registering mike.dev@example.com...');
+  payload = JSON.stringify({
+    email: 'mike.dev@example.com',
+    password: 'Password123',
+    username: 'mikedev',
+    firstName: 'Mike',
+    lastName: 'Developer',
+    role: 'FREELANCER',
+  });
+
+  response = http.post(`${BASE_URL}/auth/register`, payload, params);
+  console.log(`   Status: ${response.status}`);
+  console.log(`   Response: ${response.body.substring(0, 200)}`);
+
+  if (response.status === 200 || response.status === 201) {
+    console.log('   ✅ Mike Developer registered successfully!');
+  } else if (response.body.includes('already exists') || response.body.includes('Email already in use')) {
+    console.log('   ⚠️  Mike already exists with old password!');
+    console.log('   ℹ️  To fix: Delete mike.dev@example.com from database and re-run this script');
+  } else {
+    console.log('   ❌ Failed to register Mike Developer');
+  }
+
   // Optional: Register additional test user if needed
-  console.log('\n2. Registering jane.client@example.com (backup test user)...');
+  console.log('\n3. Registering jane.client@example.com (backup test user)...');
   payload = JSON.stringify({
     email: 'jane.client@example.com',
     password: 'Password123',
