@@ -225,7 +225,7 @@ export function CategoryPills({
               <div className="relative">
                 <button
                   onClick={() => handleCategoryClick(category.id)}
-                  onMouseEnter={() => !isTouchDevice && hasSubcategories && handleMouseEnter(category.id)}
+                  onMouseEnter={() => !isTouchDevice && handleMouseEnter(category.id)}
                   onMouseLeave={() => !isTouchDevice && handleMouseLeave()}
                   className={cn(
                     "flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
