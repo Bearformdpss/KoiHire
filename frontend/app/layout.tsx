@@ -14,9 +14,9 @@ export const metadata: Metadata = {
   title: 'KoiHire - Freelance Marketplace',
   description: 'Where talent flows upstream. Connect with skilled freelancers and find quality projects on KoiHire.',
   icons: {
-    icon: '/koihire-fish.png',
-    shortcut: '/koihire-fish.png',
-    apple: '/koihire-fish.png',
+    icon: '/koihireblue.png',
+    shortcut: '/koihireblue.png',
+    apple: '/koihireblue.png',
   },
 }
 
