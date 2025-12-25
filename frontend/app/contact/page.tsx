@@ -204,7 +204,12 @@ export default function ContactPage() {
                 href="https://x.com/TaylorAllenKoi"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-white text-koi-orange py-3 px-6 rounded-lg font-semibold border-2 border-koi-orange hover:bg-koi-orange/10 hover:border-koi-orange transition-colors flex items-center justify-center"
+                style={{
+                  backgroundColor: 'white',
+                  color: '#FF6B35',
+                  borderColor: '#FF6B35'
+                }}
+                className="w-full py-3 px-6 rounded-lg font-semibold border-2 hover:bg-orange-50 transition-colors flex items-center justify-center"
               >
                 <MessageCircle className="w-5 h-5 mr-2" />
                 Visit My X Profile
