@@ -17,6 +17,9 @@ module.exports = {
     },
     extend: {
       colors: {
+        'koi-orange': '#FF6B35',
+        'koi-teal': '#00A7A3',
+        'koi-navy': '#1A3A52',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
