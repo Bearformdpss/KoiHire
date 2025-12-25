@@ -19,7 +19,7 @@ export default function ContactPage() {
     setSending(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contact`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/contact`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +147,11 @@ export default function ContactPage() {
               <button
                 type="submit"
                 disabled={sending}
-                className="w-full bg-gradient-to-r from-koi-orange to-koi-teal text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                style={{
+                  background: sending ? '#9CA3AF' : 'linear-gradient(to right, #FF6B35, #00A7A3)',
+                  color: 'white'
+                }}
+                className="w-full py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {sending ? (
                   <>
