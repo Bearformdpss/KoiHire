@@ -184,7 +184,7 @@ export default function ContactPage() {
               </h2>
 
               <p className="text-gray-700 mb-6 text-center leading-relaxed">
-                Send us a direct message on X (Twitter) for urgent matters. We typically respond within a few hours.
+                Message me directly on X (Twitter) for urgent matters. I typically respond within a few hours.
               </p>
 
               <div className="flex justify-center mb-6">
@@ -194,13 +194,13 @@ export default function ContactPage() {
               </div>
 
               <a
-                href="https://x.com/messages/compose?recipient_id=TaylorAllenKoi"
+                href="https://x.com/TaylorAllenKoi"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-white text-koi-orange py-3 px-6 rounded-lg font-semibold border-2 border-koi-orange hover:bg-koi-orange hover:text-white transition-colors flex items-center justify-center"
+                className="w-full bg-white text-koi-orange py-3 px-6 rounded-lg font-semibold border-2 border-koi-orange hover:bg-koi-orange/10 hover:border-koi-orange transition-colors flex items-center justify-center"
               >
                 <MessageCircle className="w-5 h-5 mr-2" />
-                Message on X
+                Visit My X Profile
                 <ExternalLink className="w-4 h-4 ml-2" />
               </a>
             </div>
