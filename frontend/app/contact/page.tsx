@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Mail, Send, MessageCircle, Clock, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Image from 'next/image'
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -176,7 +177,14 @@ export default function ContactPage() {
             {/* X DM Card */}
             <div className="bg-gradient-to-br from-koi-orange/10 to-koi-teal/10 rounded-lg shadow-md p-8 border border-koi-orange/20">
               <div className="flex items-center justify-center mb-6">
-                <MessageCircle className="w-12 h-12 text-koi-orange" />
+                <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                  <Image
+                    src="/taylor-profile.png"
+                    alt="Taylor Allen Koi"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
               </div>
 
               <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
@@ -186,12 +194,6 @@ export default function ContactPage() {
               <p className="text-gray-700 mb-6 text-center leading-relaxed">
                 Message me directly on X (Twitter) for urgent matters. I typically respond within a few hours.
               </p>
-
-              <div className="flex justify-center mb-6">
-                <span className="inline-flex items-center bg-white px-4 py-2 rounded-full text-koi-orange font-semibold border-2 border-koi-orange/30">
-                  ⚡ Faster Response
-                </span>
-              </div>
 
               <a
                 href="https://x.com/TaylorAllenKoi"
