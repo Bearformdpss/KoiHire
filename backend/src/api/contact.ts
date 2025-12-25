@@ -2,9 +2,23 @@ import express from 'express';
 import Joi from 'joi';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { emailService } from '../services/emailService';
-import { apiLimiter } from '../middleware/rateLimiter';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// Rate limiter for contact form submissions
+// Moderate limits to prevent spam while allowing legitimate use
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: process.env.NODE_ENV === 'development' ? 50 : 5, // 5 submissions per hour in production
+  message: 'Too many contact form submissions. Please try again in an hour.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: express.Request) => {
+    const email = req.body.email;
+    return email ? `contact:${email}` : `contact:ip:${req.ip}`;
+  }
+});
 
 // Validation schema for contact form
 const contactFormSchema = Joi.object({
@@ -64,7 +78,7 @@ const validate = (schema: Joi.ObjectSchema) => {
  * POST /api/contact
  * Submit contact form (public endpoint)
  */
-router.post('/', apiLimiter, validate(contactFormSchema), asyncHandler(async (req, res) => {
+router.post('/', contactLimiter, validate(contactFormSchema), asyncHandler(async (req, res) => {
   const { name, email, subject, message } = req.body;
 
   // Basic XSS prevention - strip HTML tags
