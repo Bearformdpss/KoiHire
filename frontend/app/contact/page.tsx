@@ -148,10 +148,11 @@ export default function ContactPage() {
                 type="submit"
                 disabled={sending}
                 style={{
-                  background: sending ? '#9CA3AF' : 'linear-gradient(to right, #FF6B35, #00A7A3)',
-                  color: 'white'
+                  backgroundColor: sending ? '#9CA3AF' : 'white',
+                  color: sending ? 'white' : '#FF6B35',
+                  borderColor: sending ? '#9CA3AF' : '#FF6B35'
                 }}
-                className="w-full py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:cursor-not-allowed flex items-center justify-center"
+                className="w-full py-3 px-6 rounded-lg font-semibold border-2 hover:bg-orange-50 transition-colors disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {sending ? (
                   <>
