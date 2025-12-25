@@ -36,6 +36,7 @@ export function CheckoutModal({
   const stripe = useStripe()
   const elements = useElements()
   const [loading, setLoading] = useState(false)
+  const [isReady, setIsReady] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,6 +50,15 @@ export function CheckoutModal({
     console.log('💳 Submitting payment...')
 
     try {
+      // Submit the elements to ensure all data is collected
+      const { error: submitError } = await elements.submit()
+      if (submitError) {
+        console.error('❌ Elements submit error:', submitError)
+        toast.error(submitError.message || 'Payment validation failed')
+        setLoading(false)
+        return
+      }
+
       // Confirm payment
       console.log('💳 Calling stripe.confirmPayment...')
       const { error, paymentIntent } = await stripe.confirmPayment({
@@ -154,7 +164,13 @@ export function CheckoutModal({
           {/* Payment Form */}
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
-              <PaymentElement />
+              <PaymentElement
+                onReady={() => setIsReady(true)}
+                onLoadError={(error) => {
+                  console.error('PaymentElement load error:', error)
+                  toast.error('Failed to load payment form')
+                }}
+              />
             </div>
 
             {/* Test Card Notice (only show in development) */}
@@ -178,13 +194,18 @@ export function CheckoutModal({
               </Button>
               <Button
                 type="submit"
-                disabled={!stripe || loading}
+                disabled={!stripe || !isReady || loading}
                 className="flex-1 bg-gradient-to-r from-koi-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Processing...
+                  </>
+                ) : !isReady ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
                   </>
                 ) : (
                   `Pay $${totalAmount.toFixed(2)}`
