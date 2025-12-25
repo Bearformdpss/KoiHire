@@ -24,6 +24,8 @@ import {
   projectCancelledFreelancerEmail,
   serviceReviewReceivedFreelancerEmail,
   passwordChangedConfirmationEmail,
+  contactFormNotificationEmail,
+  contactFormConfirmationEmail,
 } from '../templates/emailTemplates';
 
 /**
@@ -665,6 +667,59 @@ class EmailService {
     await this.sendEmail(
       data.email,
       '🔐 Password Changed - KoiHire',
+      html
+    );
+  }
+
+  // ==================== CONTACT FORM EMAIL METHODS ====================
+
+  /**
+   * EMAIL #22: Contact Form Notification - Send to Support
+   */
+  async sendContactFormNotification(data: {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+  }): Promise<void> {
+    const subjectLabels: Record<string, string> = {
+      general: 'General Inquiry',
+      account: 'Account Support',
+      payment: 'Payment Issue',
+      technical: 'Technical Support',
+      dispute: 'Dispute Resolution',
+      feedback: 'Feedback & Suggestions',
+      other: 'Other'
+    };
+
+    const html = contactFormNotificationEmail({
+      name: data.name,
+      email: data.email,
+      subject: data.subject,
+      message: data.message,
+    });
+
+    await this.sendEmail(
+      'support@koihire.com',
+      `🔔 New Contact: ${subjectLabels[data.subject] || data.subject}`,
+      html
+    );
+  }
+
+  /**
+   * EMAIL #23: Contact Form Confirmation - Send to User
+   */
+  async sendContactFormConfirmation(data: {
+    email: string;
+    name: string;
+  }): Promise<void> {
+    const html = contactFormConfirmationEmail({
+      name: data.name,
+    });
+
+    await this.sendEmail(
+      data.email,
+      'Thanks for contacting KoiHire!',
       html
     );
   }

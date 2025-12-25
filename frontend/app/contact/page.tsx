@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Mail, Send, MessageCircle, Clock } from 'lucide-react'
+import { Mail, Send, MessageCircle, Clock, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function ContactPage() {
@@ -18,14 +18,25 @@ export default function ContactPage() {
     setSending(true)
 
     try {
-      // TODO: Implement backend contact form endpoint
-      // For now, just show success message
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send message')
+      }
 
       toast.success('Message sent! We\'ll get back to you within 24 hours.')
       setFormData({ name: '', email: '', subject: '', message: '' })
-    } catch (error) {
-      toast.error('Failed to send message. Please email us directly at support@koihire.com')
+    } catch (error: any) {
+      console.error('Contact form error:', error)
+      toast.error(error.message || 'Failed to send message. Please email us directly at support@koihire.com')
     } finally {
       setSending(false)
     }
@@ -50,14 +61,14 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - 2 Panel Layout */}
       <div className="container mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
-          {/* Contact Form */}
+        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          {/* LEFT PANEL - Contact Form */}
           <div className="bg-white rounded-lg shadow-md p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <MessageCircle className="w-6 h-6 mr-2 text-koi-orange" />
-              Send Us a Message
+              <Mail className="w-6 h-6 mr-2 text-koi-orange" />
+              Email Support
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -153,24 +164,61 @@ export default function ContactPage() {
                 )}
               </button>
             </form>
+
+            <div className="mt-6 flex items-center text-sm text-gray-600">
+              <Clock className="w-4 h-4 mr-2 text-koi-teal" />
+              We'll respond within 24 hours
+            </div>
           </div>
 
-          {/* Contact Information */}
-          <div className="space-y-8">
-            {/* Email Contact */}
-            <div className="bg-white rounded-lg shadow-md p-8">
+          {/* RIGHT PANEL - X DM Alternative */}
+          <div className="space-y-6">
+            {/* X DM Card */}
+            <div className="bg-gradient-to-br from-koi-orange/10 to-koi-teal/10 rounded-lg shadow-md p-8 border border-koi-orange/20">
+              <div className="flex items-center justify-center mb-6">
+                <MessageCircle className="w-12 h-12 text-koi-orange" />
+              </div>
+
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
+                Need a Faster Response?
+              </h2>
+
+              <p className="text-gray-700 mb-6 text-center leading-relaxed">
+                Send us a direct message on X (Twitter) for urgent matters. We typically respond within a few hours.
+              </p>
+
+              <div className="flex justify-center mb-6">
+                <span className="inline-flex items-center bg-white px-4 py-2 rounded-full text-koi-orange font-semibold border-2 border-koi-orange/30">
+                  ⚡ Faster Response
+                </span>
+              </div>
+
+              <a
+                href="https://x.com/messages/compose?recipient_id=TaylorAllenKoi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-white text-koi-orange py-3 px-6 rounded-lg font-semibold border-2 border-koi-orange hover:bg-koi-orange hover:text-white transition-colors flex items-center justify-center"
+              >
+                <MessageCircle className="w-5 h-5 mr-2" />
+                Message on X
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </a>
+            </div>
+
+            {/* Email Info Card */}
+            <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-start">
-                <div className="bg-koi-orange/10 p-3 rounded-lg">
-                  <Mail className="w-6 h-6 text-koi-orange" />
+                <div className="bg-koi-teal/10 p-3 rounded-lg">
+                  <Mail className="w-6 h-6 text-koi-teal" />
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Email Us</h3>
-                  <p className="text-gray-600 mb-3">
-                    For direct support, send us an email and we'll respond within 24 hours.
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Direct Email</h3>
+                  <p className="text-gray-600 mb-3 text-sm">
+                    You can also email us directly at:
                   </p>
                   <a
                     href="mailto:support@koihire.com"
-                    className="text-koi-orange hover:text-koi-orange/80 font-semibold text-lg"
+                    className="text-koi-orange hover:text-koi-orange/80 font-semibold"
                   >
                     support@koihire.com
                   </a>
@@ -178,36 +226,26 @@ export default function ContactPage() {
               </div>
             </div>
 
-            {/* Response Time */}
-            <div className="bg-white rounded-lg shadow-md p-8">
+            {/* Response Time Info */}
+            <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-start">
-                <div className="bg-koi-teal/10 p-3 rounded-lg">
-                  <Clock className="w-6 h-6 text-koi-teal" />
+                <div className="bg-koi-orange/10 p-3 rounded-lg">
+                  <Clock className="w-6 h-6 text-koi-orange" />
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Response Time</h3>
-                  <p className="text-gray-600">
-                    We typically respond to all inquiries within 24 hours during business days. For urgent matters, please include "URGENT" in your subject line.
-                  </p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Response Times</h3>
+                  <ul className="text-gray-600 text-sm space-y-2">
+                    <li className="flex items-center">
+                      <span className="w-2 h-2 bg-koi-orange rounded-full mr-2"></span>
+                      Email: Within 24 hours
+                    </li>
+                    <li className="flex items-center">
+                      <span className="w-2 h-2 bg-koi-teal rounded-full mr-2"></span>
+                      X DM: Usually within a few hours
+                    </li>
+                  </ul>
                 </div>
               </div>
-            </div>
-
-            {/* FAQ Suggestion */}
-            <div className="bg-gradient-to-br from-koi-orange/10 to-koi-teal/10 rounded-lg p-8 border border-koi-orange/20">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Quick Help</h3>
-              <p className="text-gray-700 mb-4">
-                Looking for immediate answers? Check out these common topics:
-              </p>
-              <ul className="space-y-2 text-gray-700">
-                <li>• How to post a project or create a service</li>
-                <li>• Payment and withdrawal information</li>
-                <li>• Account verification process</li>
-                <li>• Dispute resolution procedures</li>
-              </ul>
-              <p className="text-sm text-gray-600 mt-4">
-                Most questions can be answered in our help documentation or by contacting support directly.
-              </p>
             </div>
           </div>
         </div>

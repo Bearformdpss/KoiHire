@@ -1155,3 +1155,114 @@ export function passwordChangedConfirmationEmail(data: {
 
   return emailWrapper(content);
 }
+
+// ==================== CONTACT FORM EMAIL TEMPLATES ====================
+
+/**
+ * EMAIL #22: Contact Form Notification - Support Team
+ */
+export function contactFormNotificationEmail(data: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): string {
+  const subjectLabels: Record<string, string> = {
+    general: 'General Inquiry',
+    account: 'Account Support',
+    payment: 'Payment Issue',
+    technical: 'Technical Support',
+    dispute: 'Dispute Resolution',
+    feedback: 'Feedback & Suggestions',
+    other: 'Other'
+  };
+
+  const content = `
+    <h2 style="margin: 0 0 20px 0; color: ${COLORS.navy}; font-size: 24px;">🔔 New Contact Form Submission</h2>
+
+    <p style="margin: 0 0 20px 0; color: ${COLORS.navy}; font-size: 16px; line-height: 1.6;">
+      You've received a new message from the KoiHire contact form.
+    </p>
+
+    ${infoBox('From', data.name)}
+    ${infoBox('Email', `<a href="mailto:${data.email}" style="color: ${COLORS.orange}; text-decoration: none;">${data.email}</a>`)}
+    ${infoBox('Subject', subjectLabels[data.subject] || data.subject)}
+    ${infoBox('Submitted', new Date().toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    }))}
+
+    <div style="background-color: ${COLORS.lightGray}; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="margin: 0 0 10px 0; color: ${COLORS.navy}; font-size: 16px;">Message:</h3>
+      <p style="margin: 0; color: ${COLORS.navy}; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">
+${data.message}
+      </p>
+    </div>
+
+    <div style="background-color: ${COLORS.lightGray}; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid ${COLORS.orange};">
+      <p style="margin: 0; color: ${COLORS.navy}; font-size: 14px; line-height: 1.6;">
+        <strong>Quick Reply:</strong> Simply reply to this email to respond directly to ${data.name}.
+      </p>
+    </div>
+
+    <div style="margin: 30px 0; text-align: center;">
+      <a href="mailto:${data.email}?subject=Re: ${encodeURIComponent(subjectLabels[data.subject] || data.subject)}" style="display: inline-block; background-color: ${COLORS.orange}; color: ${COLORS.white}; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 16px; border: none; margin: 10px 5px;">
+        Reply to ${data.name}
+      </a>
+    </div>
+  `;
+
+  return emailWrapper(content);
+}
+
+/**
+ * EMAIL #23: Contact Form Confirmation - User
+ */
+export function contactFormConfirmationEmail(data: {
+  name: string;
+}): string {
+  const content = `
+    <h2 style="margin: 0 0 20px 0; color: ${COLORS.navy}; font-size: 24px;">Thanks for Contacting Us!</h2>
+
+    <p style="margin: 0 0 20px 0; color: ${COLORS.navy}; font-size: 16px; line-height: 1.6;">
+      Hi <strong>${data.name}</strong>,
+    </p>
+
+    <p style="margin: 0 0 20px 0; color: ${COLORS.navy}; font-size: 16px; line-height: 1.6;">
+      We've received your message and our support team will get back to you as soon as possible.
+    </p>
+
+    <div style="background: linear-gradient(135deg, ${COLORS.orange} 0%, ${COLORS.teal} 100%); padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+      <p style="margin: 0; color: ${COLORS.white}; font-size: 18px; font-weight: 600;">
+        ✅ Message Received
+      </p>
+    </div>
+
+    ${infoBox('Expected Response Time', 'Within 24 hours during business days')}
+
+    <div style="background-color: ${COLORS.lightGray}; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="margin: 0 0 15px 0; color: ${COLORS.navy}; font-size: 16px;">Need a Faster Response?</h3>
+      <p style="margin: 0 0 10px 0; color: ${COLORS.navy}; font-size: 14px; line-height: 1.6;">
+        For urgent matters, you can reach us directly on X (Twitter):
+      </p>
+      <div style="margin: 15px 0 0 0; text-align: center;">
+        <a href="https://x.com/messages/compose?recipient_id=TaylorAllenKoi" style="display: inline-block; background-color: ${COLORS.white}; color: ${COLORS.orange}; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 16px; border: 2px solid ${COLORS.orange}; margin: 10px 5px;">
+          💬 Message on X
+        </a>
+      </div>
+      <p style="margin: 10px 0 0 0; color: ${COLORS.gray}; font-size: 13px; text-align: center;">
+        Usually respond within a few hours
+      </p>
+    </div>
+
+    <p style="margin: 20px 0 0 0; color: ${COLORS.gray}; font-size: 14px; line-height: 1.6;">
+      In the meantime, feel free to explore <a href="https://koihire.com" style="color: ${COLORS.orange}; text-decoration: none;">KoiHire</a> or check your dashboard for updates.
+    </p>
+  `;
+
+  return emailWrapper(content);
+}

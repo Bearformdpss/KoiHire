@@ -37,6 +37,7 @@ import recommendationsRoutes from './api/recommendations';
 import actionsRoutes from './api/actions';
 import freelancerWorkRoutes from './api/freelancer-work';
 import workNotesRoutes from './api/work-notes';
+import contactRoutes from './api/contact';
 // import projectUpdateRoutes from './routes/projectUpdates';
 
 // Load environment variables
@@ -99,6 +100,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/contact', contactRoutes); // Public contact form (no auth required)
 app.use('/api/users/public', publicUserRoutes); // Public user routes (no auth required)
 app.use('/api/users', authMiddleware, userRoutes); // Private user routes (auth required)
 app.use('/api/projects', projectRoutes);
