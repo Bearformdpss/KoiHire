@@ -13,6 +13,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'KoiHire - Freelance Marketplace',
   description: 'Where talent flows upstream. Connect with skilled freelancers and find quality projects on KoiHire.',
+  icons: {
+    icon: '/koihire-fish.png',
+    shortcut: '/koihire-fish.png',
+    apple: '/koihire-fish.png',
+  },
 }
 
 export default function RootLayout({
